@@ -18,7 +18,7 @@ import javax.swing.filechooser.FileFilter;
 import org.cytoscape.app.CyAppAdapter;
 import org.cytoscape.session.CySessionManager;
 
-import animo.core.cytoscape.Animo;
+import animo.cytoscape.Animo;
 
 /**
  * The class used for file input/output

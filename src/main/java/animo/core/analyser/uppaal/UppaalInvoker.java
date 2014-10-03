@@ -10,7 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import animo.core.ANIMOBackend;
-import animo.core.util.XmlConfiguration;
+import animo.util.XmlConfiguration;
 
 /**
  * @author B. Wanders

@@ -23,7 +23,7 @@ import animo.core.ANIMOBackend;
 import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
-import animo.core.util.XmlConfiguration;
+import animo.util.XmlConfiguration;
 
 public class VariablesModelReactantCentered extends VariablesModel
 {

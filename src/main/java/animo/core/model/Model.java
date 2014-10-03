@@ -19,11 +19,11 @@ import org.cytoscape.work.TaskMonitor;
 
 import animo.core.ANIMOBackend;
 import animo.core.analyser.uppaal.VariablesModel;
-import animo.core.cytoscape.Animo;
-import animo.core.exceptions.AnimoException;
-import animo.core.util.Table;
-import animo.core.util.XmlConfiguration;
+import animo.cytoscape.Animo;
+import animo.exceptions.AnimoException;
 import animo.fitting.ScenarioCfg;
+import animo.util.Table;
+import animo.util.XmlConfiguration;
 
 /**
  * A model. This model keeps itself consistent, as long as both {@link Reactant}

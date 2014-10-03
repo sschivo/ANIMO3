@@ -51,8 +51,8 @@ import javax.swing.JPopupMenu;
 
 import animo.core.ANIMOBackend;
 import animo.core.analyser.LevelResult;
-import animo.core.util.HeatChart;
-import animo.core.util.XmlConfiguration;
+import animo.util.HeatChart;
+import animo.util.XmlConfiguration;
 
 public class Graph extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ActionListener, ComponentListener
 {

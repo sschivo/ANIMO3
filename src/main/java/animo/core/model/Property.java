@@ -8,10 +8,10 @@ import java.util.Arrays;
 import java.util.HashSet;
 import java.util.Set;
 
-import animo.core.util.Pair;
-import animo.core.util.Quadruple;
-import animo.core.util.Table;
-import animo.core.util.Triple;
+import animo.util.Pair;
+import animo.util.Quadruple;
+import animo.util.Table;
+import animo.util.Triple;
 
 /**
  * A property on a model component.

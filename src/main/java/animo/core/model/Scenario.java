@@ -5,7 +5,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 
-import animo.core.util.Pair;
+import animo.util.Pair;
 
 /**
  * Represents a scenario for a reaction in the model.

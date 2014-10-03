@@ -28,12 +28,12 @@ import animo.core.analyser.AnalysisException;
 import animo.core.analyser.LevelResult;
 import animo.core.analyser.ModelAnalyser;
 import animo.core.analyser.SMCResult;
-import animo.core.cytoscape.Animo;
-import animo.core.cytoscape.AnimoActionTask;
 import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
-import animo.core.util.XmlConfiguration;
+import animo.cytoscape.Animo;
+import animo.cytoscape.AnimoActionTask;
+import animo.util.XmlConfiguration;
 
 /**
  * This class is currently used for all queries.

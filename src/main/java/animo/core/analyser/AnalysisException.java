@@ -3,7 +3,7 @@
  */
 package animo.core.analyser;
 
-import animo.core.exceptions.AnimoException;
+import animo.exceptions.AnimoException;
 
 /**
  * This exceptions is thrown to indicate that something went wrong while

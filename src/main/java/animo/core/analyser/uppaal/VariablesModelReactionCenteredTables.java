@@ -22,7 +22,7 @@ import animo.core.model.Model;
 import animo.core.model.Property;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
-import animo.core.util.Table;
+import animo.util.Table;
 
 /**
  * Produces an UPPAAL model to be used with the UPPAAL SMC engine.

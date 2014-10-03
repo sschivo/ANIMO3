@@ -11,10 +11,10 @@ import javax.xml.transform.TransformerException;
 
 import org.xml.sax.SAXException;
 
-import animo.core.exceptions.AnimoException;
 import animo.core.model.Model;
-import animo.core.util.XmlConfiguration;
-import animo.core.util.XmlEnvironment;
+import animo.exceptions.AnimoException;
+import animo.util.XmlConfiguration;
+import animo.util.XmlEnvironment;
 
 /**
  * The ANIMO backend singleton is used to initialise the ANIMO backend, and to

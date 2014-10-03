@@ -11,8 +11,8 @@ import java.util.TreeMap;
 import org.cytoscape.work.TaskMonitor;
 
 import animo.core.analyser.AnalysisException;
-import animo.core.cytoscape.AnimoActionTask;
 import animo.core.model.Model;
+import animo.cytoscape.AnimoActionTask;
 
 /**
  * Used to produce the average result of a series of simulation queries.

@@ -61,21 +61,21 @@ import animo.core.analyser.AnalysisException;
 import animo.core.analyser.LevelResult;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.analyser.uppaal.VariablesModel;
-import animo.core.cytoscape.Animo;
-import animo.core.cytoscape.ComponentTitledBorder;
-import animo.core.cytoscape.AnimoActionTask;
-import animo.core.cytoscape.LabelledField;
-import animo.core.exceptions.AnimoException;
 import animo.core.graph.FileUtils;
 import animo.core.graph.Graph;
 import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.core.model.Scenario;
-import animo.core.util.Pair;
-import animo.core.util.Table;
-import animo.core.util.XmlConfiguration;
+import animo.cytoscape.Animo;
+import animo.cytoscape.AnimoActionTask;
+import animo.cytoscape.ComponentTitledBorder;
+import animo.cytoscape.LabelledField;
+import animo.exceptions.AnimoException;
 import animo.fitting.multithread.ThreadPool;
+import animo.util.Pair;
+import animo.util.Table;
+import animo.util.XmlConfiguration;
 
 public class ParameterFitter extends WindowAdapter
 {

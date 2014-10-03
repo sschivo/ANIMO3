@@ -8,7 +8,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import animo.core.util.Table;
+import animo.util.Table;
 
 /**
  * A property bag is a set of unordered properties.
