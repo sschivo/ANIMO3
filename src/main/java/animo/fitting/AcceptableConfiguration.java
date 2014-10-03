@@ -2,7 +2,7 @@ package animo.fitting;
 
 import java.util.HashMap;
 
-import animo.inat.analyser.LevelResult;
+import animo.core.analyser.LevelResult;
 
 public class AcceptableConfiguration implements Comparable<AcceptableConfiguration>
 {

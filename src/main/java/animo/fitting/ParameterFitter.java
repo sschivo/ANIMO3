@@ -56,26 +56,26 @@ import javax.swing.event.DocumentListener;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 
+import animo.core.ANIMOBackend;
+import animo.core.analyser.AnalysisException;
+import animo.core.analyser.LevelResult;
+import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
+import animo.core.analyser.uppaal.VariablesModel;
+import animo.core.cytoscape.Animo;
+import animo.core.cytoscape.ComponentTitledBorder;
+import animo.core.cytoscape.AnimoActionTask;
+import animo.core.cytoscape.LabelledField;
+import animo.core.exceptions.AnimoException;
+import animo.core.graph.FileUtils;
+import animo.core.graph.Graph;
+import animo.core.model.Model;
+import animo.core.model.Reactant;
+import animo.core.model.Reaction;
+import animo.core.model.Scenario;
+import animo.core.util.Pair;
+import animo.core.util.Table;
+import animo.core.util.XmlConfiguration;
 import animo.fitting.multithread.ThreadPool;
-import animo.inat.InatBackend;
-import animo.inat.analyser.AnalysisException;
-import animo.inat.analyser.LevelResult;
-import animo.inat.analyser.uppaal.UppaalModelAnalyserSMC;
-import animo.inat.analyser.uppaal.VariablesModel;
-import animo.inat.cytoscape.Animo;
-import animo.inat.cytoscape.ComponentTitledBorder;
-import animo.inat.cytoscape.InatActionTask;
-import animo.inat.cytoscape.LabelledField;
-import animo.inat.exceptions.InatException;
-import animo.inat.graph.FileUtils;
-import animo.inat.graph.Graph;
-import animo.inat.model.Model;
-import animo.inat.model.Reactant;
-import animo.inat.model.Reaction;
-import animo.inat.model.Scenario;
-import animo.inat.util.Pair;
-import animo.inat.util.Table;
-import animo.inat.util.XmlConfiguration;
 
 public class ParameterFitter extends WindowAdapter
 {
@@ -719,7 +719,7 @@ public class ParameterFitter extends WindowAdapter
         window = new JFrame("Parameter fitter");
         model = null;
         generateTables = false;
-        XmlConfiguration configuration = InatBackend.get().configuration();
+        XmlConfiguration configuration = ANIMOBackend.get().configuration();
         String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
         if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES))
         {
@@ -732,7 +732,7 @@ public class ParameterFitter extends WindowAdapter
             scale = (double) nMinutesToSimulate / timeTo;
 
         }
-        catch (InatException e1)
+        catch (AnimoException e1)
         {
             e1.printStackTrace();
         }
@@ -833,12 +833,12 @@ public class ParameterFitter extends WindowAdapter
         if (a < b)
         {
             long estimation = (long) ((System.currentTimeMillis() - startTime) / (a + 1) * (b - a - 1));
-            progress.setToolTipText("Estimated remaining time: " + InatActionTask.timeDifferenceFormat(estimation / 1000));
+            progress.setToolTipText("Estimated remaining time: " + AnimoActionTask.timeDifferenceFormat(estimation / 1000));
         }
         else
         {
             long duration = System.currentTimeMillis() - startTime;
-            progress.setToolTipText("Process completed in " + InatActionTask.timeDifferenceFormat(duration / 1000));
+            progress.setToolTipText("Process completed in " + AnimoActionTask.timeDifferenceFormat(duration / 1000));
         }
         progress.setValue(progress.getMinimum() + (int) (a / b * (progress.getMaximum() - progress.getMinimum())));
         NumberFormat formatter = new DecimalFormat("#,###");
