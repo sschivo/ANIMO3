@@ -17,97 +17,79 @@ package animo.core.graph;
  * MA  02111-1307, USA.
  */
 
-
 import java.util.ArrayList;
-
 
 /**
  * A StringTokenizer class that handle empty tokens.
  * 
  * @author <a href="mailto:info@geosoft.no">GeoSoft</a>
  */
-public class SmartTokenizer
-{
-    /**
-     * Testing this class.
-     * 
-     * @param args  Not used.
-     */
-    public static void main(String[] args)
-    {
-        SmartTokenizer t = new SmartTokenizer("This,is,a,,test,", ",");
-        while (t.hasMoreTokens())
-        {
-            String token = t.nextToken();
-            System.out.println("#" + token + "#");
-        }
-    }
+public class SmartTokenizer {
+	/**
+	 * Testing this class.
+	 * 
+	 * @param args
+	 *            Not used.
+	 */
+	public static void main(String[] args) {
+		SmartTokenizer t = new SmartTokenizer("This,is,a,,test,", ",");
+		while (t.hasMoreTokens()) {
+			String token = t.nextToken();
+			System.out.println("#" + token + "#");
+		}
+	}
 
-    private ArrayList<String> tokens;
+	private ArrayList<String> tokens;
 
+	private int current;
 
-    private int current;
+	public SmartTokenizer(String string, String delimiter) {
+		tokens = new ArrayList<String>();
+		current = 0;
 
+		java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(string, delimiter, true);
 
-    public SmartTokenizer(String string, String delimiter)
-    {
-        tokens = new ArrayList<String>();
-        current = 0;
+		boolean wasDelimiter = true;
+		boolean isDelimiter = false;
 
-        java.util.StringTokenizer tokenizer = new java.util.StringTokenizer(string, delimiter, true);
+		while (tokenizer.hasMoreTokens()) {
+			String token = tokenizer.nextToken();
 
-        boolean wasDelimiter = true;
-        boolean isDelimiter = false;
+			isDelimiter = token.equals(delimiter);
 
-        while (tokenizer.hasMoreTokens())
-        {
-            String token = tokenizer.nextToken();
+			if (wasDelimiter)
+				tokens.add(isDelimiter ? "" : token);
+			else if (!isDelimiter)
+				tokens.add(token);
 
-            isDelimiter = token.equals(delimiter);
+			wasDelimiter = isDelimiter;
+		}
 
-            if (wasDelimiter)
-                tokens.add(isDelimiter ? "" : token);
-            else if (!isDelimiter)
-                tokens.add(token);
+		if (isDelimiter)
+			tokens.add("");
+	}
 
-            wasDelimiter = isDelimiter;
-        }
+	public int countTokens() {
+		return tokens.size();
+	}
 
-        if (isDelimiter)
-            tokens.add("");
-    }
+	public boolean hasMoreElements() {
+		return hasMoreTokens();
+	}
 
+	public boolean hasMoreTokens() {
+		return current < tokens.size();
+	}
 
-    public int countTokens()
-    {
-        return tokens.size();
-    }
+	public Object nextElement() {
+		return nextToken();
+	}
 
-
-    public boolean hasMoreElements()
-    {
-        return hasMoreTokens();
-    }
-
-
-    public boolean hasMoreTokens()
-    {
-        return current < tokens.size();
-    }
-
-
-    public Object nextElement()
-    {
-        return nextToken();
-    }
-
-
-    public String nextToken()
-    {
-        if (current >= tokens.size())
-            return null; //This way it is even "smarter"
-        String token = tokens.get(current);
-        current++;
-        return token;
-    }
+	public String nextToken() {
+		if (current >= tokens.size())
+			return null; // This way it is even "smarter"
+		String token = tokens.get(current);
+		current++;
+		return token;
+	}
 }

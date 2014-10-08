@@ -13,45 +13,40 @@ import org.w3c.dom.NodeList;
  * 
  * @author B. Wanders
  */
-public class ANodeList extends AbstractList<Node> implements NodeList
-{
-    /**
-     * The backing node list.
-     */
-    private final NodeList backing;
+public class ANodeList extends AbstractList<Node> implements NodeList {
+	/**
+	 * The backing node list.
+	 */
+	private final NodeList backing;
 
-    /**
-     * Constructor.
-     * 
-     * @param backing the backing {@link NodeList}
-     */
-    public ANodeList(final NodeList backing)
-    {
-        this.backing = backing;
-    }
+	/**
+	 * Constructor.
+	 * 
+	 * @param backing
+	 *            the backing {@link NodeList}
+	 */
+	public ANodeList(final NodeList backing) {
+		this.backing = backing;
+	}
 
-    @Override
-    public Node get(int index)
-    {
-        return this.item(index);
-    }
+	@Override
+	public Node get(int index) {
+		return this.item(index);
+	}
 
-    @Override
-    public int getLength()
-    {
-        return this.backing.getLength();
-    }
+	@Override
+	public int getLength() {
+		return this.backing.getLength();
+	}
 
-    @Override
-    public Node item(int index)
-    {
-        return this.backing.item(index);
-    }
+	@Override
+	public Node item(int index) {
+		return this.backing.item(index);
+	}
 
-    @Override
-    public int size()
-    {
-        return this.getLength();
-    }
+	@Override
+	public int size() {
+		return this.getLength();
+	}
 
 }

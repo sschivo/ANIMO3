@@ -14,25 +14,22 @@ import animo.core.model.Model;
 /**
  * The class used to access the remote server.
  */
-public class UPPAALClient
-{
-    private iUPPAALServer server = null;
+public class UPPAALClient {
+	private iUPPAALServer server = null;
 
-    public UPPAALClient(String serverHost, Integer serverPort) throws MalformedURLException, RemoteException, NotBoundException
-    {
-        //System.setProperty("java.rmi.server.hostname", "130.89.14.18");
-        System.setSecurityManager(new java.rmi.RMISecurityManager());
-        server = (iUPPAALServer) Naming.lookup("rmi://" + serverHost + ":" + serverPort + "/UPPAALServer");
-    }
+	public UPPAALClient(String serverHost, Integer serverPort) throws MalformedURLException, RemoteException,
+			NotBoundException {
+		// System.setProperty("java.rmi.server.hostname", "130.89.14.18");
+		System.setSecurityManager(new java.rmi.RMISecurityManager());
+		server = (iUPPAALServer) Naming.lookup("rmi://" + serverHost + ":" + serverPort + "/UPPAALServer");
+	}
 
-    public SimpleLevelResult analyze(Model m, int timeTo, int nSimulationRuns, boolean computeAvgStdDev, boolean overlayPlot) throws AnalysisException,
-            IOException
-    {
-        return server.analyze(m, timeTo, nSimulationRuns, computeAvgStdDev, overlayPlot);
-    }
+	public SimpleLevelResult analyze(Model m, int timeTo, int nSimulationRuns, boolean computeAvgStdDev,
+			boolean overlayPlot) throws AnalysisException, IOException {
+		return server.analyze(m, timeTo, nSimulationRuns, computeAvgStdDev, overlayPlot);
+	}
 
-    public SMCResult analyzeSMC(Model m, String smcQuery) throws AnalysisException, IOException
-    {
-        return server.analyze(m, smcQuery);
-    }
+	public SMCResult analyzeSMC(Model m, String smcQuery) throws AnalysisException, IOException {
+		return server.analyze(m, smcQuery);
+	}
 }

@@ -1,6 +1,5 @@
 package animo.core.graph;
 
-public interface GraphScaleListener
-{
-    void scaleChanged(Scale newScale);
+public interface GraphScaleListener {
+	void scaleChanged(Scale newScale);
 }

@@ -17,30 +17,25 @@ import animo.util.XmlEnvironment;
  * 
  * @author B. Wanders
  */
-public class BooleanSerializer implements TypeSerializer<Boolean>
-{
-    /**
-     * Value pattern.
-     */
-    private final AXPathExpression expression = XmlEnvironment.hardcodedXPath(".");
+public class BooleanSerializer implements TypeSerializer<Boolean> {
+	/**
+	 * Value pattern.
+	 */
+	private final AXPathExpression expression = XmlEnvironment.hardcodedXPath(".");
 
-    @Override
-    public Boolean deserialize(Node root) throws SerializationException
-    {
-        try
-        {
-            return Boolean.valueOf(this.expression.getString(root));
-        }
-        catch (XPathExpressionException e)
-        {
-            throw new SerializationException("Could not deserialize, expression " + this.expression.toString() + " did not match.", e);
-        }
-    }
+	@Override
+	public Boolean deserialize(Node root) throws SerializationException {
+		try {
+			return Boolean.valueOf(this.expression.getString(root));
+		} catch (XPathExpressionException e) {
+			throw new SerializationException("Could not deserialize, expression " + this.expression.toString()
+					+ " did not match.", e);
+		}
+	}
 
-    @Override
-    public Node serialize(Document doc, Object value)
-    {
-        return doc.createTextNode(value.toString());
-    }
+	@Override
+	public Node serialize(Document doc, Object value) {
+		return doc.createTextNode(value.toString());
+	}
 
 }

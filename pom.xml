@@ -5,7 +5,7 @@
 
 	<properties>
 		<bundle.symbolicName>${project.groupId}.${project.artifactId}</bundle.symbolicName>
-		<bundle.namespace>${project.groupId}.${project.artifactId}</bundle.namespace>
+		<bundle.namespace>${project.artifactId}</bundle.namespace>
 	</properties>
 
 	<modelVersion>4.0.0</modelVersion>
@@ -19,12 +19,39 @@
 	<build>
 		<resources>
 			<resource>
-				<directory>src/main/resources</directory>
+				<directory>src/resources</directory>
 			
 			</resource>
 		</resources>
 		<!-- Cytoscape requires Java 1.6 -->
 		<plugins>
+			<plugin>
+			    <groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-resources-plugin</artifactId>
+			    <version>2.7</version>
+			    <executions>
+			        <execution>
+			            <id>copy-resources</id>
+			            <phase>install</phase>
+			            <goals>
+			                <goal>copy-resources</goal>
+			            </goals>
+			            <configuration>
+			                <outputDirectory>/local/schivos/CytoscapeConfiguration/3/apps/installed</outputDirectory>
+			                <resources>
+			                    <resource>
+			                        <directory>${project.build.directory}</directory>
+			                        <includes>
+			                            <include>${project.artifactId}-${project.version}.jar</include>
+			                        </includes>
+			                    </resource>
+			                </resources>
+			                <overwrite>true</overwrite>
+			            </configuration>
+			        </execution>
+			
+			    </executions>
+			</plugin>
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
@@ -75,9 +102,8 @@
 					<instructions>
 						<Bundle-SymbolicName>${bundle.symbolicName}</Bundle-SymbolicName>
 						<Bundle-Version>${project.version}</Bundle-Version>
-						<Export-Package>${bundle.namespace}</Export-Package>
 						<Private-Package>${bundle.namespace}.*</Private-Package>
-						<Bundle-Activator>${bundle.namespace}.inat.cytoscape.Animo</Bundle-Activator>
+						<Bundle-Activator>animo.cytoscape.Animo</Bundle-Activator>
 					</instructions>
 				</configuration>
 			</plugin>
@@ -176,10 +202,10 @@
 	</dependencies>
 
 	<description>ANIMO</description>
-	<groupId>animo</groupId>
+	<groupId>nl.utwente</groupId>
 	<url>http://fmt.cs.utwente.nl/tools/animo/</url>
 	<organization>
-		<name>University of Twente</name>
-		<url>http://www.utwente.nl/</url>
+		<name>University of Twente, FMT group</name>
+		<url>http://fmt.cs.utwente.nl</url>
 	</organization>
 </project>

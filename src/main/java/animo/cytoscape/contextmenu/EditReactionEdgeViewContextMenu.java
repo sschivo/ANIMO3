@@ -16,30 +16,27 @@ import org.cytoscape.view.model.View;
 import animo.cytoscape.Animo;
 import animo.cytoscape.EdgeDialog;
 
-public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFactory, ActionListener
-{
-    CyNetwork network;
+public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFactory, ActionListener {
+	CyNetwork network;
 
-    @Override
-    public void actionPerformed(ActionEvent e)
-    {
-        CyEdge edge = CyTableUtil.getEdgesInState(network, "selected", true).get(0);
-        EdgeDialog dialog = new EdgeDialog(edge, network);
-        dialog.pack();
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		CyEdge edge = CyTableUtil.getEdgesInState(network, "selected", true).get(0);
+		EdgeDialog dialog = new EdgeDialog(edge, network);
+		dialog.pack();
 
-        dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
-        dialog.setVisible(true);
-    }
+		dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
+		dialog.setVisible(true);
+	}
 
-    @Override
-    public CyMenuItem createMenuItem(CyNetworkView netView, View<CyEdge> edgeView)
-    {
-        JMenuItem menuItem = new JMenuItem("Edit reaction...");
-        menuItem.addActionListener(this);
-        CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
-        network = netView.getModel();
-        return cyMenuItem;
+	@Override
+	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyEdge> edgeView) {
+		JMenuItem menuItem = new JMenuItem("Edit reaction...");
+		menuItem.addActionListener(this);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+		network = netView.getModel();
+		return cyMenuItem;
 
-    }
+	}
 
 }

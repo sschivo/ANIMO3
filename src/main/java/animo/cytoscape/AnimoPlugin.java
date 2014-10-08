@@ -1,4 +1,5 @@
 package animo.cytoscape;
+
 //package inat.cytoscape;
 //
 //import fitting.ParameterFitter;
@@ -1051,4 +1052,4 @@ package animo.cytoscape;
 //        return panel;
 //    }
 //
-//}
+// }

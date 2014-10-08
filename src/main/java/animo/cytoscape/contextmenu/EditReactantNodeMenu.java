@@ -17,37 +17,34 @@ import org.cytoscape.view.model.View;
 import animo.cytoscape.Animo;
 import animo.cytoscape.NodeDialog;
 
-public class EditReactantNodeMenu implements CyNodeViewContextMenuFactory, ActionListener
-{
-    CyNetwork network;
-    CyNetworkView netView;
-    View<CyNode> nodeView;
+public class EditReactantNodeMenu implements CyNodeViewContextMenuFactory, ActionListener {
+	CyNetwork network;
+	CyNetworkView netView;
+	View<CyNode> nodeView;
 
-    @Override
-    public void actionPerformed(ActionEvent e)
-    {
-        // TODO Auto-generated method stub
-        List<CyNode> nodelist = CyTableUtil.getNodesInState(network, "selected", true);
-        CyNode node = nodelist.get(0);
-        NodeDialog dialog = new NodeDialog(network, node);
-        dialog.pack();
-        dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
-        dialog.setVisible(true);
+	@Override
+	public void actionPerformed(ActionEvent e) {
+		// TODO Auto-generated method stub
+		List<CyNode> nodelist = CyTableUtil.getNodesInState(network, "selected", true);
+		CyNode node = nodelist.get(0);
+		NodeDialog dialog = new NodeDialog(network, node);
+		dialog.pack();
+		dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
+		dialog.setVisible(true);
 
-    }
+	}
 
-    @Override
-    public CyMenuItem createMenuItem(CyNetworkView netView, View<CyNode> nodeView)
-    {
-        JMenuItem menuItem = new JMenuItem("Edit reactant...");
-        menuItem.addActionListener(this);
-        CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+	@Override
+	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyNode> nodeView) {
+		JMenuItem menuItem = new JMenuItem("Edit reactant...");
+		menuItem.addActionListener(this);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
 
-        this.netView = netView;
+		this.netView = netView;
 
-        this.nodeView = nodeView;
-        this.network = netView.getModel();
-        return cyMenuItem;
+		this.nodeView = nodeView;
+		this.network = netView.getModel();
+		return cyMenuItem;
 
-    }
+	}
 }
