@@ -2,6 +2,7 @@ package animo.cytoscape;
 
 import java.awt.BorderLayout;
 import java.awt.Component;
+import java.awt.Container;
 import java.awt.FlowLayout;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
@@ -443,10 +444,8 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					if (model.getReactant(r) == null)
 						continue;
 					final String id = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
-					final double level = result.getConcentration(r, t)
-							/ nLevels
-							* network.getRow(network.getNode(Long.parseLong(id))).get(
-									Model.Properties.NUMBER_OF_LEVELS, Integer.class); // model.getReactant(r).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class); //We also
+					final double level = result.getConcentration(r, t) / nLevels * network.getRow(network.getNode(Long.parseLong(id))).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class); // model.getReactant(r).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
+																						//We also
 																						// rescale the value to the correct number of levels of each node. Attention: we need to use
 																						// the CURRENT number of levels of the node, or we will get inconsistent results!
 					Animo.setRowValue(network.getRow(network.getNode(Long.parseLong(id))),
@@ -533,7 +532,6 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	public void addToPanel(final CytoPanel cytoPanel) {
 		container = new ResultPanelContainer();
 		container.setLayout(new BorderLayout(2, 2));
-		;
 		container.add(this, BorderLayout.CENTER);
 		JPanel buttons = new JPanel(new FlowLayout()); // new GridLayout(2, 2, 2, 2));
 
@@ -726,6 +724,21 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		// Animo.getResultPanelContainer().addTab(container);
 		Animo.addResultPanel(container);
 		resetDivider();
+		//Not-so-nice way to tell the panel that I want the latest addition to be selected
+		try {
+			if (fCytoPanel instanceof Container) {
+				Container c = (Container)fCytoPanel;
+				for (Component comp : c.getComponents()) {
+					if (comp instanceof JTabbedPane) {
+						JTabbedPane pane = (JTabbedPane)comp;
+						pane.setSelectedIndex(pane.getTabCount() - 1);
+						break;
+					}
+				}
+			}
+		} catch (Exception ex) {
+			
+		}
 	}
 
 	public void closeResultsPanel(CytoPanel cytoPanel) {
@@ -844,18 +857,21 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	}
 
 	private double getSliderTime() {
-		return (1.0 * this.slider.getValue() / this.slider.getMaximum() * (this.maxValueOnGraph - this.minValueOnGraph) + this.minValueOnGraph)
-				/ this.scale; // 1.0 * this.slider.getValue() / this.slider.getMaximum() * this.scaleForConcentration; //this.slider.getValue() / scale;
+		return (1.0 * this.slider.getValue() / this.slider.getMaximum() * (this.maxValueOnGraph - this.minValueOnGraph) + this.minValueOnGraph) / this.scale; // 1.0 * this.slider.getValue() / this.slider.getMaximum() * this.scaleForConcentration; //this.slider.getValue() / scale;
 	}
 
 	public String getTitle() {
 		return this.title;
 	}
+	
+	public static void adjustDivider() {
+		if (!allExistingPanels.isEmpty()) {
+			AnimoResultPanel first = allExistingPanels.get(0);
+			first.resetDivider();
+		}
+	}
 
-	private void resetDivider() {
-//		JSplitPane par = (JSplitPane) (fCytoPanel.getThisComponent().getParent()); CyNetworkView p2 = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-//		int width = 0; if (p2 != null) { width = fCytoPanel.getThisComponent().getWidth(); } if (width == 0) { width = lastWidth; }
-//		par.setDividerLocation(width); lastWidth = width;
+	public void resetDivider() {
 		JSplitPane par = (JSplitPane)(fCytoPanel.getThisComponent().getParent());
 		CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
 		int width = 0;
@@ -976,7 +992,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	@Override
 	public void stateChanged(ChangeEvent e) {
 		final double t = getSliderTime();
-
+		
 		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
 		g.setRedLinePosition(1.0 * this.slider.getValue() / this.slider.getMaximum() * graphWidth);
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();

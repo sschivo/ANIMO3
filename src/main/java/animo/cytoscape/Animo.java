@@ -10,6 +10,7 @@ import org.cytoscape.application.swing.CySwingApplication;
 import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
+import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener;
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesListener;
@@ -42,7 +43,7 @@ public class Animo extends AbstractCyActivator {
 	private static ControlPanel controlPanel;
 	private static ColorsLegend colorsLegend;
 	private static ShapesLegend shapesLegend;
-	private static ResultPanelContainer resultPanelContainer;
+//	private static ResultPanelContainer resultPanelContainer;
 	private static VisualStyleAnimo vsa;
 
 //	public static ControlPanelContainer getControlPanelContainer() {
@@ -68,9 +69,9 @@ public class Animo extends AbstractCyActivator {
 		return eventListener;
 	}
 
-	public static ResultPanelContainer getResultPanelContainer() {
-		return resultPanelContainer;
-	}
+//	public static ResultPanelContainer getResultPanelContainer() {
+//		return resultPanelContainer;
+//	}
 
 	public static void addResultPanel(CytoPanelComponent resultPanel) {
 		cyServiceRegistrar.registerService(resultPanel, CytoPanelComponent.class, new Properties());
@@ -100,22 +101,28 @@ public class Animo extends AbstractCyActivator {
 
 	private void hookListeners(BundleContext bc) {
 		eventListener = new EventListener();
-		resultPanelContainer = new ResultPanelContainer();
+//		resultPanelContainer = new ResultPanelContainer();
 
 		//controlPanelContainer = new ControlPanelContainer();
 		controlPanel = new ControlPanel();
 		colorsLegend = controlPanel.getColorsLegend();
 		shapesLegend = controlPanel.getShapesLegend();
 		//controlPanelContainer.setControlPanel(controlPanel);
-
+		
+		//When an edge has been added, show the edge editor dialog
 		registerService(bc, eventListener, AddedEdgesListener.class, new Properties());
+		//When a node has been added, show the node editor dialog
 		registerService(bc, eventListener, AddedNodesListener.class, new Properties());
+		//Save the simulation files
 		registerService(bc, eventListener, SessionAboutToBeSavedListener.class, new Properties());
+		//Load the needed simulation files from the newly-loaded session, and show the ANIMO panel by default
 		registerService(bc, eventListener, SessionLoadedListener.class, new Properties());
+		//Apply our visual style to any network view
 		registerService(bc, eventListener, NetworkViewAddedListener.class, new Properties());
+		//Update the colors and shapes legends if the visual style has changed
 		registerService(bc, eventListener, VisualStyleChangedListener.class, new Properties());
-
-		// registerService(bc, resultPanelContainer, CytoPanelComponent.class, new Properties());
+		//Make sure that the Results Panel always has the proper width
+		registerService(bc, eventListener, CytoPanelComponentSelectedListener.class, new Properties());
 
 		registerService(bc, controlPanel, CytoPanelComponent.class, new Properties());
 

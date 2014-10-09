@@ -235,10 +235,8 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					String inputFileName = FileUtils.open(".sim", "ANIMO simulation", Animo.getCytoscape().getJFrame());
 					if (inputFileName == null)
 						return;
-					final AnimoResultPanel resultViewer = new AnimoResultPanel(new File(inputFileName));
-
-					resultViewer.addToPanel(Animo.getCytoscape().getCytoPanel(
-							Animo.getResultPanelContainer().getCytoPanelName()));
+					final AnimoResultPanel resultPanel = new AnimoResultPanel(new File(inputFileName));
+					resultPanel.addToPanel(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST));
 
 				} else {
 					JOptionPane
@@ -521,7 +519,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		});
 		buttons.add(options, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-
+		
 //		panel.add(buttons);
 //		panel.setVisible(true);
 		this.setVisible(true);

@@ -194,7 +194,7 @@ public class VisualStyleAnimo {
 
 	private void addVisMapNodesPlotted() {
 		DiscreteMapping<Boolean, Paint> dm = (DiscreteMapping<Boolean, Paint>) vmFactoryDiscrete.createVisualMappingFunction(
-				Model.Properties.ENABLED, Boolean.class, BasicVisualLexicon.NODE_BORDER_PAINT);
+				Model.Properties.PLOTTED, Boolean.class, BasicVisualLexicon.NODE_BORDER_PAINT);
 		dm.putMapValue(false, Color.DARK_GRAY);
 		dm.putMapValue(true, Color.BLUE);
 		currentVisualStyle.addVisualMappingFunction(dm);
@@ -295,17 +295,25 @@ public class VisualStyleAnimo {
 
 	public void applyTo(CyNetworkView networkview) {
 		currentNetworkView = networkview;
-		visualStyleName = "VisualStyleANIMO_" + currentNetworkView.getSUID();
+		visualStyleName = "ANIMO_VisualStyle"; //"VisualStyleANIMO_" + currentNetworkView.getSUID();
 		this.currentVisualStyle = visualMappingManager.getVisualStyle(currentNetworkView);
 		if (!visualStyleName.equals(currentVisualStyle.getTitle())) {
-			this.currentVisualStyle = this.visualStyleFactory.createVisualStyle(visualStyleName);
+			boolean found = false;
+			for (VisualStyle style : visualMappingManager.getAllVisualStyles()) {
+				if (style.getTitle().equals(visualStyleName)) {
+					found = true;
+					this.currentVisualStyle = style;
+					break;
+				}
+			}
+			if (!found) {
+				this.currentVisualStyle = this.visualStyleFactory.createVisualStyle(visualStyleName);
+				addMappingsToVisualStyle();
+				// Add the new style to the VisualMappingManager
+				visualMappingManager.addVisualStyle(currentVisualStyle);
+			}
 		}
 		
-		addMappingsToVisualStyle();
-		
-		// Add the new style to the VisualMappingManager
-		visualMappingManager.addVisualStyle(currentVisualStyle);
-
 		// Apply the visual style to a NetwokView
 		currentVisualStyle.apply(currentNetworkView);
 		currentNetworkView.updateView();
@@ -339,13 +347,12 @@ public class VisualStyleAnimo {
 		addVisMapEdgeTooltip();
 
 		setDefaults();
-
-		// TODO: set dependency node size locked
-
+		
 	}
 
 	private void setDefaults() {
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_BORDER_PAINT, Color.BLUE);
+		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_BORDER_WIDTH, 5.0);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_FILL_COLOR, Color.RED);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_LABEL_COLOR, Color.BLACK);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_LABEL_FONT_SIZE, 14);
@@ -359,7 +366,7 @@ public class VisualStyleAnimo {
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_SELECTED_PAINT, new Color(102, 102, 255));
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.EDGE_SELECTED_PAINT, new Color(102, 102, 255));
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NETWORK_BACKGROUND_PAINT, Color.white);
-		// Disable "Lock node width and height", so we can set a custom width and height.
+		// Disable "Lock node width and height", so we can set a custom width and height. (unfortunately, this seems to be the "proper" way to do it)
 		for(@SuppressWarnings("rawtypes") VisualPropertyDependency visualPropertyDependency : currentVisualStyle.getAllVisualPropertyDependencies()) {
 		    if(visualPropertyDependency.getIdString().equals("nodeSizeLocked")) {
 		        visualPropertyDependency.setDependency(false);

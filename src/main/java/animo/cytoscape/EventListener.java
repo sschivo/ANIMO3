@@ -31,6 +31,8 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelName;
+import org.cytoscape.application.swing.events.CytoPanelComponentSelectedEvent;
+import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
@@ -52,7 +54,7 @@ import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
-		SessionLoadedListener, NetworkViewAddedListener, VisualStyleChangedListener {
+		SessionLoadedListener, NetworkViewAddedListener, VisualStyleChangedListener, CytoPanelComponentSelectedListener {
 
 	public static final String APPNAME = "AppSession";
 
@@ -182,6 +184,14 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	}
 
 	private void saveAnyOpenResults(List<File> myFiles, Component c) {
+		if (!(c instanceof AnimoResultPanel) && c instanceof Container) {
+			for (Component c2 : ((Container)c).getComponents()) {
+				if (c2 instanceof AnimoResultPanel) {
+					c = c2;
+					break;
+				}
+			}
+		}
 		if (c instanceof AnimoResultPanel) {
 			String tmpDir = System.getProperty("java.io.tmpdir");
 			AnimoResultPanel panel = (AnimoResultPanel) c;
@@ -275,5 +285,15 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	@Override
 	public void handleEvent(VisualStyleChangedEvent arg0) {
 		Animo.getVSA().updateLegends();
+	}
+	
+	//A new tab has been selected: if it was in the Results Panel and it was one of ours, then resize the panel suitably
+	@Override
+	public void handleEvent(CytoPanelComponentSelectedEvent ev) {
+		if (ev.getCytoPanel().getCytoPanelName().equals(CytoPanelName.EAST)) {
+			if (ev.getCytoPanel().getSelectedComponent() != null && ev.getCytoPanel().getSelectedComponent() instanceof ResultPanelContainer) {
+				AnimoResultPanel.adjustDivider();
+			}
+		}
 	}
 }

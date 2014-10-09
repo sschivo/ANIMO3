@@ -18,7 +18,6 @@ import javax.swing.JTextField;
 import javax.swing.SwingUtilities;
 
 import org.cytoscape.application.CyApplicationManager;
-import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.work.AbstractTask;
 import org.cytoscape.work.TaskIterator;
@@ -169,9 +168,9 @@ public class RunAction extends AnimoActionTask {
 					@Override
 					public void run() {
 						CyApplicationManager app = Animo.getCytoscapeApp().getCyApplicationManager();
-						final AnimoResultPanel resultViewer = new AnimoResultPanel(model, result, scale, app
+						final AnimoResultPanel resultPanel = new AnimoResultPanel(model, result, scale, app
 								.getCurrentNetwork());
-						resultViewer.addToPanel(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST));
+						resultPanel.addToPanel(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST));
 						Animo.selectAnimoControlPanel();
 					}
 				});

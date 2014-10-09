@@ -6,18 +6,16 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics;
 import java.awt.Graphics2D;
-import java.awt.Polygon;
 import java.awt.RenderingHints;
 import java.awt.geom.Rectangle2D;
-import java.awt.geom.RoundRectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import javax.swing.Icon;
 import javax.swing.JPanel;
 
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
-import org.cytoscape.view.presentation.property.NodeShapeVisualProperty;
 import org.cytoscape.view.presentation.property.values.NodeShape;
 import org.cytoscape.view.vizmap.VisualMappingFunction;
 import org.cytoscape.view.vizmap.VisualMappingManager;
@@ -128,70 +126,12 @@ public class ShapesLegend extends JPanel {
 			width *= rate;
 			height *= rate;
 			g.setStroke(new BasicStroke(2.0f));
-			if (shape == NodeShapeVisualProperty.DIAMOND) {
-				int[] xD = new int[] { Math.round(x - width / 2), Math.round(x), Math.round(x + width / 2),
-						Math.round(x) }, yD = new int[] { Math.round(y + nodeSpace / 2),
-						Math.round(y + nodeSpace / 2 - height / 2), Math.round(y + nodeSpace / 2),
-						Math.round(y + nodeSpace / 2 + height / 2) };
-				Polygon polygon = new Polygon(xD, yD, xD.length);
-				g.setPaint(Color.DARK_GRAY);
-				g.fillPolygon(polygon);
-				g.setPaint(Color.BLACK);
-				g.drawPolygon(polygon);
-			} else if (shape == NodeShapeVisualProperty.ELLIPSE) {
-
-				int xE = Math.round(x - width / 2), yE = Math.round(y + nodeSpace / 2 - height / 2);
-				g.setPaint(Color.DARK_GRAY);
-				g.fillOval(xE, yE, (int) width, (int) height);
-				g.setPaint(Color.BLACK);
-				g.drawOval(xE, yE, (int) width, (int) height);
-			} else if (shape == NodeShapeVisualProperty.PARALLELOGRAM) {
-
-				int[] xP = new int[] { Math.round(x - width / 2), (int) Math.round(x + width / 4.0),
-						Math.round(x + width / 2), (int) Math.round(x - width / 4.0) };
-				int[] yP = new int[] { Math.round(y + nodeSpace / 2 - height / 2),
-						Math.round(y + nodeSpace / 2 - height / 2), Math.round(y + nodeSpace / 2 + height / 2),
-						Math.round(y + nodeSpace / 2 + height / 2) };
-				Polygon parallelogram = new Polygon(xP, yP, xP.length);
-				g.setPaint(Color.DARK_GRAY);
-				g.fillPolygon(parallelogram);
-				g.setPaint(Color.BLACK);
-				g.drawPolygon(parallelogram);
-			}
-
-			else if (shape == NodeShapeVisualProperty.RECTANGLE) {
-
-				int xR = Math.round(x - width / 2);
-				int yR = Math.round(y + nodeSpace / 2 - height / 2);
-				Rectangle2D.Float rect = new Rectangle2D.Float(xR, yR, width, height);
-				g.setPaint(Color.DARK_GRAY);
-				g.fill(rect);
-				g.setPaint(Color.BLACK);
-				g.draw(rect);
-			}
-
-			else if (shape == NodeShapeVisualProperty.ROUND_RECTANGLE) {
-				int xRR = Math.round(x - width / 2);
-				int yRR = Math.round(y + nodeSpace / 2 - height / 2);
-				RoundRectangle2D.Float rectRound = new RoundRectangle2D.Float(xRR, yRR, width, height, width / 5,
-						height / 5);
-				g.setPaint(Color.DARK_GRAY);
-				g.fill(rectRound);
-				g.setPaint(Color.BLACK);
-				g.draw(rectRound);
-			}
-
-			if (shape == NodeShapeVisualProperty.TRIANGLE) {
-				int[] xT = new int[] { Math.round(x), Math.round(x + width / 2), Math.round(x - width / 2) };
-				int[] yT = new int[] { Math.round(y + nodeSpace / 2 - height / 2),
-						Math.round(y + nodeSpace / 2 + height / 2), Math.round(y + nodeSpace / 2 + height / 2) };
-				Polygon triangle = new Polygon(xT, yT, xT.length);
-				g.setPaint(Color.DARK_GRAY);
-				g.fill(triangle);
-				g.setPaint(Color.BLACK);
-				g.draw(triangle);
-
-			}
+			
+			int xI = Math.round(x - width / 2),
+				yI = Math.round(y + nodeSpace / 2 - height / 2);
+			Icon icona = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentRenderingEngine().createIcon(BasicVisualLexicon.NODE_SHAPE, shape, (int)Math.round(width), (int)Math.round(height));
+			icona.paintIcon(this, g, xI, yI);
+			
 			g.drawString(moleculeType, x + (maxWidth + 5) * rate, y + nodeSpace / 2 + fm.getAscent() / 2.0f);// moleculeType, x + rectangle.width /2, y + nodeSpace / 2 +
 																												// fm.getAscent() / 2.0f);
 			y += nodeSpace;
@@ -223,41 +163,4 @@ public class ShapesLegend extends JPanel {
 			this.setParameters((DiscreteMapping<String, NodeShape>)shapesMap, (DiscreteMapping<String, Double>)widthsMap, (DiscreteMapping<String, Double>)heightsMap);
 		}
 	}
-
-	/*public void updateFromSettingsOld() {
-		// Again changed to be able to compile, this will probably be broken.
-		VisualMappingManager vizMap = Animo.getCytoscapeApp().getVisualMappingManager();
-		VisualStyle visualStyle = vizMap.getDefaultVisualStyle();
-
-		DiscreteMapping newShapesMap = null, newWidthsMap = null, newHeightsMap = null;
-		List<VisualStyle> mappings = new ArrayList<VisualStyle>();
-
-		mappings.addAll(vizMap.getAllVisualStyles());
-
-		for (VisualStyle om : mappings) {
-			if (om instanceof DiscreteMapping) {
-				newShapesMap = (DiscreteMapping) om;
-				break;
-			}
-		}
-
-		for (VisualStyle om : mappings) {
-			if (om instanceof DiscreteMapping) {
-				newWidthsMap = (DiscreteMapping) om;
-				break;
-			}
-		}
-
-		for (VisualStyle om : mappings) {
-			if (om instanceof DiscreteMapping) {
-				newHeightsMap = (DiscreteMapping) om;
-				break;
-			}
-		}
-
-		if (newShapesMap != null && newWidthsMap != null && newHeightsMap != null) {
-			this.setParameters(newShapesMap, newWidthsMap, newHeightsMap);
-		}
-
-	}*/
 }
