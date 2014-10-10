@@ -32,8 +32,8 @@ public class ColorsLegend extends JPanel {
 
 	@Override
 	public void paint(Graphics g1) {
+		super.paint(g1);
 		if (fractions == null || colors == null) {
-			super.paint(g1);
 			return;
 		}
 		Graphics2D g = (Graphics2D) g1;
@@ -116,52 +116,4 @@ public class ColorsLegend extends JPanel {
 		}
 	}
 
-	/**
-	 * This function is probably broken
-	 */
-	/*public void updateFromSettingsOld() {
-		// TODO Most classes used here were deprecated. Hotfixed, to be able to compile.
-		VisualMappingManager vizMap = Animo.getCytoscapeApp().getVisualMappingManager();
-		VisualStyle visualStyle = vizMap.getDefaultVisualStyle();
-		VisualMappingFunction nac = visualStyle.getVisualMappingFunction(null);
-		// TODO : Hij wordt nooit gebruikt, maar gaat wel op zijn plaat
-		// AbstractVisualMappingFunction avmf = Animo.getMappingFunction();
-		Vector<VisualStyle> vector = new Vector<VisualStyle>();
-
-		vector.addAll(vizMap.getAllVisualStyles());
-
-		for (VisualStyle om : vector) {
-			if (!(om instanceof ContinuousMapping))
-				continue;
-			ContinuousMapping<Double, Double> mapping = (ContinuousMapping<Double, Double>) om;
-			List<ContinuousMappingPoint<Double, Double>> points = mapping.getAllPoints();
-			float[] newFractions = new float[points.size()];
-			Color[] newColor = new Color[points.size()];
-
-			int i = 0;
-			float min = Float.POSITIVE_INFINITY, max = Float.NEGATIVE_INFINITY, intervalSize = 0.0f;
-			for (ContinuousMappingPoint<Double, Double> point : points) {
-				float v = (float) point.getValue().doubleValue();
-				if (v < min) {
-					min = v;
-				}
-				if (v > max) {
-					max = v;
-				}
-			}
-			intervalSize = max - min;
-			for (ContinuousMappingPoint<Double, Double> point : points) {
-				// System.err.println("Leggo un punto dal valore di " + (float)point.getValue().doubleValue());
-				// fractions[fractions.length - 1 - i] = 1 - (float)point.getValue().doubleValue();
-				newFractions[newFractions.length - 1 - i] = 1 - ((float) point.getValue().doubleValue() - min)
-						/ intervalSize;
-				// Wrong color
-				// TODO Change to right function
-				newColor[newColor.length - 1 - i] = Color.getHSBColor(point.getValue().floatValue(), 0, 0);
-				i++;
-			}
-			this.setParameters(newFractions, newColor);
-		}
-		this.repaint();
-	}*/
 }

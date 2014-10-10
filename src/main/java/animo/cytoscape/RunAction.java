@@ -102,6 +102,7 @@ public class RunAction extends AnimoActionTask {
 			 * "Up to which time (in real-life MINUTES)?", nMinutesToSimulate); if (inputTime != null) { try { nMinutesToSimulate = Integer.parseInt(inputTime); } catch (Exception
 			 * ex) { //the default value is still there, so nothing to change } } else { return; }
 			 */
+			monitor.setTitle("ANIMO - UPPAAL model analysis");
 
 			timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(SECONDS_PER_POINT).as(Double.class));
 			scale = (double) nMinutesToSimulate / timeTo;

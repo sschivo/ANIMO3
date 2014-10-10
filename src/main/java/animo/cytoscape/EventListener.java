@@ -3,6 +3,8 @@ package animo.cytoscape;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.EventQueue;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -17,6 +19,12 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.swing.JDesktopPane;
+import javax.swing.JInternalFrame;
+import javax.swing.JLayeredPane;
+import javax.swing.JOptionPane;
+import javax.swing.JPanel;
+import javax.swing.JSplitPane;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -40,21 +48,27 @@ import org.cytoscape.model.events.AddedEdgesEvent;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesEvent;
 import org.cytoscape.model.events.AddedNodesListener;
+import org.cytoscape.model.events.NetworkAddedEvent;
+import org.cytoscape.model.events.NetworkAddedListener;
 import org.cytoscape.session.events.SessionAboutToBeSavedEvent;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedEvent;
 import org.cytoscape.session.events.SessionLoadedListener;
+import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.events.NetworkViewAddedEvent;
 import org.cytoscape.view.model.events.NetworkViewAddedListener;
 import org.cytoscape.view.vizmap.events.VisualStyleChangedEvent;
 import org.cytoscape.view.vizmap.events.VisualStyleChangedListener;
+import org.cytoscape.view.vizmap.events.VisualStyleSetEvent;
+import org.cytoscape.view.vizmap.events.VisualStyleSetListener;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
-		SessionLoadedListener, NetworkViewAddedListener, VisualStyleChangedListener, CytoPanelComponentSelectedListener {
+		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
+		VisualStyleSetListener, CytoPanelComponentSelectedListener {
 
 	public static final String APPNAME = "AppSession";
 
@@ -100,10 +114,50 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 
 	@Override
 	public void handleEvent(NetworkViewAddedEvent e) {
-		Animo.getVSA().applyTo(e.getNetworkView());
-
-		// TODO Auto-generated method stub
-
+		Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
+		
+		//Supercomplex path to reach the view window and hopefully enable the double-click to edit nodes/edges
+		JSplitPane par = (JSplitPane)(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST).getThisComponent().getParent());
+		for (Component c : par.getComponents()) {
+			if (c instanceof JDesktopPane) {
+				JDesktopPane pane = (JDesktopPane)c;
+				JInternalFrame frame = pane.getSelectedFrame();
+				for (Component c2 : frame.getRootPane().getComponents()) {
+					if (c2 instanceof JLayeredPane) {
+						JLayeredPane pane2 = (JLayeredPane)c2;
+						for (Component c3 : pane2.getComponents()) {
+							System.err.println("Ecco un componente: " + c3.getClass().getName());
+							if (c3.getClass().getName().endsWith("InnerCanvas")) {
+								//c'e' qualcun altro dentro questo frame: dobbiamo attaccarci a lui, che e' quello dove vien disegnata la rete: del frame si riesce a cliccare direttamente solo il contorno!
+								c3.addMouseListener(new MouseAdapter() {
+									@Override
+									public void mouseClicked(MouseEvent e) {
+										System.err.println("CLICK! " + e.getX() + ", " + e.getY());
+										CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+										if (currentNetworkView != null) {
+											//Rectangle windowBounds = getCyServiceRegistrar().getService(CyNetworkViewDesktopMgr.class).getBounds(currentNetworkView);
+											//if (windowBounds.contains(e.getX(), e.getY())) {
+												if (e.getClickCount() == 2) {
+													JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Hai doppio-cliccato alla posizione " + e.getX() + ", " + e.getY());
+													//Per reagire a doppio click su nodo/edge, reagisci solo se uno e un solo nodo/edge e' selezionato in questo momento
+												}
+											//}
+										}
+									}
+								});
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+	
+	
+	@Override
+	public void handleEvent(NetworkAddedEvent e) {
+		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE); //Default to normal style for newly created networks
+		Animo.selectAnimoControlPanel();
 	}
 
 	/**
@@ -124,6 +178,8 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		this.restoreSessionState(files);
 		//Once we loaded a session, we show the ANIMO control panel
 		Animo.selectAnimoControlPanel();
+		//and apply our default visual style
+		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE);
 	}
 
 	/**
@@ -284,6 +340,13 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	//The visual style has changed, we need to update the legends.
 	@Override
 	public void handleEvent(VisualStyleChangedEvent arg0) {
+		//if (Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView() != null) {
+		Animo.getVSA().updateLegends();
+		//}
+	}
+	
+	@Override
+	public void handleEvent(VisualStyleSetEvent arg0) {
 		Animo.getVSA().updateLegends();
 	}
 	
@@ -293,6 +356,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		if (ev.getCytoPanel().getCytoPanelName().equals(CytoPanelName.EAST)) {
 			if (ev.getCytoPanel().getSelectedComponent() != null && ev.getCytoPanel().getSelectedComponent() instanceof ResultPanelContainer) {
 				AnimoResultPanel.adjustDivider();
+				((ResultPanelContainer)ev.getCytoPanel().getSelectedComponent()).ensureCorrectVisualStyle();
 			}
 		}
 	}

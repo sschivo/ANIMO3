@@ -10,8 +10,10 @@ import org.cytoscape.application.swing.CytoPanelName;
 
 public class ResultPanelContainer extends JPanel implements CytoPanelComponent {
 	private static final long serialVersionUID = -255471556831642543L;
+	private AnimoResultPanel resultPanel;
 
-	public ResultPanelContainer() {
+	public ResultPanelContainer(AnimoResultPanel resultPanel) {
+		this.resultPanel = resultPanel;
 	}
 
 	@Override
@@ -32,6 +34,11 @@ public class ResultPanelContainer extends JPanel implements CytoPanelComponent {
 	@Override
 	public String getTitle() {
 		return this.getName();
+	}
+
+	//Make sure that the proper ANIMO visual style is selected
+	public void ensureCorrectVisualStyle() {
+		resultPanel.ensureCorrectVisualStyle();
 	}
 
 }

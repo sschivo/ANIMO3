@@ -15,6 +15,8 @@ import java.util.Map;
 import javax.swing.Icon;
 import javax.swing.JPanel;
 
+import org.cytoscape.model.CyNetwork;
+import org.cytoscape.view.presentation.RenderingEngine;
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
 import org.cytoscape.view.presentation.property.values.NodeShape;
 import org.cytoscape.view.vizmap.VisualMappingFunction;
@@ -38,9 +40,25 @@ public class ShapesLegend extends JPanel {
 
 	@Override
 	public void paint(Graphics g1) {
+		super.paint(g1);
 		if (shapesMap == null || widthsMap == null || heightsMap == null) {
-			super.paint(g1);
 			return;
+		}
+		Map<String, NodeShape> shapes;
+		Map<String, Double> widths, heights;
+		RenderingEngine<CyNetwork> renderingEngine = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentRenderingEngine();
+		if (renderingEngine == null) {
+			return;
+		}
+		try {
+			shapes = shapesMap.getAll();
+			widths = widthsMap.getAll();
+			heights = heightsMap.getAll();
+			if (shapes.size() < 1 || widths.size() < 1 || heights.size() < 1) {
+				return;
+			}
+		} catch (Exception ex) {
+			return; //If the mapping was destroyed in the meantime, we are happy to just have done the super.paint()
 		}
 		Graphics2D g = (Graphics2D) g1;
 		g.setPaint(Color.WHITE);
@@ -60,10 +78,6 @@ public class ShapesLegend extends JPanel {
 		g.drawString("Protein category", this.getWidth() / 2 - fm.stringWidth("Protein category") / 2,
 				0.1f * this.getHeight() + fm.getHeight());
 		g.setFont(oldFont);
-
-		Map<String, NodeShape> shapes = shapesMap.getAll();
-		Map<String, Double> widths = widthsMap.getAll(),
-							heights = heightsMap.getAll();
 
 		float nodeSpace = rectangle.height / shapes.size();
 
@@ -129,7 +143,7 @@ public class ShapesLegend extends JPanel {
 			
 			int xI = Math.round(x - width / 2),
 				yI = Math.round(y + nodeSpace / 2 - height / 2);
-			Icon icona = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentRenderingEngine().createIcon(BasicVisualLexicon.NODE_SHAPE, shape, (int)Math.round(width), (int)Math.round(height));
+			Icon icona = renderingEngine.createIcon(BasicVisualLexicon.NODE_SHAPE, shape, (int)Math.round(width), (int)Math.round(height));
 			icona.paintIcon(this, g, xI, yI);
 			
 			g.drawString(moleculeType, x + (maxWidth + 5) * rate, y + nodeSpace / 2 + fm.getAscent() / 2.0f);// moleculeType, x + rectangle.width /2, y + nodeSpace / 2 +

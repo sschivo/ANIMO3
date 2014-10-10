@@ -530,7 +530,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	 * @param cytoPanel
 	 */
 	public void addToPanel(final CytoPanel cytoPanel) {
-		container = new ResultPanelContainer();
+		container = new ResultPanelContainer(this);
 		container.setLayout(new BorderLayout(2, 2));
 		container.add(this, BorderLayout.CENTER);
 		JPanel buttons = new JPanel(new FlowLayout()); // new GridLayout(2, 2, 2, 2));
@@ -724,6 +724,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		// Animo.getResultPanelContainer().addTab(container);
 		Animo.addResultPanel(container);
 		resetDivider();
+		ensureCorrectVisualStyle();
 		//Not-so-nice way to tell the panel that I want the latest addition to be selected
 		try {
 			if (fCytoPanel instanceof Container) {
@@ -889,6 +890,14 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		par.setDividerLocation(width);
 		lastWidth = width;
 	}
+	
+	public void ensureCorrectVisualStyle() {
+		if (isDifference) {
+			Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_DIFF_VISUAL_STYLE);
+		} else {
+			Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE);
+		}
+	}
 
 	/**
 	 * Save the simulation data to a file
@@ -991,12 +1000,16 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	 */
 	@Override
 	public void stateChanged(ChangeEvent e) {
-		final double t = getSliderTime();
-		
-		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
-		g.setRedLinePosition(1.0 * this.slider.getValue() / this.slider.getMaximum() * graphWidth);
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork net = cyApplicationManager.getCurrentNetwork();
+		if (net == null) {
+			return;
+		}
+		
+		final double t = getSliderTime();
+		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
+		g.setRedLinePosition(1.0 * this.slider.getValue() / this.slider.getMaximum() * graphWidth);
+		
 		if (convergingEdges == null) {
 			convergingEdges = new HashMap<Long, Pair<Boolean, List<Long>>>();
 		} else {

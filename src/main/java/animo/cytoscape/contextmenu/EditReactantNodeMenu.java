@@ -2,7 +2,6 @@ package animo.cytoscape.contextmenu;
 
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.util.List;
 
 import javax.swing.JMenuItem;
 
@@ -10,7 +9,6 @@ import org.cytoscape.application.swing.CyMenuItem;
 import org.cytoscape.application.swing.CyNodeViewContextMenuFactory;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
-import org.cytoscape.model.CyTableUtil;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.View;
 
@@ -24,9 +22,9 @@ public class EditReactantNodeMenu implements CyNodeViewContextMenuFactory, Actio
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		// TODO Auto-generated method stub
-		List<CyNode> nodelist = CyTableUtil.getNodesInState(network, "selected", true);
-		CyNode node = nodelist.get(0);
+		//List<CyNode> nodelist = CyTableUtil.getNodesInState(network, "selected", true);
+		//CyNode node = nodelist.get(0);
+		CyNode node = nodeView.getModel();
 		NodeDialog dialog = new NodeDialog(network, node);
 		dialog.pack();
 		dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());

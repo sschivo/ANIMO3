@@ -1,8 +1,16 @@
 package animo.cytoscape;
 
+import java.awt.Component;
+import java.awt.event.MouseAdapter;
+import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
+
+import javax.swing.JDesktopPane;
+import javax.swing.JInternalFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JSplitPane;
 
 import org.cytoscape.app.CyAppAdapter;
 import org.cytoscape.application.CyApplicationManager;
@@ -14,15 +22,18 @@ import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesListener;
+import org.cytoscape.model.events.NetworkAddedListener;
 import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedListener;
+import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.events.NetworkViewAddedListener;
 import org.cytoscape.view.vizmap.VisualMappingFunctionFactory;
 import org.cytoscape.view.vizmap.VisualMappingManager;
 import org.cytoscape.view.vizmap.VisualStyleFactory;
 import org.cytoscape.view.vizmap.events.VisualStyleChangedListener;
+import org.cytoscape.view.vizmap.events.VisualStyleSetListener;
 import org.osgi.framework.BundleContext;
 
 import animo.core.AnimoBackend;
@@ -118,9 +129,11 @@ public class Animo extends AbstractCyActivator {
 		//Load the needed simulation files from the newly-loaded session, and show the ANIMO panel by default
 		registerService(bc, eventListener, SessionLoadedListener.class, new Properties());
 		//Apply our visual style to any network view
+		registerService(bc, eventListener, NetworkAddedListener.class, new Properties());
 		registerService(bc, eventListener, NetworkViewAddedListener.class, new Properties());
 		//Update the colors and shapes legends if the visual style has changed
 		registerService(bc, eventListener, VisualStyleChangedListener.class, new Properties());
+		registerService(bc, eventListener, VisualStyleSetListener.class, new Properties());
 		//Make sure that the Results Panel always has the proper width
 		registerService(bc, eventListener, CytoPanelComponentSelectedListener.class, new Properties());
 
@@ -150,6 +163,31 @@ public class Animo extends AbstractCyActivator {
 		Properties enabledisableedgeprops = new Properties();
 		enabledisableedgeprops.put("preferredMenu", "Animo");
 		registerAllServices(bc, enabledisableedge, enabledisableedgeprops);
+		
+		JSplitPane par = (JSplitPane)(getCytoscape().getCytoPanel(CytoPanelName.EAST).getThisComponent().getParent());
+		for (Component c : par.getComponents()) {
+			if (c instanceof JDesktopPane) {
+				JDesktopPane pane = (JDesktopPane)c;
+				JInternalFrame frame = pane.getSelectedFrame();
+				//e aggiungi il listener a questo.. Vediamo se cosi' va...
+			}
+		}
+		getCytoscape().getJFrame().addMouseListener(new MouseAdapter() {
+			@Override
+			public void mouseClicked(MouseEvent e) {
+				System.err.println("CLICK! " + e.getX() + ", " + e.getY());
+				CyNetworkView currentNetworkView = getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+				if (currentNetworkView != null) {
+					//Rectangle windowBounds = getCyServiceRegistrar().getService(CyNetworkViewDesktopMgr.class).getBounds(currentNetworkView);
+					//if (windowBounds.contains(e.getX(), e.getY())) {
+						if (e.getClickCount() == 2) {
+							JOptionPane.showMessageDialog(getCytoscape().getJFrame(), "Hai doppio-cliccato alla posizione " + e.getX() + ", " + e.getY());
+							//Per reagire a doppio click su nodo/edge, reagisci solo se uno e un solo nodo/edge e' selezionato in questo momento
+						}
+					//}
+				}
+			}
+		});
 
 	}
 
