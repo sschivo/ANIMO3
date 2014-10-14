@@ -70,7 +70,7 @@ public class EdgeDialog extends JDialog {
 
 	private final CyNetwork network;
 
-	public EdgeDialog(final CyEdge edge, CyNetwork network) {
+	public EdgeDialog(CyNetwork network, final CyEdge edge) {
 		this(Animo.getCytoscape().getJFrame(), network, edge);
 	}
 
@@ -385,6 +385,8 @@ public class EdgeDialog extends JDialog {
 
 		this.add(values, BorderLayout.CENTER);
 		this.add(controls, BorderLayout.SOUTH);
+		
+		this.pack();
 	}
 
 	public void setCreatedNewEdge() {
@@ -653,5 +655,10 @@ public class EdgeDialog extends JDialog {
 		// break;
 		// }
 		// }
+	}
+	
+	public void showYourself() {
+		this.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
+		this.setVisible(true);
 	}
 }

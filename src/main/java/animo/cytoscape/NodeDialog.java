@@ -331,6 +331,13 @@ public class NodeDialog extends JDialog {
 
 		this.add(controls, new GridBagConstraints(1, 5, 1, 2, 1.0, 0.0, GridBagConstraints.LINE_END,
 				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0)); // BorderLayout.SOUTH);
+		
+		this.pack();
+	}
+	
+	public void showYourself() {
+		this.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
+		this.setVisible(true);
 	}
 
 	public void setCreatedNewNode() {

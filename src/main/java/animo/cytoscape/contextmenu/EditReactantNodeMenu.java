@@ -12,7 +12,6 @@ import org.cytoscape.model.CyNode;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.View;
 
-import animo.cytoscape.Animo;
 import animo.cytoscape.NodeDialog;
 
 public class EditReactantNodeMenu implements CyNodeViewContextMenuFactory, ActionListener {
@@ -26,9 +25,7 @@ public class EditReactantNodeMenu implements CyNodeViewContextMenuFactory, Actio
 		//CyNode node = nodelist.get(0);
 		CyNode node = nodeView.getModel();
 		NodeDialog dialog = new NodeDialog(network, node);
-		dialog.pack();
-		dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
-		dialog.setVisible(true);
+		dialog.showYourself();
 
 	}
 

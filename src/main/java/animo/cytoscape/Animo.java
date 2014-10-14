@@ -1,16 +1,8 @@
 package animo.cytoscape;
 
-import java.awt.Component;
-import java.awt.event.MouseAdapter;
-import java.awt.event.MouseEvent;
 import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
-
-import javax.swing.JDesktopPane;
-import javax.swing.JInternalFrame;
-import javax.swing.JOptionPane;
-import javax.swing.JSplitPane;
 
 import org.cytoscape.app.CyAppAdapter;
 import org.cytoscape.application.CyApplicationManager;
@@ -27,7 +19,6 @@ import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedListener;
-import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.events.NetworkViewAddedListener;
 import org.cytoscape.view.vizmap.VisualMappingFunctionFactory;
 import org.cytoscape.view.vizmap.VisualMappingManager;
@@ -164,31 +155,6 @@ public class Animo extends AbstractCyActivator {
 		enabledisableedgeprops.put("preferredMenu", "Animo");
 		registerAllServices(bc, enabledisableedge, enabledisableedgeprops);
 		
-		JSplitPane par = (JSplitPane)(getCytoscape().getCytoPanel(CytoPanelName.EAST).getThisComponent().getParent());
-		for (Component c : par.getComponents()) {
-			if (c instanceof JDesktopPane) {
-				JDesktopPane pane = (JDesktopPane)c;
-				JInternalFrame frame = pane.getSelectedFrame();
-				//e aggiungi il listener a questo.. Vediamo se cosi' va...
-			}
-		}
-		getCytoscape().getJFrame().addMouseListener(new MouseAdapter() {
-			@Override
-			public void mouseClicked(MouseEvent e) {
-				System.err.println("CLICK! " + e.getX() + ", " + e.getY());
-				CyNetworkView currentNetworkView = getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-				if (currentNetworkView != null) {
-					//Rectangle windowBounds = getCyServiceRegistrar().getService(CyNetworkViewDesktopMgr.class).getBounds(currentNetworkView);
-					//if (windowBounds.contains(e.getX(), e.getY())) {
-						if (e.getClickCount() == 2) {
-							JOptionPane.showMessageDialog(getCytoscape().getJFrame(), "Hai doppio-cliccato alla posizione " + e.getX() + ", " + e.getY());
-							//Per reagire a doppio click su nodo/edge, reagisci solo se uno e un solo nodo/edge e' selezionato in questo momento
-						}
-					//}
-				}
-			}
-		});
-
 	}
 
 	//Create the personalized visual mappings for ANIMO to be used for all network views

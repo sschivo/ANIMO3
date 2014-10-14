@@ -12,7 +12,6 @@ import org.cytoscape.model.CyNetwork;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.View;
 
-import animo.cytoscape.Animo;
 import animo.cytoscape.EdgeDialog;
 
 public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFactory, ActionListener {
@@ -23,11 +22,8 @@ public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFac
 	public void actionPerformed(ActionEvent e) {
 		//CyEdge edge = CyTableUtil.getEdgesInState(network, "selected", true).get(0);
 		CyEdge edge = edgeView.getModel();
-		EdgeDialog dialog = new EdgeDialog(edge, network);
-		dialog.pack();
-
-		dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
-		dialog.setVisible(true);
+		EdgeDialog dialog = new EdgeDialog(network, edge);
+		dialog.showYourself();
 	}
 
 	@Override
