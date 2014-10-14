@@ -3,9 +3,7 @@ package animo.cytoscape;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.EventQueue;
-import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.geom.Point2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -13,8 +11,6 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.lang.reflect.InvocationTargetException;
-import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,7 +20,6 @@ import java.util.Map;
 import javax.imageio.ImageIO;
 import javax.swing.JDesktopPane;
 import javax.swing.JInternalFrame;
-import javax.swing.JLayeredPane;
 import javax.swing.JSplitPane;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -45,7 +40,6 @@ import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
-import org.cytoscape.model.CyTableUtil;
 import org.cytoscape.model.events.AddedEdgesEvent;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesEvent;
@@ -56,8 +50,6 @@ import org.cytoscape.session.events.SessionAboutToBeSavedEvent;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedEvent;
 import org.cytoscape.session.events.SessionLoadedListener;
-import org.cytoscape.view.model.CyNetworkView;
-import org.cytoscape.view.model.View;
 import org.cytoscape.view.model.events.NetworkViewAddedEvent;
 import org.cytoscape.view.model.events.NetworkViewAddedListener;
 import org.cytoscape.view.vizmap.events.VisualStyleChangedEvent;
@@ -125,217 +117,161 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			if (c instanceof JDesktopPane) {
 				JDesktopPane pane = (JDesktopPane)c;
 				JInternalFrame frame = pane.getSelectedFrame();
-				for (Component c2 : frame.getRootPane().getComponents()) {
-					if (c2 instanceof JLayeredPane) {
-						JLayeredPane pane2 = (JLayeredPane)c2;
-						for (Component c3 : pane2.getComponents()) {
-							//System.err.println("Ecco un componente: " + c3.getName() + " (tipo: " + c3.getClass().getName() + ")");
-							//Nei mouse listener implementati in org.cytoscape.ding.impl.InnerCanvas si parla di esporre il metodo void processMouseEvent(MouseEvent)
-							//per permettere ai canvas "on top of us" di passare a InnerCanvas gli eventi che loro non vogliono processare.
-							//Ho trovato il commit in Cytoscape 2 in cui questo metodo veniva aggiunto, e nel commento al commit si dice che questo permetterebbe
-							//al "foreground canvas" di "pass mouse events down". Il foreground canvas esattamente chi e'? E dove lo trovo? Sarebbe utile usare quello?
-							//A parte l'InnerCanvas, nel LayeredPane ci sono anche 2 (due!) org.cytoscape.ding.impl.ArbitraryGraphicsCanvas e un javax.swing.JPanel normale
-							//Gli ArbitraryGraphicsCanvas sono quelli per il background e il foreground (per distinguerli: il foreground ha un mouseListener registrato e l'altro no)
-							if (c3.getClass().getName().endsWith("InnerCanvas")) {
-								//c'e' qualcun altro dentro questo frame: dobbiamo attaccarci a lui, che e' quello dove vien disegnata la rete: del frame si riesce a cliccare direttamente solo il contorno!
-								//Dobbiamo anche rimuovere il mouse listener concorrente, perche' altrimenti l'InnerCanvas mi mangia i click in quanto ci mette troppo a processare mouse up/down
-								for (MouseListener listener : c3.getMouseListeners()) {
-									//System.err.println("Mouse listener trovato: " + listener.getClass().getName());
-									c3.removeMouseListener(listener);
-									//System.err.println("\t..e rimosso");
-								}
-								final Component innerCanvas = c3;
-								c3.addMouseListener(new MouseListener() {
-									private Method mouseEntered,
-												   mouseExited,
-												   mousePressed,
-												   mouseReleased;
-									
-									{
-										try {
-											mouseEntered = innerCanvas.getClass().getMethod("mouseEntered", MouseEvent.class);
-											mouseExited = innerCanvas.getClass().getMethod("mouseExited", MouseEvent.class);
-											mousePressed = innerCanvas.getClass().getMethod("mousePressed", MouseEvent.class);
-											mouseReleased = innerCanvas.getClass().getMethod("mouseReleased", MouseEvent.class);
-										} catch (NoSuchMethodException ex) {
-										}
-									}
-									
-									@Override
-									public void mouseClicked(MouseEvent e) {
-										if (e.getClickCount() == 2 && !e.isConsumed()) {
-											e.consume();
-											//System.err.println("Eseguo doppio-click");
-											//Per reagire a doppio click su nodo/edge, reagisci solo se uno e un solo nodo/edge e' selezionato in questo momento
-											CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
-											CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-											//The first click of this double-click was "too fast" and triggered the execution of mousePressed + mouseReleased here below,
-											//so if the double click event occurred over a node or edge, the node or edge should be selected
-											List<CyNode> nodeList = CyTableUtil.getNodesInState(currentNetwork, "selected", true);
-											List<CyEdge> edgeList = CyTableUtil.getEdgesInState(currentNetwork, "selected", true);
-											if (nodeList.size() == 1) { //If exactly one node is selected, then we have double-clicked on a node: show the edit reactant dialog
-												NodeDialog dialog = new NodeDialog(currentNetwork, nodeList.get(0));
-												dialog.pack();
-												dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
-												dialog.setVisible(true);
-											} else if (nodeList.size() > 1) {
-												//Come cacchio lo identifico il nodo su cui ho cliccato veramente?? Sembra che non ci sia il metodo della networkview per farsi dare il nodo dati x e y..
-												try {
-													Method getPickedNodeView = currentNetworkView.getClass().getMethod("getPickedNodeView", Point2D.class);
-													@SuppressWarnings("unchecked")
-													View<CyNode> nodeView = (View<CyNode>)getPickedNodeView.invoke(currentNetworkView, new Point2D.Float(e.getX(), e.getY()));
-													NodeDialog dialog = new NodeDialog(currentNetwork, nodeView.getModel());
-													dialog.showYourself();
-												} catch (Exception ex) {
-													NodeDialog dialog = new NodeDialog(currentNetwork, nodeList.get(0));
-													dialog.showYourself();
-												}
-											} else if (edgeList.size() == 1) { //Same thing for the edge
-												EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeList.get(0));
-												dialog.showYourself();
-											} else if (edgeList.size() > 1) {
-												try {
-													Method getPickedEdgeView = currentNetworkView.getClass().getMethod("getPickedEdgeView", Point2D.class);
-													@SuppressWarnings("unchecked")
-													View<CyEdge> edgeView = (View<CyEdge>)getPickedEdgeView.invoke(currentNetworkView, new Point2D.Float(e.getX(), e.getY()));
-													EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeView.getModel());
-													dialog.showYourself();
-												} catch (Exception ex) {
-													EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeList.get(0));
-													dialog.showYourself();
-												}
-											}
-										} else if (e.getClickCount() == 1 && !e.isConsumed() && clickTooFast) {
-											//System.err.println("Eseguo mousePressed + mouseReleased");
-											doMousePressed(e);
-											doMouseReleased(e);
-										}
-									}
-
-									@Override
-									public void mouseEntered(MouseEvent e) {
-										if (mouseEntered == null) return;
-										try {
-											mouseEntered.invoke(innerCanvas, e);
-										} catch (SecurityException ex) {
-											ex.printStackTrace();
-										} catch (IllegalAccessException ex) {
-											ex.printStackTrace();
-										} catch (IllegalArgumentException ex) {
-											ex.printStackTrace();
-										} catch (InvocationTargetException ex) {
-											ex.printStackTrace();
-										}
-									}
-
-									@Override
-									public void mouseExited(MouseEvent e) {
-										if (mouseExited == null) return;
-										try {
-											mouseExited.invoke(innerCanvas, e);
-										} catch (SecurityException ex) {
-											ex.printStackTrace();
-										} catch (IllegalAccessException ex) {
-											ex.printStackTrace();
-										} catch (IllegalArgumentException ex) {
-											ex.printStackTrace();
-										} catch (InvocationTargetException ex) {
-											ex.printStackTrace();
-										}
-									}
-
-									private long lastMouseDown = -1;
-									private int lastX = -1, lastY = -1;
-									private boolean processMouseDown = false,
-													mousePressedDecided = false,
-													clickTooFast = false;
-									final long CLICK_SENSITIVITY = 75;
-									
-									@Override
-									public void mousePressed(final MouseEvent e) {
-										lastMouseDown = e.getWhen();
-										lastX = e.getX();
-										lastY = e.getY();
-										processMouseDown = true;
-										new Thread() {
-											public void run() {
-												mousePressedDecided = false;
-												try {
-													Thread.sleep(CLICK_SENSITIVITY);
-												} catch (Exception ex) {
-												}
-												if (!processMouseDown) {
-													//System.err.println("NON eseguo mousePressed");
-													mousePressedDecided = true;
-													return;
-												}
-												//System.err.println("Eseguo mousePressed");
-												doMousePressed(e);
-												mousePressedDecided = true;
-											}
-										}.start();
-									}
-									
-									@Override
-									public void mouseReleased(MouseEvent e) {
-										clickTooFast = false;
-										if (e.getX() == lastX && e.getY() == lastY && e.getWhen() - lastMouseDown < CLICK_SENSITIVITY) { //If it was a (double)click, don't process here
-											lastX = lastY = -1;
-											lastMouseDown = -1;
-											processMouseDown = false;
-											clickTooFast = true;
-											//System.err.println("NON eseguo mouseReleased");
-											return;
-										}
-										try { //Try to do the mouseReleased after the mousePressed, so wait until it has decided to not occur or has finished occurring
-											int c = 0;
-											while (c < 10 && !mousePressedDecided) {
-												Thread.sleep(15 * CLICK_SENSITIVITY / 10);
-												c++;
-											}
-										} catch (Exception ex) {
-										}
-										//System.err.println("Eseguo mouseReleased");
-										doMouseReleased(e);
-									}
-									
-									private void doMousePressed(MouseEvent e) {
-										if (mousePressed == null) return;
-										try {
-											mousePressed.invoke(innerCanvas, e);
-										} catch (SecurityException ex) {
-											ex.printStackTrace();
-										} catch (IllegalAccessException ex) {
-											ex.printStackTrace();
-										} catch (IllegalArgumentException ex) {
-											ex.printStackTrace();
-										} catch (InvocationTargetException ex) {
-											ex.printStackTrace();
-										}
-									}
-									
-									private void doMouseReleased(MouseEvent e) {
-										if (mouseReleased == null) return;
-										try {
-											mouseReleased.invoke(innerCanvas, e);
-										} catch (SecurityException ex) {
-											ex.printStackTrace();
-										} catch (IllegalAccessException ex) {
-											ex.printStackTrace();
-										} catch (IllegalArgumentException ex) {
-											ex.printStackTrace();
-										} catch (InvocationTargetException ex) {
-											ex.printStackTrace();
-										}
-									}
-								});
-								//System.err.println("Mio mouse listener aggiunto all'InnerCanvas");
+				//Nei mouse listener implementati in org.cytoscape.ding.impl.InnerCanvas si parla di esporre il metodo void processMouseEvent(MouseEvent)
+				//per permettere ai canvas "on top of us" di passare a InnerCanvas gli eventi che loro non vogliono processare.
+				//Ho trovato il commit in Cytoscape 2 in cui questo metodo veniva aggiunto, e nel commento al commit si dice che questo permetterebbe
+				//al "foreground canvas" di "pass mouse events down". Il foreground canvas esattamente chi e'? E dove lo trovo? Sarebbe utile usare quello?
+				//A parte l'InnerCanvas, nel LayeredPane ci sono anche 2 (due!) org.cytoscape.ding.impl.ArbitraryGraphicsCanvas e un javax.swing.JPanel normale
+				//Gli ArbitraryGraphicsCanvas sono quelli per il background e il foreground (per distinguerli: il foreground ha un mouseListener registrato e l'altro no)
+				//Dobbiamo anche rimuovere il mouse listener concorrente, perche' altrimenti l'InnerCanvas mi mangia i click in quanto ci mette troppo a processare mouse up/down
+				Component innerCanvas = findInnerCanvas(frame);
+				if (innerCanvas != null) {
+					for (MouseListener listener : innerCanvas.getMouseListeners()) {
+						innerCanvas.removeMouseListener(listener);
+					}
+					innerCanvas.addMouseListener(new NetworkViewMouseListener(innerCanvas));
+				}
+//				Component abitraryGraphicsCanvas = findComponentByName(frame, "ArbitraryGraphicsCanvas");
+//				final Component innerCanvas = findInnerCanvas(frame);
+//				if (abitraryGraphicsCanvas != null) {
+					/*for (MouseListener listener : abitraryGraphicsCanvas.getMouseListeners()) {
+						abitraryGraphicsCanvas.removeMouseListener(listener);
+					}*/
+//					innerCanvas.addMouseListener(new MouseAdapter() {
+//						@Override
+//						public void mouseClicked(MouseEvent e) {
+//							if (e.getClickCount() == 2 && !e.isConsumed()) {
+//								e.consume();
+//								System.err.println("Doppio Click");
+//							}
+//							innerCanvas.dispatchEvent(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_PRESSED, e.getWhen() - 50, e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
+//							innerCanvas.dispatchEvent(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_RELEASED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
+//						}
+//					});
+					/*frame.getContentPane().getComponents()[0].addMouseListener(new MouseListener() {
+						Method processMouseEvent;
+						
+						{
+							try {
+								processMouseEvent = innerCanvas.getClass().getMethod("processMouseEvent", MouseEvent.class);
+							} catch (Exception ex) {
 							}
 						}
-					}
+						
+						private void passDown(MouseEvent e) {
+							try {
+								processMouseEvent.invoke(innerCanvas, e);
+							} catch (Exception ex) {
+							}
+						}
+
+						@Override
+						public void mouseClicked(MouseEvent e) {
+							if (e.getClickCount() == 2) {
+								System.err.println("Doppio click");
+//								// Per reagire a doppio click su nodo/edge, reagisci solo se uno e un solo nodo/edge e' selezionato in questo momento
+//								CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+//								CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager()
+//										.getCurrentNetworkView();
+//								// The first click of this double-click was "too fast" and triggered the execution of mousePressed + mouseReleased here below,
+//								// so if the double click event occurred over a node or edge, the node or edge should be selected
+//								List<CyNode> nodeList = CyTableUtil.getNodesInState(currentNetwork, "selected", true);
+//								List<CyEdge> edgeList = CyTableUtil.getEdgesInState(currentNetwork, "selected", true);
+//								if (nodeList.size() == 1) { // If exactly one node is selected, then we have double-clicked on a node: show the edit reactant dialog
+//									NodeDialog dialog = new NodeDialog(currentNetwork, nodeList.get(0));
+//									dialog.pack();
+//									dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
+//									dialog.setVisible(true);
+//								} else if (nodeList.size() > 1) {
+//									// Come cacchio lo identifico il nodo su cui ho cliccato veramente?? Sembra che non ci sia il metodo della networkview per farsi dare il nodo dati x e y..
+//									try {
+//										Method getPickedNodeView = currentNetworkView.getClass().getMethod("getPickedNodeView",
+//												Point2D.class);
+//										@SuppressWarnings("unchecked")
+//										View<CyNode> nodeView = (View<CyNode>) getPickedNodeView.invoke(currentNetworkView,
+//												new Point2D.Float(e.getX(), e.getY()));
+//										NodeDialog dialog = new NodeDialog(currentNetwork, nodeView.getModel());
+//										dialog.showYourself();
+//									} catch (Exception ex) {
+//										NodeDialog dialog = new NodeDialog(currentNetwork, nodeList.get(0));
+//										dialog.showYourself();
+//									}
+//								} else if (edgeList.size() == 1) { // Same thing for the edge
+//									EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeList.get(0));
+//									dialog.showYourself();
+//								} else if (edgeList.size() > 1) {
+//									try {
+//										Method getPickedEdgeView = currentNetworkView.getClass().getMethod("getPickedEdgeView",
+//												Point2D.class);
+//										@SuppressWarnings("unchecked")
+//										View<CyEdge> edgeView = (View<CyEdge>) getPickedEdgeView.invoke(currentNetworkView,
+//												new Point2D.Float(e.getX(), e.getY()));
+//										EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeView.getModel());
+//										dialog.showYourself();
+//									} catch (Exception ex) {
+//										EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeList.get(0));
+//										dialog.showYourself();
+//									}
+//								}
+								e.consume();
+							} else {
+								//passDown(e);
+//								MouseEvent mouseDown = new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_PRESSED, e.getWhen() - 1, e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()),
+//										   mouseUp = new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_RELEASED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton());
+//								passDown(mouseDown);
+//								passDown(mouseUp);
+								passDown(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_CLICKED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
+							}
+						}
+
+						@Override
+						public void mouseEntered(MouseEvent e) {
+							passDown(e);
+							e.consume();
+						}
+
+						@Override
+						public void mouseExited(MouseEvent e) {
+							passDown(e);
+							e.consume();
+						}
+
+						@Override
+						public void mousePressed(MouseEvent e) {
+							passDown(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_PRESSED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
+//							passDown(e);
+//							e.consume();
+						}
+
+						@Override
+						public void mouseReleased(MouseEvent e) {
+							passDown(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_RELEASED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
+//							passDown(e);
+//							e.consume();
+						}
+						
+					});*/
+//				}
+			}
+		}
+	}
+	
+	private Component findInnerCanvas(Container c) {
+		return findComponentByName(c, "InnerCanvas");
+	}
+	
+	private Component findComponentByName(Container c, String className) {
+		for (Component child : c.getComponents()) {
+			if (child.getClass().getName().endsWith(className)) {
+				return child;
+			} else if (child instanceof Container) {
+				Component result = findComponentByName((Container)child, className);
+				if (result != null) {
+					return result;
 				}
 			}
 		}
+		return null;
 	}
 	
 	
