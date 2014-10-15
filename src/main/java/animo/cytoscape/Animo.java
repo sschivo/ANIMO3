@@ -183,7 +183,7 @@ public class Animo extends AbstractCyActivator {
 		VisualMappingFunctionFactory vmFactoryPassthrough = getService(bc, VisualMappingFunctionFactory.class,
 				"(mapping.type=passthrough)");
 
-		vsa = new VisualStyleAnimo(visualMappingManager, visualStyleFactory, vmFactoryContinuous, vmFactoryDiscrete, vmFactoryPassthrough, colorsLegend, shapesLegend, cyAppManager);
+		vsa = new VisualStyleAnimo(visualMappingManager, visualStyleFactory, vmFactoryContinuous, vmFactoryDiscrete, vmFactoryPassthrough, colorsLegend, shapesLegend);
 
 	}
 

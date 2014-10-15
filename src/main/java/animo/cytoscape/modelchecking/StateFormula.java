@@ -86,7 +86,6 @@ public class StateFormula extends JPanel {
 
 	private StateFormula selectedFormula = null;
 
-	@SuppressWarnings("unchecked")
 	public StateFormula() {
 
 		Box content = new Box(BoxLayout.X_AXIS);

@@ -6,7 +6,6 @@ import java.awt.Paint;
 import java.util.Arrays;
 import java.util.List;
 
-import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.presentation.property.ArrowShapeVisualProperty;
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
@@ -34,17 +33,14 @@ public class VisualStyleAnimo {
 	private VisualMappingFunctionFactory vmFactoryPassthrough;
 	private ColorsLegend colorsLegend;
 	private ShapesLegend shapesLegend;
-	private CyApplicationManager cyAppManager;
 	private VisualStyle currentVisualStyle;
 	private CyNetworkView currentNetworkView;
-	private String visualStyleName;
 	public static final String ANIMO_NORMAL_VISUAL_STYLE = "ANIMO_VisualStyle",
 			ANIMO_DIFF_VISUAL_STYLE = "ANIMO_difference_Visual_Style";
 
 	VisualStyleAnimo(VisualMappingManager vmmServiceRef, VisualStyleFactory visualStyleFactoryServiceRef,
 			VisualMappingFunctionFactory vmfFactoryC, VisualMappingFunctionFactory vmfFactoryD,
-			VisualMappingFunctionFactory vmfFactoryP, ColorsLegend colorsLegend, ShapesLegend shapesLegend,
-			CyApplicationManager cyAppManager) {
+			VisualMappingFunctionFactory vmfFactoryP, ColorsLegend colorsLegend, ShapesLegend shapesLegend) {
 		this.visualMappingManager = vmmServiceRef;
 		this.visualStyleFactory = visualStyleFactoryServiceRef;
 		this.vmFactoryContinuous = vmfFactoryC;
@@ -52,7 +48,6 @@ public class VisualStyleAnimo {
 		this.vmFactoryPassthrough = vmfFactoryP;
 		this.colorsLegend = colorsLegend;
 		this.shapesLegend = shapesLegend;
-		this.cyAppManager = cyAppManager;
 	}
 
 	private void addVisMapEdgesEnabled() {
@@ -145,9 +140,9 @@ public class VisualStyleAnimo {
 		currentVisualStyle.addVisualMappingFunction(dm);
 
 		// NODE_BORDER_WIDTH
-		DiscreteMapping<Boolean, Double> dmd = (DiscreteMapping<Boolean, Double>) vmFactoryDiscrete
-				.createVisualMappingFunction(Model.Properties.ENABLED, Boolean.class,
-						BasicVisualLexicon.NODE_BORDER_WIDTH);
+		DiscreteMapping<Boolean, Double> dmd = 
+				(DiscreteMapping<Boolean, Double>)vmFactoryDiscrete.createVisualMappingFunction(Model.Properties.ENABLED, Boolean.class,
+																								BasicVisualLexicon.NODE_BORDER_WIDTH);
 		dmd.putMapValue(false, 3.0);
 		dmd.putMapValue(true, 6.0);
 		currentVisualStyle.addVisualMappingFunction(dmd);
@@ -347,7 +342,6 @@ public class VisualStyleAnimo {
 				!visualStyleName.equals(ANIMO_DIFF_VISUAL_STYLE)) {
 			return;
 		}
-		this.visualStyleName = visualStyleName;
 		this.currentNetworkView = networkview;
 		this.currentVisualStyle = visualMappingManager.getVisualStyle(currentNetworkView);
 		if (!visualStyleName.equals(currentVisualStyle.getTitle())) {
@@ -408,7 +402,7 @@ public class VisualStyleAnimo {
 		addVisMapNodesPlotted();
 		addVisMapEdgesEnabled();
 		addVisMapEdgesIncrement();
-		addVisMapEdgesShownLevel();
+//		addVisMapEdgesShownLevel();
 		// DiscreteMapping<String, NodeShape> shapesMap =
 		addVisMapNodesType();
 		// DiscreteMapping<String, Double> heightMap =
@@ -428,8 +422,8 @@ public class VisualStyleAnimo {
 	}
 
 	private void setDefaults() {
-		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_BORDER_PAINT, Color.BLUE);
-		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_BORDER_WIDTH, 5.0);
+		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_BORDER_PAINT, Color.DARK_GRAY);
+		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_BORDER_WIDTH, 6.0);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_FILL_COLOR, Color.RED);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_LABEL_COLOR, Color.BLACK);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_LABEL_FONT_FACE, new Font(Font.SANS_SERIF, Font.BOLD, 12));

@@ -25,6 +25,7 @@ import java.awt.Font;
 import java.awt.FontMetrics;
 import java.awt.Graphics2D;
 import java.awt.Image;
+import java.awt.Paint;
 import java.awt.Point;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -40,9 +41,12 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.FileImageOutputStream;
 
+import org.cytoscape.view.presentation.property.BasicVisualLexicon;
 import org.cytoscape.view.vizmap.VisualMappingFunction;
 import org.cytoscape.view.vizmap.VisualMappingManager;
 import org.cytoscape.view.vizmap.VisualStyle;
+import org.cytoscape.view.vizmap.mappings.ContinuousMapping;
+import org.cytoscape.view.vizmap.mappings.ContinuousMappingPoint;
 
 import animo.cytoscape.Animo;
 
@@ -590,30 +594,55 @@ public class HeatChart {
 		return backgroundColour;
 	}
 
-	/**
-	 * During the port this function has been broken, due to the deprecation of most methods used. A good aternative will have to be found.
-	 * 
-	 * @param value
-	 * @return
-	 */
-	// TODO Create a proper alternative for the original function
 	private Color getCellColor(double value) {
 		VisualMappingManager vizMap = Animo.getCytoscapeApp().getVisualMappingManager();
 		VisualStyle visualStyle = vizMap.getDefaultVisualStyle();
-		VisualMappingFunction nac = visualStyle.getVisualMappingFunction(null);
-		// Vector<ObjectMapping> mappings = nac.getCalculator(BasicVisualLexicon.NODE_FILL_COLOR).getMappings();
-		/**
-		 * for (ObjectMapping om : mappings) { if (om instanceof ContinuousMapping<Double, Double>) { ContinuousMapping<Double, Double> m = (ContinuousMapping<Double, Double>) om;
-		 * int nPunti = m.getPointCount(); int idx = 0; double minVal = Double.POSITIVE_INFINITY, maxVal = Double.NEGATIVE_INFINITY, range = 0; for (ContinuousMappingPoint<Double,
-		 * Double> p : m.getAllPoints()) { if (p.getValue() < minVal) { minVal = p.getValue(); } if (p.getValue() > maxVal) { maxVal = p.getValue(); } } range = maxVal - minVal;
-		 * double pointValue = Double.NaN; for (; idx < nPunti; idx++) { ContinuousMappingPoint<Double, Double> punto = m.getPoint(idx); if ((punto.getValue() - minVal) / range >
-		 * value) { pointValue = value * range + minVal; break; } } int idx1 = idx - 1, idx2 = idx; if (idx == nPunti) {
-		 * 
-		 * return m.getPoint(nPunti - 1).getRange().equalValue; } ContinuousMappingPoint<Double, Double> p1 = m.getPoint(idx1), p2 = m.getPoint(idx2); minVal = p1.getValue();
-		 * maxVal = p2.getValue(); range = maxVal - minVal; LinearNumberToColorInterpolator inter = new LinearNumberToColorInterpolator(); return (Color)
-		 * inter.getRangeValue((pointValue - minVal) / range, p1.getRange().equalValue, p2.getRange().equalValue); } }
-		 */
+		@SuppressWarnings("unchecked")
+		VisualMappingFunction<Double, Paint> colorMapping = (VisualMappingFunction<Double, Paint>)visualStyle.getVisualMappingFunction(BasicVisualLexicon.NODE_FILL_COLOR);
+		
+		if (colorMapping instanceof ContinuousMapping<?, ?>) {
+			ContinuousMapping<Double, Paint> m = (ContinuousMapping<Double, Paint>)colorMapping;
+			int nPunti = m.getPointCount();
+			int idx = 0;
+			double minVal = Double.POSITIVE_INFINITY, maxVal = Double.NEGATIVE_INFINITY, range = 0;
+			for (ContinuousMappingPoint<Double, Paint> p : m.getAllPoints()) {
+				if (p.getValue() < minVal) {
+					minVal = p.getValue();
+				}
+				if (p.getValue() > maxVal) {
+					maxVal = p.getValue();
+				}
+			}
+			range = maxVal - minVal;
+			double pointValue = Double.NaN;
+			for (; idx < nPunti; idx++) {
+				ContinuousMappingPoint<Double, Paint> punto = m.getPoint(idx);
+				if ((punto.getValue() - minVal) / range > value) {
+					pointValue = value * range + minVal;
+					break;
+				}
+			}
+			int idx1 = idx - 1, idx2 = idx;
+			if (idx == nPunti) {
+				return (Color)m.getPoint(nPunti - 1).getRange().equalValue;
+			}
+			ContinuousMappingPoint<Double, Paint> p1 = m.getPoint(idx1), p2 = m.getPoint(idx2);
+			minVal = p1.getValue();
+			maxVal = p2.getValue();
+			range = maxVal - minVal;
+			return getRangeValue((pointValue - minVal) / range, (Color)p1.getRange().equalValue, (Color)p2.getRange().equalValue);
+		}
 		return new Color(0, 0, 150);
+	}
+	
+	//This function was copied from the one in Cytoscape's LinearNumberToColorInterpolator.
+	//We just needed that function, which we assume to be correct, and the class is not easily reachable, so...
+	public Color getRangeValue(double frac, Color lowerRange, Color upperRange) {
+		double red = lowerRange.getRed() + (frac * (upperRange.getRed() - lowerRange.getRed())),
+			   green = lowerRange.getGreen() + (frac * (upperRange.getGreen() - lowerRange.getGreen())),
+			   blue = lowerRange.getBlue() + (frac * (upperRange.getBlue() - lowerRange.getBlue())),
+			   alpha = lowerRange.getAlpha() + (frac * (upperRange.getAlpha() - lowerRange.getAlpha()));
+		return new Color((int) Math.round(red), (int) Math.round(green), (int) Math.round(blue), (int) Math.round(alpha));
 	}
 
 	/*

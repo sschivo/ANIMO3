@@ -997,9 +997,12 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	/**
 	 * When the user moves the time slider, we update the activity ratio (SHOWN_LEVEL) of all nodes in the network window, so that, thanks to the continuous Visual Mapping defined
 	 * when the interface is augmented (see AugmentAction), different colors will show different activity levels.
+	 * quei deficienti hanno cancellato righe a caso, zio cane!!!
 	 */
 	@Override
 	public void stateChanged(ChangeEvent e) {
+//		int a = 0;
+//		if (a < 1) return;
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork net = cyApplicationManager.getCurrentNetwork();
 		if (net == null) {
@@ -1010,13 +1013,13 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
 		g.setRedLinePosition(1.0 * this.slider.getValue() / this.slider.getMaximum() * graphWidth);
 		
-		if (convergingEdges == null) {
-			convergingEdges = new HashMap<Long, Pair<Boolean, List<Long>>>();
-		} else {
-			for (Pair<Boolean, List<Long>> group : convergingEdges.values()) {
-				group.first = true; // Each edge in each group is initially assumed to be a candidate for having 0 activityRatio
-			}
-		}
+//		if (convergingEdges == null) {
+//			convergingEdges = new HashMap<Long, Pair<Boolean, List<Long>>>();
+//		} else {
+//			for (Pair<Boolean, List<Long>> group : convergingEdges.values()) {
+//				group.first = true; // Each edge in each group is initially assumed to be a candidate for having 0 activityRatio
+//			}
+//		}
 
 		final int levels = this.model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class); // at this point, all levels have already been rescaled to the
 																												// maximum (= the number of levels of the model), so we use it as a
@@ -1027,26 +1030,29 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			final String id = this.model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
 			final double level = this.result.getConcentration(r, t);
 			net.getRow(net.getNode(Long.valueOf(id))).set(Model.Properties.SHOWN_LEVEL, level / levels);
-		}
-		try {
-			for (String r : this.result.getReactantIds()) {
-				if (!(r.charAt(0) == 'E'))
-					continue;
-				String edgeId = r.substring(1);
-				CyEdge edge = null;
-				edge = net.getEdge(Long.valueOf(edgeId));
-				if (edge == null)
-					continue;
-				if (t == 0) {
-					if (net.getRow(edge).isSet(Model.Properties.SHOWN_LEVEL)) {
-						net.getRow(edge).getTable().deleteColumn(Model.Properties.SHOWN_LEVEL);
-					}
-				}
+			if (!net.getRow(net.getNode(Long.valueOf(id))).isSet(Model.Properties.PLOTTED)) {
+				net.getRow(net.getNode(Long.valueOf(id))).set(Model.Properties.PLOTTED, true);
 			}
-		} catch (NumberFormatException ex) {
 		}
+//		try {
+//			for (String r : this.result.getReactantIds()) {
+//				if (!(r.charAt(0) == 'E'))
+//					continue;
+//				String edgeId = r.substring(1);
+//				CyEdge edge = null;
+//				edge = net.getEdge(Long.valueOf(edgeId));
+//				if (edge == null)
+//					continue;
+//				if (t == 0) {
+//					if (net.getRow(edge).isSet(Model.Properties.SHOWN_LEVEL)) {
+//						net.getRow(edge).getTable().deleteColumn(Model.Properties.SHOWN_LEVEL);
+//					}
+//				}
+//			}
+//		} catch (NumberFormatException ex) {
+//		}
 
-		Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
+		//Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
 	}
 
 }

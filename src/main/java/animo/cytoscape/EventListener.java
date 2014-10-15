@@ -102,234 +102,8 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	@Override
 	public void handleEvent(NetworkViewAddedEvent e) {
 		Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
-		
-//		try{
-//			final CyNetworkView networkView = e.getNetworkView();
-//			Object foregroundCanvasName = null;
-//			for (@SuppressWarnings("rawtypes") Class c : networkView.getClass().getClasses()) {
-//				if (c.getName().endsWith("Canvas") && c.isEnum()) {
-//					for (Object o : c.getEnumConstants()) {
-//						if (o.toString().contains("FOREGROUND")) {
-//							foregroundCanvasName = o;
-//							break;
-//						}
-//					}
-//				}
-//				if (foregroundCanvasName != null) {
-//					break;
-//				}
-//			}
-//			Component canvas;
-//			if (foregroundCanvasName != null) {
-//				System.err.println("Prendo la canvassa foreground");
-//				canvas = (Component)networkView.getClass().getMethod("getCanvas", foregroundCanvasName.getClass()).invoke(networkView, foregroundCanvasName);
-//			} else {
-//				System.err.println("Prendo la network canvassa");
-//				canvas = (Component)networkView.getClass().getMethod("getCanvas").invoke(networkView);
-//			}
-//			MouseListener mouseListener = new MouseAdapter() {
-//				@Override
-//				public void mouseClicked(MouseEvent e) {
-//					if (e.getClickCount() == 2) {
-//						try {
-//							@SuppressWarnings("unchecked")
-//							View<CyNode> nv = (View<CyNode>)networkView.getClass().getMethod("getPickedNodeView", Point2D.class).invoke(networkView, new Point2D.Float(e.getX(), e.getY()));
-//							if (nv != null) {
-//								CyNode node = (CyNode)nv.getModel();
-//								NodeDialog nodeDialog = new NodeDialog(networkView.getModel(), node);
-//								nodeDialog.showYourself();
-//								return;
-//							}
-//							@SuppressWarnings("unchecked")
-//							View<CyEdge> ev = (View<CyEdge>)networkView.getClass().getMethod("getPickedEdgeView", Point2D.class).invoke(networkView, new Point2D.Float(e.getX(), e.getY()));
-//							if (ev != null) {
-//								CyEdge edge = (CyEdge)ev.getModel();
-//								EdgeDialog dialog = new EdgeDialog(networkView.getModel(), edge);
-//								dialog.showYourself();
-//								return;
-//							}
-//						} catch (Exception ex) {
-//							System.err.println("Problema nel doubleClick: " + ex);
-//							ex.printStackTrace(System.err);
-//						}
-//					}
-//				}
-//			};
-//			canvas.addMouseListener(mouseListener);
-//		} catch (Exception ex) {
-//			System.err.println("Problema nell'aggiungere il listener: " + ex);
-//			ex.printStackTrace(System.err);
-//		}
-//		
-//		int a = 0;
-//		if (a < 1) {
-//			return;
-//		}
-		
-/*		//Horrible and supercomplex way to reach the view window and hopefully enable the double-click to edit nodes/edges, while still maintaining the normal click features
-		JSplitPane par = (JSplitPane)(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST).getThisComponent().getParent());
-		for (Component c : par.getComponents()) {
-			if (c instanceof JDesktopPane) {
-				JDesktopPane pane = (JDesktopPane)c;
-				JInternalFrame frame = pane.getSelectedFrame();
-				//Nei mouse listener implementati in org.cytoscape.ding.impl.InnerCanvas si parla di esporre il metodo void processMouseEvent(MouseEvent)
-				//per permettere ai canvas "on top of us" di passare a InnerCanvas gli eventi che loro non vogliono processare.
-				//Ho trovato il commit in Cytoscape 2 in cui questo metodo veniva aggiunto, e nel commento al commit si dice che questo permetterebbe
-				//al "foreground canvas" di "pass mouse events down". Il foreground canvas esattamente chi e'? E dove lo trovo? Sarebbe utile usare quello?
-				//A parte l'InnerCanvas, nel LayeredPane ci sono anche 2 (due!) org.cytoscape.ding.impl.ArbitraryGraphicsCanvas e un javax.swing.JPanel normale
-				//Gli ArbitraryGraphicsCanvas sono quelli per il background e il foreground (per distinguerli: il foreground ha un mouseListener registrato e l'altro no)
-				//Dobbiamo anche rimuovere il mouse listener concorrente, perche' altrimenti l'InnerCanvas mi mangia i click in quanto ci mette troppo a processare mouse up/down
-				Component innerCanvas = findInnerCanvas(frame);
-				if (innerCanvas != null) {
-					for (MouseListener listener : innerCanvas.getMouseListeners()) {
-						innerCanvas.removeMouseListener(listener);
-					}
-					innerCanvas.addMouseListener(new NetworkViewMouseListener(innerCanvas));
-				}
-*/
-//				Component abitraryGraphicsCanvas = findComponentByName(frame, "ArbitraryGraphicsCanvas");
-//				final Component innerCanvas = findInnerCanvas(frame);
-//				if (abitraryGraphicsCanvas != null) {
-					/*for (MouseListener listener : abitraryGraphicsCanvas.getMouseListeners()) {
-						abitraryGraphicsCanvas.removeMouseListener(listener);
-					}*/
-//					innerCanvas.addMouseListener(new MouseAdapter() {
-//						@Override
-//						public void mouseClicked(MouseEvent e) {
-//							if (e.getClickCount() == 2 && !e.isConsumed()) {
-//								e.consume();
-//								System.err.println("Doppio Click");
-//							}
-//							innerCanvas.dispatchEvent(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_PRESSED, e.getWhen() - 50, e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
-//							innerCanvas.dispatchEvent(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_RELEASED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
-//						}
-//					});
-					/*frame.getContentPane().getComponents()[0].addMouseListener(new MouseListener() {
-						Method processMouseEvent;
-						
-						{
-							try {
-								processMouseEvent = innerCanvas.getClass().getMethod("processMouseEvent", MouseEvent.class);
-							} catch (Exception ex) {
-							}
-						}
-						
-						private void passDown(MouseEvent e) {
-							try {
-								processMouseEvent.invoke(innerCanvas, e);
-							} catch (Exception ex) {
-							}
-						}
-
-						@Override
-						public void mouseClicked(MouseEvent e) {
-							if (e.getClickCount() == 2) {
-								System.err.println("Doppio click");
-//								// Per reagire a doppio click su nodo/edge, reagisci solo se uno e un solo nodo/edge e' selezionato in questo momento
-//								CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
-//								CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager()
-//										.getCurrentNetworkView();
-//								// The first click of this double-click was "too fast" and triggered the execution of mousePressed + mouseReleased here below,
-//								// so if the double click event occurred over a node or edge, the node or edge should be selected
-//								List<CyNode> nodeList = CyTableUtil.getNodesInState(currentNetwork, "selected", true);
-//								List<CyEdge> edgeList = CyTableUtil.getEdgesInState(currentNetwork, "selected", true);
-//								if (nodeList.size() == 1) { // If exactly one node is selected, then we have double-clicked on a node: show the edit reactant dialog
-//									NodeDialog dialog = new NodeDialog(currentNetwork, nodeList.get(0));
-//									dialog.pack();
-//									dialog.setLocationRelativeTo(Animo.getCytoscape().getJFrame());
-//									dialog.setVisible(true);
-//								} else if (nodeList.size() > 1) {
-//									// Come cacchio lo identifico il nodo su cui ho cliccato veramente?? Sembra che non ci sia il metodo della networkview per farsi dare il nodo dati x e y..
-//									try {
-//										Method getPickedNodeView = currentNetworkView.getClass().getMethod("getPickedNodeView",
-//												Point2D.class);
-//										@SuppressWarnings("unchecked")
-//										View<CyNode> nodeView = (View<CyNode>) getPickedNodeView.invoke(currentNetworkView,
-//												new Point2D.Float(e.getX(), e.getY()));
-//										NodeDialog dialog = new NodeDialog(currentNetwork, nodeView.getModel());
-//										dialog.showYourself();
-//									} catch (Exception ex) {
-//										NodeDialog dialog = new NodeDialog(currentNetwork, nodeList.get(0));
-//										dialog.showYourself();
-//									}
-//								} else if (edgeList.size() == 1) { // Same thing for the edge
-//									EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeList.get(0));
-//									dialog.showYourself();
-//								} else if (edgeList.size() > 1) {
-//									try {
-//										Method getPickedEdgeView = currentNetworkView.getClass().getMethod("getPickedEdgeView",
-//												Point2D.class);
-//										@SuppressWarnings("unchecked")
-//										View<CyEdge> edgeView = (View<CyEdge>) getPickedEdgeView.invoke(currentNetworkView,
-//												new Point2D.Float(e.getX(), e.getY()));
-//										EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeView.getModel());
-//										dialog.showYourself();
-//									} catch (Exception ex) {
-//										EdgeDialog dialog = new EdgeDialog(currentNetwork, edgeList.get(0));
-//										dialog.showYourself();
-//									}
-//								}
-								e.consume();
-							} else {
-								//passDown(e);
-//								MouseEvent mouseDown = new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_PRESSED, e.getWhen() - 1, e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()),
-//										   mouseUp = new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_RELEASED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton());
-//								passDown(mouseDown);
-//								passDown(mouseUp);
-								passDown(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_CLICKED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
-							}
-						}
-
-						@Override
-						public void mouseEntered(MouseEvent e) {
-							passDown(e);
-							e.consume();
-						}
-
-						@Override
-						public void mouseExited(MouseEvent e) {
-							passDown(e);
-							e.consume();
-						}
-
-						@Override
-						public void mousePressed(MouseEvent e) {
-							passDown(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_PRESSED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
-//							passDown(e);
-//							e.consume();
-						}
-
-						@Override
-						public void mouseReleased(MouseEvent e) {
-							passDown(new MouseEvent((Component)e.getSource(), MouseEvent.MOUSE_RELEASED, e.getWhen(), e.getModifiers(), e.getX(), e.getY(), e.getXOnScreen(), e.getYOnScreen(), e.getClickCount(), e.isPopupTrigger(), e.getButton()));
-//							passDown(e);
-//							e.consume();
-						}
-						
-					});*/
-//				}
-	/*		}
-		}
-	*/
+		//Before (Cytoscape 2.8.x) we added here also the listeners to node/edge double click events. Now they are added in Animo.hookListeners(), and they are disguised as Edge/NodeViewTaskFactories
 	}
-	
-//	private Component findInnerCanvas(Container c) {
-//		return findComponentByName(c, "InnerCanvas");
-//	}
-//	
-//	private Component findComponentByName(Container c, String className) {
-//		for (Component child : c.getComponents()) {
-//			if (child.getClass().getName().endsWith(className)) {
-//				return child;
-//			} else if (child instanceof Container) {
-//				Component result = findComponentByName((Container)child, className);
-//				if (result != null) {
-//					return result;
-//				}
-//			}
-//		}
-//		return null;
-//	}
 	
 	
 	@Override
@@ -342,8 +116,8 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 * Saves the files for the session.
 	 */
 	@Override
-	public void handleEvent(SessionAboutToBeSavedEvent arg0) {
-		List<File> files = arg0.getAppFileListMap().get(APPNAME);
+	public void handleEvent(SessionAboutToBeSavedEvent sessionEvent) {
+		List<File> files = sessionEvent.getAppFileListMap().get(APPNAME);
 		this.saveSessionStateFiles(files);
 	}
 
@@ -351,8 +125,8 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 * Loads the files for the session.
 	 */
 	@Override
-	public void handleEvent(SessionLoadedEvent arg0) {
-		List<File> files = arg0.getLoadedSession().getAppFileListMap().get(APPNAME);
+	public void handleEvent(SessionLoadedEvent sessionEvent) {
+		List<File> files = sessionEvent.getLoadedSession().getAppFileListMap().get(APPNAME);
 		this.restoreSessionState(files);
 		//Once we loaded a session, we show the ANIMO control panel
 		Animo.selectAnimoControlPanel();

@@ -235,20 +235,21 @@ public class Model implements Serializable {
 		Integer nLvl = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 		if (nLvl == null) {
 			// throw new InatException("Network attribute '" + NUMBER_OF_LEVELS + "' is missing.");
-			int defaultNLevels = 15;
-			String inputLevels = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-					"Missing number of levels for the network. Please insert the max number of levels",
-					Integer.valueOf(defaultNLevels));
-			if (inputLevels != null) {
-				try {
-					nLvl = Integer.valueOf(inputLevels);
-				} catch (NumberFormatException ex) {
-					nLvl = defaultNLevels;
-				}
-			} else {
-				nLvl = defaultNLevels;
-			}
-			// network.getRow(network).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
+			nLvl = 15;
+//			int defaultNLevels = 15;
+//			String inputLevels = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
+//					"Missing number of levels for the network. Please insert the max number of levels",
+//					Integer.valueOf(defaultNLevels));
+//			if (inputLevels != null) {
+//				try {
+//					nLvl = Integer.valueOf(inputLevels);
+//				} catch (NumberFormatException ex) {
+//					nLvl = defaultNLevels;
+//				}
+//			} else {
+//				nLvl = defaultNLevels;
+//			}
+//			// network.getRow(network).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
 
 			Animo.setRowValue(network.getRow(network), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
 
@@ -256,22 +257,23 @@ public class Model implements Serializable {
 		Double nSecPerPoint = network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 		if (nSecPerPoint == null) {
 			// throw new InatException("Network attribute '" + SECONDS_PER_POINT + "' is missing.");
-			double defaultSecondsPerPoint = 1;
-			String inputSecs = JOptionPane
-					.showInputDialog(
-							Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-							"Missing number of seconds per point for the network.\nPlease insert the number of real-life seconds a simulation point will represent",
-							defaultSecondsPerPoint);
-			if (inputSecs != null) {
-				try {
-					nSecPerPoint = new Double(inputSecs);
-				} catch (NumberFormatException ex) {
-					nSecPerPoint = defaultSecondsPerPoint;
-				}
-			} else {
-				nSecPerPoint = defaultSecondsPerPoint;
-			}
-			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, nSecPerPoint);
+			nSecPerPoint = 1.0;
+//			double defaultSecondsPerPoint = 1;
+//			String inputSecs = JOptionPane
+//					.showInputDialog(
+//							Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
+//							"Missing number of seconds per point for the network.\nPlease insert the number of real-life seconds a simulation point will represent",
+//							defaultSecondsPerPoint);
+//			if (inputSecs != null) {
+//				try {
+//					nSecPerPoint = new Double(inputSecs);
+//				} catch (NumberFormatException ex) {
+//					nSecPerPoint = defaultSecondsPerPoint;
+//				}
+//			} else {
+//				nSecPerPoint = defaultSecondsPerPoint;
+//			}
+//			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, nSecPerPoint);
 			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, nSecPerPoint);
 		}
 
