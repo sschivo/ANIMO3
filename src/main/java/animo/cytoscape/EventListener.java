@@ -3,7 +3,6 @@ package animo.cytoscape;
 import java.awt.Component;
 import java.awt.Container;
 import java.awt.EventQueue;
-import java.awt.event.MouseListener;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -18,9 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
-import javax.swing.JDesktopPane;
-import javax.swing.JInternalFrame;
-import javax.swing.JSplitPane;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -79,9 +75,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 				@Override
 				public void run() {
 					EdgeDialog edgeDialog = new EdgeDialog(network, edge);
-					edgeDialog.pack();
-					edgeDialog.setCreatedNewEdge();
-					edgeDialog.setVisible(true);
+					edgeDialog.showYourself();
 				}
 			});
 		}
@@ -99,9 +93,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 				@Override
 				public void run() {
 					NodeDialog nodeDialog = new NodeDialog(network, node);
-					nodeDialog.pack();
-					nodeDialog.setCreatedNewNode();
-					nodeDialog.setVisible(true);
+					nodeDialog.showYourself();
 				}
 			});
 		}
@@ -111,7 +103,70 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	public void handleEvent(NetworkViewAddedEvent e) {
 		Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
 		
-		//Horrible and supercomplex way to reach the view window and hopefully enable the double-click to edit nodes/edges, while still maintaining the normal click features
+//		try{
+//			final CyNetworkView networkView = e.getNetworkView();
+//			Object foregroundCanvasName = null;
+//			for (@SuppressWarnings("rawtypes") Class c : networkView.getClass().getClasses()) {
+//				if (c.getName().endsWith("Canvas") && c.isEnum()) {
+//					for (Object o : c.getEnumConstants()) {
+//						if (o.toString().contains("FOREGROUND")) {
+//							foregroundCanvasName = o;
+//							break;
+//						}
+//					}
+//				}
+//				if (foregroundCanvasName != null) {
+//					break;
+//				}
+//			}
+//			Component canvas;
+//			if (foregroundCanvasName != null) {
+//				System.err.println("Prendo la canvassa foreground");
+//				canvas = (Component)networkView.getClass().getMethod("getCanvas", foregroundCanvasName.getClass()).invoke(networkView, foregroundCanvasName);
+//			} else {
+//				System.err.println("Prendo la network canvassa");
+//				canvas = (Component)networkView.getClass().getMethod("getCanvas").invoke(networkView);
+//			}
+//			MouseListener mouseListener = new MouseAdapter() {
+//				@Override
+//				public void mouseClicked(MouseEvent e) {
+//					if (e.getClickCount() == 2) {
+//						try {
+//							@SuppressWarnings("unchecked")
+//							View<CyNode> nv = (View<CyNode>)networkView.getClass().getMethod("getPickedNodeView", Point2D.class).invoke(networkView, new Point2D.Float(e.getX(), e.getY()));
+//							if (nv != null) {
+//								CyNode node = (CyNode)nv.getModel();
+//								NodeDialog nodeDialog = new NodeDialog(networkView.getModel(), node);
+//								nodeDialog.showYourself();
+//								return;
+//							}
+//							@SuppressWarnings("unchecked")
+//							View<CyEdge> ev = (View<CyEdge>)networkView.getClass().getMethod("getPickedEdgeView", Point2D.class).invoke(networkView, new Point2D.Float(e.getX(), e.getY()));
+//							if (ev != null) {
+//								CyEdge edge = (CyEdge)ev.getModel();
+//								EdgeDialog dialog = new EdgeDialog(networkView.getModel(), edge);
+//								dialog.showYourself();
+//								return;
+//							}
+//						} catch (Exception ex) {
+//							System.err.println("Problema nel doubleClick: " + ex);
+//							ex.printStackTrace(System.err);
+//						}
+//					}
+//				}
+//			};
+//			canvas.addMouseListener(mouseListener);
+//		} catch (Exception ex) {
+//			System.err.println("Problema nell'aggiungere il listener: " + ex);
+//			ex.printStackTrace(System.err);
+//		}
+//		
+//		int a = 0;
+//		if (a < 1) {
+//			return;
+//		}
+		
+/*		//Horrible and supercomplex way to reach the view window and hopefully enable the double-click to edit nodes/edges, while still maintaining the normal click features
 		JSplitPane par = (JSplitPane)(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST).getThisComponent().getParent());
 		for (Component c : par.getComponents()) {
 			if (c instanceof JDesktopPane) {
@@ -131,6 +186,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 					}
 					innerCanvas.addMouseListener(new NetworkViewMouseListener(innerCanvas));
 				}
+*/
 //				Component abitraryGraphicsCanvas = findComponentByName(frame, "ArbitraryGraphicsCanvas");
 //				final Component innerCanvas = findInnerCanvas(frame);
 //				if (abitraryGraphicsCanvas != null) {
@@ -252,27 +308,28 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 						
 					});*/
 //				}
-			}
+	/*		}
 		}
+	*/
 	}
 	
-	private Component findInnerCanvas(Container c) {
-		return findComponentByName(c, "InnerCanvas");
-	}
-	
-	private Component findComponentByName(Container c, String className) {
-		for (Component child : c.getComponents()) {
-			if (child.getClass().getName().endsWith(className)) {
-				return child;
-			} else if (child instanceof Container) {
-				Component result = findComponentByName((Container)child, className);
-				if (result != null) {
-					return result;
-				}
-			}
-		}
-		return null;
-	}
+//	private Component findInnerCanvas(Container c) {
+//		return findComponentByName(c, "InnerCanvas");
+//	}
+//	
+//	private Component findComponentByName(Container c, String className) {
+//		for (Component child : c.getComponents()) {
+//			if (child.getClass().getName().endsWith(className)) {
+//				return child;
+//			} else if (child instanceof Container) {
+//				Component result = findComponentByName((Container)child, className);
+//				if (result != null) {
+//					return result;
+//				}
+//			}
+//		}
+//		return null;
+//	}
 	
 	
 	@Override

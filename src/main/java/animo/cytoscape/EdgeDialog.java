@@ -70,7 +70,7 @@ public class EdgeDialog extends JDialog {
 
 	private final CyNetwork network;
 
-	public EdgeDialog(CyNetwork network, final CyEdge edge) {
+	public EdgeDialog(CyNetwork network, CyEdge edge) {
 		this(Animo.getCytoscape().getJFrame(), network, edge);
 	}
 

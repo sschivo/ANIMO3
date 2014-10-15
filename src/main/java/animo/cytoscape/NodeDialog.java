@@ -50,10 +50,10 @@ public class NodeDialog extends JDialog {
 	private static final long serialVersionUID = 1498730989498413815L;
 	private boolean wasNewlyCreated = false;
 
-	public NodeDialog(CyNetwork network, final CyNode node) {
+	public NodeDialog(CyNetwork network, CyNode node) {
 		this(Animo.getCytoscape().getJFrame(), network, node);
 	}
-
+	
 	/**
 	 * Constructor.
 	 * 

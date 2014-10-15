@@ -19,19 +19,24 @@ import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedListener;
+import org.cytoscape.task.EdgeViewTaskFactory;
+import org.cytoscape.task.NodeViewTaskFactory;
 import org.cytoscape.view.model.events.NetworkViewAddedListener;
 import org.cytoscape.view.vizmap.VisualMappingFunctionFactory;
 import org.cytoscape.view.vizmap.VisualMappingManager;
 import org.cytoscape.view.vizmap.VisualStyleFactory;
 import org.cytoscape.view.vizmap.events.VisualStyleChangedListener;
 import org.cytoscape.view.vizmap.events.VisualStyleSetListener;
+import org.cytoscape.work.ServiceProperties;
 import org.osgi.framework.BundleContext;
 
 import animo.core.AnimoBackend;
+import animo.cytoscape.contextmenu.EdgeDoubleClickTaskFactory;
 import animo.cytoscape.contextmenu.EditReactantNodeMenu;
 import animo.cytoscape.contextmenu.EditReactionEdgeViewContextMenu;
 import animo.cytoscape.contextmenu.EnableDisableEdgeViewContextMenu;
 import animo.cytoscape.contextmenu.EnableDisableNodeMenu;
+import animo.cytoscape.contextmenu.NodeDoubleClickTaskFactory;
 import animo.cytoscape.contextmenu.PlotHideNodeMenu;
 import animo.exceptions.AnimoException;
 
@@ -132,29 +137,37 @@ public class Animo extends AbstractCyActivator {
 
 		EditReactantNodeMenu reactantmenu = new EditReactantNodeMenu();
 		Properties props = new Properties();
-		props.put("preferredMenu", "Animo");
+		props.put(ServiceProperties.PREFERRED_MENU, "ANIMO"); //"preferredMenu"
 		registerAllServices(bc, reactantmenu, props);
 
 		EnableDisableNodeMenu enabledisablenodemenu = new EnableDisableNodeMenu();
 		Properties enabledisablenodeprops = new Properties();
-		enabledisablenodeprops.put("preferredMenu", "Animo");
+		enabledisablenodeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
 		registerAllServices(bc, enabledisablenodemenu, enabledisablenodeprops);
 
 		PlotHideNodeMenu plothidemenu = new PlotHideNodeMenu();
 		Properties plothideprops = new Properties();
-		plothideprops.put("preferredMenu", "Animo");
+		plothideprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
 		registerAllServices(bc, plothidemenu, plothideprops);
 
 		EditReactionEdgeViewContextMenu editreactionedge = new EditReactionEdgeViewContextMenu();
 		Properties editreactionedgeprops = new Properties();
-		editreactionedgeprops.put("preferredMenu", "Animo");
+		editreactionedgeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
 		registerAllServices(bc, editreactionedge, editreactionedgeprops);
 
 		EnableDisableEdgeViewContextMenu enabledisableedge = new EnableDisableEdgeViewContextMenu();
 		Properties enabledisableedgeprops = new Properties();
-		enabledisableedgeprops.put("preferredMenu", "Animo");
+		enabledisableedgeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
 		registerAllServices(bc, enabledisableedge, enabledisableedgeprops);
 		
+		//Register node and edge double click listeners to open the edit dialogs
+		NodeViewTaskFactory nodeDblClkListener = new NodeDoubleClickTaskFactory();
+		Properties doubleClickProperties = new Properties();
+	    doubleClickProperties.setProperty(ServiceProperties.PREFERRED_ACTION, "OPEN"); //The "OPEN" action, for not very clearly specified reasons, corresponds to the double click
+	    doubleClickProperties.setProperty(ServiceProperties.TITLE, "Edit reactant...");
+	    registerService(bc,nodeDblClkListener,NodeViewTaskFactory.class, doubleClickProperties);
+	    EdgeViewTaskFactory edgeDblClkListener = new EdgeDoubleClickTaskFactory();
+	    registerService(bc,edgeDblClkListener,EdgeViewTaskFactory.class, doubleClickProperties);
 	}
 
 	//Create the personalized visual mappings for ANIMO to be used for all network views

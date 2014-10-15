@@ -39,9 +39,6 @@ import javax.xml.transform.TransformerException;
 import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.model.CyNetwork;
-import org.cytoscape.view.presentation.property.BasicVisualLexicon;
-import org.cytoscape.view.vizmap.VisualMappingManager;
-import org.cytoscape.view.vizmap.VisualStyle;
 
 import animo.core.AnimoBackend;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
@@ -523,16 +520,16 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		buttons.add(options, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		
-		JButton bottoneDellaVerita = new JButton("Dimmi i font");
-		bottoneDellaVerita.addActionListener(new ActionListener() {
-			public void actionPerformed(ActionEvent ev) {
-				VisualStyle defaultStyle = Animo.getCyServiceRegistrar().getService(VisualMappingManager.class).getDefaultVisualStyle();
-				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Font face: " + defaultStyle.getDefaultValue(BasicVisualLexicon.NODE_LABEL_FONT_FACE)
-						 + "\nFont size: " + defaultStyle.getDefaultValue(BasicVisualLexicon.NODE_LABEL_FONT_SIZE));
-			}
-		});
-		buttons.add(bottoneDellaVerita, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+//		JButton bottoneDellaVerita = new JButton("Dimmi i font");
+//		bottoneDellaVerita.addActionListener(new ActionListener() {
+//			public void actionPerformed(ActionEvent ev) {
+//				VisualStyle defaultStyle = Animo.getCyServiceRegistrar().getService(VisualMappingManager.class).getDefaultVisualStyle();
+//				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Font face: " + defaultStyle.getDefaultValue(BasicVisualLexicon.NODE_LABEL_FONT_FACE)
+//						 + "\nFont size: " + defaultStyle.getDefaultValue(BasicVisualLexicon.NODE_LABEL_FONT_SIZE));
+//			}
+//		});
+//		buttons.add(bottoneDellaVerita, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
+//				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		
 //		panel.add(buttons);
 //		panel.setVisible(true);
