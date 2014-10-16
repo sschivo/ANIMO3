@@ -27,6 +27,7 @@ import java.util.HashMap;
 import java.util.Hashtable;
 import java.util.List;
 import java.util.Map;
+import java.util.Vector;
 
 import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
@@ -57,6 +58,7 @@ import org.cytoscape.application.swing.CytoPanelState;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
+import org.cytoscape.model.CyRow;
 import org.cytoscape.model.SavePolicy;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.View;
@@ -993,6 +995,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		pane.setTitleAt(pane.getSelectedIndex(), title);
 		resetDivider();
 	}
+	
 
 	/**
 	 * When the user moves the time slider, we update the activity ratio (SHOWN_LEVEL) of all nodes in the network window, so that, thanks to the continuous Visual Mapping defined
@@ -1001,8 +1004,6 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	 */
 	@Override
 	public void stateChanged(ChangeEvent e) {
-//		int a = 0;
-//		if (a < 1) return;
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork net = cyApplicationManager.getCurrentNetwork();
 		if (net == null) {
@@ -1013,13 +1014,36 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		double graphWidth = this.maxValueOnGraph - this.minValueOnGraph;
 		g.setRedLinePosition(1.0 * this.slider.getValue() / this.slider.getMaximum() * graphWidth);
 		
-//		if (convergingEdges == null) {
-//			convergingEdges = new HashMap<Long, Pair<Boolean, List<Long>>>();
-//		} else {
-//			for (Pair<Boolean, List<Long>> group : convergingEdges.values()) {
-//				group.first = true; // Each edge in each group is initially assumed to be a candidate for having 0 activityRatio
+		if (convergingEdges == null) {
+			convergingEdges = new HashMap<Long, Pair<Boolean, List<Long>>>();
+//			HashMap<String, Long> cytoscapeNodesByIdentifier = new HashMap<String, Long>();
+//			@SuppressWarnings("rawtypes")
+//			List<CyNode> nodes = net.getNodeList();
+//			for (CyNode n : nodes) {
+//				cytoscapeNodesByIdentifier.put(n.getIdentifier(), n.getRootGraphIndex());
 //			}
-//		}
+//			RootGraph rootG = Cytoscape.getCurrentNetwork().getRootGraph();
+			
+			for (String r : this.result.getReactantIds()) {
+				if (this.model.getReactant(r) == null) continue;
+				final String id = this.model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
+				List<CyEdge> incomingEdges = net.getAdjacentEdgeList(net.getNode(Long.valueOf(id)), CyEdge.Type.UNDIRECTED);
+				incomingEdges.addAll(net.getAdjacentEdgeList(net.getNode(Long.valueOf(id)), CyEdge.Type.INCOMING));
+				if (incomingEdges.size() > 1) {
+					Pair<Boolean, List<Long>> edgesGroup = new Pair<Boolean, List<Long>>(true, new Vector<Long>());
+					for (CyEdge edge : incomingEdges) {
+						edgesGroup.second.add(edge.getSUID());
+					}
+					for (CyEdge edge : incomingEdges) {
+						convergingEdges.put(edge.getSUID(), edgesGroup);
+					}
+				}
+			}
+		} else {
+			for (Pair<Boolean, List<Long>> group : convergingEdges.values()) {
+				group.first = true; //Each edge in each group is initially assumed to be a candidate for having 0 activityRatio
+			}
+		}
 
 		final int levels = this.model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class); // at this point, all levels have already been rescaled to the
 																												// maximum (= the number of levels of the model), so we use it as a
@@ -1034,6 +1058,85 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				net.getRow(net.getNode(Long.valueOf(id))).set(Model.Properties.PLOTTED, true);
 			}
 		}
+		
+		try {
+			for (String r : this.result.getReactantIds()) {
+				if (!(r.charAt(0) == 'E')) continue;
+				//if (!edgeAttributes.hasAttribute(r, Model.Properties.ENABLED)) continue; //Just to check if that is a valid Cytoscape id for a reaction
+				//int edgeId = Integer.parseInt(r.substring(1));
+				Long edgeId = Long.valueOf(r.substring(1));
+				CyEdge edge = null;// = Cytoscape.getCurrentNetwork().getEdge(edgeId); //Let's thank again Cytoscape for not keeping the rootGraphIndices constant...
+				edge = net.getEdge(Long.valueOf((edgeId)));
+				CyRow edgeRow = net.getRow(net.getEdge(edgeId));
+				System.err.println("CyRow = " + edgeRow);
+				if (edge == null) continue;
+				if (t == 0) {
+					if (edgeRow.isSet(Model.Properties.SHOWN_LEVEL)) {
+						edgeRow.set(Model.Properties.SHOWN_LEVEL, 1);
+					}
+				} else {
+					int scenario = edgeRow.get(Model.Properties.SCENARIO, Integer.class);
+					double concentration = this.result.getConcentration(r, t);
+					boolean candidate = false;
+					switch (scenario) {
+						case 0:
+							if (edgeRow.get(Model.Properties.SHOWN_LEVEL, Double.class) == 0) {
+								concentration = 0;
+								candidate = true;
+							}
+							break;
+						case 1:
+							if (edgeRow.get(Model.Properties.SHOWN_LEVEL, Double.class) == 0) {
+								concentration = 0;
+								candidate = true;
+								
+							} else if ((edgeRow.get(Model.Properties.INCREMENT, Integer.class) >= 0
+										&& net.getRow(edge.getTarget()).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1)
+									   || (edgeRow.get(Model.Properties.INCREMENT, Integer.class) < 0
+										&& net.getRow(edge.getTarget()).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)) {
+								//concentration = 0;
+								candidate = true;
+							}
+							break;
+						case 2:
+							Long e1 = edgeRow.get(Model.Properties.REACTANT_ID + "E1", Long.class),
+								 e2 = edgeRow.get(Model.Properties.REACTANT_ID + "E2", Long.class);
+							//System.err.println("Scenario 2, E1 = " + e1 + ", isActive? " + edgeAttributes.getBooleanAttribute(edge.getIdentifier(), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1") + ", level = " + nodeAttributes.getDoubleAttribute(e1, Model.Properties.SHOWN_LEVEL));
+							if (((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
+								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))
+								||
+								((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
+								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))) {
+								//concentration = 0;
+								candidate = true;
+							}
+							break;
+						default:
+							candidate = false;
+							break;
+					}
+					if (!candidate && convergingEdges.get(edge.getSUID()) != null) {
+						//If at least one edge is NOT a candidate for having 0 activityRatio, then all edges will have their activityRatio set as it comes from the result
+						convergingEdges.get(edge.getSUID()).first = false;
+					}
+					
+					edgeRow.set(Model.Properties.SHOWN_LEVEL, concentration);
+				}
+			}
+			if (t != 0) { //At the initial time we have already done what was needed, i.e. remove the attribute
+				for (Pair<Boolean, List<Long>> edgeGroup : convergingEdges.values()) {
+					if (edgeGroup.first) { //All the edges of this group were still candidates at the end of the first cycle, so we will set all their activityRatios to 0
+						for (Long i : edgeGroup.second) {
+							net.getRow(net.getEdge(i)).set(Model.Properties.SHOWN_LEVEL, 0.0);
+						}
+						edgeGroup.first = false;
+					}
+				}
+			}
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		}
+		
 //		try {
 //			for (String r : this.result.getReactantIds()) {
 //				if (!(r.charAt(0) == 'E'))

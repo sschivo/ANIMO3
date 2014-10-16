@@ -402,7 +402,7 @@ public class VisualStyleAnimo {
 		addVisMapNodesPlotted();
 		addVisMapEdgesEnabled();
 		addVisMapEdgesIncrement();
-//		addVisMapEdgesShownLevel();
+		addVisMapEdgesShownLevel();
 		// DiscreteMapping<String, NodeShape> shapesMap =
 		addVisMapNodesType();
 		// DiscreteMapping<String, Double> heightMap =
