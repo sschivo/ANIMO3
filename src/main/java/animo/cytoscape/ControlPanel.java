@@ -14,6 +14,7 @@ import java.awt.event.ActionListener;
 import java.io.File;
 import java.io.IOException;
 import java.text.DecimalFormat;
+import java.util.List;
 
 import javax.swing.AbstractAction;
 import javax.swing.BorderFactory;
@@ -31,6 +32,7 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
+import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.xml.parsers.ParserConfigurationException;
@@ -38,11 +40,14 @@ import javax.xml.transform.TransformerException;
 
 import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
+import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
+import org.cytoscape.model.CyNode;
 
 import animo.core.AnimoBackend;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.graph.FileUtils;
+import animo.core.model.Model;
 import animo.fitting.ParameterFitter;
 import animo.util.XmlConfiguration;
 
@@ -530,6 +535,37 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 //		});
 //		buttons.add(bottoneDellaVerita, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 //				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		
+		JButton bottoneDellaSfiga = new JButton("Tenta la fortuna e colora i nodi!");
+		bottoneDellaSfiga.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				CyNetwork rete = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+				List<CyEdge> edgi = rete.getEdgeList();
+				for (CyEdge edge : edgi) {
+					Animo.setRowValue(rete.getRow(edge), Model.Properties.SHOWN_LEVEL, Double.class, 0.25);
+				}
+				List<CyNode> nodi = rete.getNodeList();
+//				double conta = 0;
+//				for (CyNode nodo : nodi) {
+//					Animo.setRowValue(rete.getRow(nodo), Model.Properties.SHOWN_LEVEL, Double.class, conta);
+//					conta = conta + 0.2;
+//				}
+				if (nodi != null && nodi.size() > 0) {
+					Animo.setRowValue(rete.getRow(nodi.get(0)), Model.Properties.SHOWN_LEVEL, Double.class, 0.6);
+				}
+				//Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
+				Animo.getCytoscapeApp().getVisualMappingManager().getCurrentVisualStyle().apply(Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView());
+				SwingUtilities.invokeLater(new Thread() {
+					public void run() {
+						Animo.getCytoscapeApp().getVisualMappingManager().getCurrentVisualStyle().apply(Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView());
+						Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
+					}
+				});
+			}
+		});
+		buttons.add(bottoneDellaSfiga, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		
 //		panel.add(buttons);
 //		panel.setVisible(true);

@@ -349,9 +349,6 @@ public class EdgeDialog extends JDialog {
 				// edgeAttrib.getRow(edge).set(INCREMENT, ((positiveIncrement.isSelected()) ? 1 : -1));
 				Animo.setRowValue(network.getRow(edge), INCREMENT, Integer.class, ((positiveIncrement.isSelected()) ? 1
 						: -1));
-				// edgeAttrib.getRow(edge).set(Model.Properties.OUTPUT_REACTANT, edge.getTarget().getSUID());
-				Animo.setRowValue(network.getRow(edge), Model.Properties.OUTPUT_REACTANT, Long.class, edge.getTarget()
-						.getSUID());
 				// edgeAttrib.getRow(edge).set(Model.Properties.DESCRIPTION, description.getText());
 				Animo.setRowValue(network.getRow(edge), Model.Properties.DESCRIPTION, String.class,
 						description.getText());
