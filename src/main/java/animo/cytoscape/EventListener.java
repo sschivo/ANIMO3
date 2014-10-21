@@ -291,7 +291,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 
 	//The visual style has changed, we need to update the legends.
 	@Override
-	public void handleEvent(VisualStyleChangedEvent arg0) {
+	public void handleEvent(VisualStyleChangedEvent e) {
 		//if (Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView() != null) {
 		Animo.getVSA().updateLegends();
 		//}

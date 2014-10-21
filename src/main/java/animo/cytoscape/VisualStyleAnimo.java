@@ -438,7 +438,7 @@ public class VisualStyleAnimo {
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.EDGE_STROKE_UNSELECTED_PAINT, Color.BLACK);
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NODE_SELECTED_PAINT, new Color(102, 102, 255));
 		currentVisualStyle.setDefaultValue(BasicVisualLexicon.EDGE_SELECTED_PAINT, new Color(102, 102, 255));
-		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NETWORK_BACKGROUND_PAINT, Color.white);
+		currentVisualStyle.setDefaultValue(BasicVisualLexicon.NETWORK_BACKGROUND_PAINT, Color.WHITE);
 		// Disable "Lock node width and height", so we can set a custom width and height. (unfortunately, this seems to be the "proper" way to do it)
 		for (@SuppressWarnings("rawtypes")
 		VisualPropertyDependency visualPropertyDependency : currentVisualStyle.getAllVisualPropertyDependencies()) {

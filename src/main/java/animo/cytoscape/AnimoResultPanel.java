@@ -63,6 +63,8 @@ import org.cytoscape.model.SavePolicy;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.View;
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
+import org.cytoscape.view.vizmap.VisualMappingManager;
+import org.cytoscape.view.vizmap.VisualStyle;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -1003,6 +1005,10 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	 */
 	@Override
 	public void stateChanged(ChangeEvent e) {
+		if (this.slider.getValueIsAdjusting()) {
+			//System.err.println("Evito l'aggiornamento perche' stai ancora slidando");
+			dontUpdateNetworkView();
+		}
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork net = cyApplicationManager.getCurrentNetwork();
 		if (net == null) {
@@ -1126,7 +1132,63 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			ex.printStackTrace();
 		}
 		
-		Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
+		//Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
+		if (!this.slider.getValueIsAdjusting()) {
+			//System.err.println("Non stai slidando, quindi provo ad aggiornare");
+			tryNetworkViewUpdate();
+		}
+	}
+	
+	private Thread networkViewUpdater = null;
+	
+	private void tryNetworkViewUpdate() {
+		if (networkViewUpdater == null) {
+			networkViewUpdater = new Thread() {
+				final VisualMappingManager vmm = Animo.getCytoscapeApp().getVisualMappingManager();
+				final CyNetworkView networkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+				final VisualStyle visualStyle = vmm.getCurrentVisualStyle();
+				
+				public void run() {
+					//System.err.println("Inizia il threado");
+					while (true) { //Try to do the update each time you are notified to do it. Before doing the update, wait X seconds: if you are interrupted before that time, do nothing and go back waiting for the next request
+						if (!slider.getValueIsAdjusting()) {
+							boolean doUpdate = true;
+							try {
+								Thread.sleep(200);
+							} catch (InterruptedException ex) {
+								//System.err.println("Hai premuto il bottone troppo presto: non ho fatto in tempo ad aggiornare");
+								doUpdate = false;
+							}
+							if (doUpdate) {
+								//System.err.println("Ho atteso abbastanza: aggiorno");
+								visualStyle.apply(networkView);
+								networkView.updateView();
+							}
+						}
+						synchronized (this) {
+							try {
+								//System.err.println("Mi metto in attesa di poter fare un aggiornamento");
+								this.wait();
+							} catch (InterruptedException ex) {
+								//System.err.println("Mi dicono che devo provare a fare l'aggiornamento");
+							}
+						}
+					}
+				}
+			};
+			networkViewUpdater.start();
+		}
+		synchronized (networkViewUpdater) {
+			networkViewUpdater.notify();
+		}
+	}
+	
+	private void dontUpdateNetworkView() {
+		if (networkViewUpdater != null) {
+			if (networkViewUpdater.getState().equals(Thread.State.TIMED_WAITING)) { //We break the sleep only: if it is already doing the "wait", we let it stay there because we don't want to try a new update
+				networkViewUpdater.interrupt();
+			}
+		}
 	}
 
 }

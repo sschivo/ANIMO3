@@ -32,7 +32,6 @@ import javax.swing.JPanel;
 import javax.swing.JRadioButton;
 import javax.swing.JScrollPane;
 import javax.swing.JTextField;
-import javax.swing.SwingUtilities;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
 import javax.xml.parsers.ParserConfigurationException;
@@ -43,6 +42,9 @@ import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
+import org.cytoscape.view.model.CyNetworkView;
+import org.cytoscape.view.vizmap.VisualMappingManager;
+import org.cytoscape.view.vizmap.VisualStyle;
 
 import animo.core.AnimoBackend;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
@@ -538,30 +540,106 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		
 		JButton bottoneDellaSfiga = new JButton("Tenta la fortuna e colora i nodi!");
 		bottoneDellaSfiga.addActionListener(new ActionListener() {
+			private Thread finalAdjuster = null;
+			
+			private void tryAdjustment() {
+				if (finalAdjuster == null) {
+					finalAdjuster = new Thread() {
+						final VisualMappingManager vmm = Animo.getCytoscapeApp().getVisualMappingManager();
+						final CyNetworkView networkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+						final VisualStyle visualStyle = vmm.getCurrentVisualStyle();
+						
+						public void run() {
+							while (true) { //Try to do the update each time you are notified to do it. Before doing the update, wait 2 seconds: if you are interrupted before that time, do nothing and go back waiting for the next request
+								System.err.println("Inizia il threado");
+								boolean doUpdate = true;
+								try {
+									Thread.sleep(2000);
+								} catch (InterruptedException ex) {
+									System.err.println("Hai premuto il bottone troppo presto: non ho fatto in tempo ad aggiornare");
+									doUpdate = false;
+								}
+								if (doUpdate) {
+									System.err.println("Ho atteso abbastanza: aggiorno");
+									visualStyle.apply(networkView);
+									networkView.updateView();
+								}
+								synchronized (this) {
+									try {
+										System.err.println("Mi metto in attesa di poter fare un aggiornamento");
+										this.wait();
+									} catch (InterruptedException ex) {
+										System.err.println("Mi dicono che devo provare a fare l'aggiornamento");
+									}
+								}
+							}
+						}
+					};
+					finalAdjuster.start();
+					System.err.println("Threado avviato");
+				}
+				System.err.println("Ora entro in synchronized");
+				synchronized (finalAdjuster) {
+					System.err.println("Dico al pirla di cominciare ad aspettare per l'aggiornamento");
+					finalAdjuster.notify();
+				}
+			}
+			
+			private void dontAdjust() {
+				if (finalAdjuster != null) {
+					finalAdjuster.interrupt();
+				}
+			}
+			
 			@Override
 			public void actionPerformed(ActionEvent e) {
+				dontAdjust();
 				CyNetwork rete = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
 				List<CyEdge> edgi = rete.getEdgeList();
 				for (CyEdge edge : edgi) {
 					Animo.setRowValue(rete.getRow(edge), Model.Properties.SHOWN_LEVEL, Double.class, 0.25);
 				}
-				List<CyNode> nodi = rete.getNodeList();
+				final List<CyNode> nodi = rete.getNodeList();
 //				double conta = 0;
 //				for (CyNode nodo : nodi) {
 //					Animo.setRowValue(rete.getRow(nodo), Model.Properties.SHOWN_LEVEL, Double.class, conta);
 //					conta = conta + 0.2;
 //				}
+				final VisualMappingManager vmm = Animo.getCytoscapeApp().getVisualMappingManager();
+				final CyNetworkView networkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+				final VisualStyle visualStyle = vmm.getCurrentVisualStyle();
 				if (nodi != null && nodi.size() > 0) {
+					//System.err.println("Grossezza del bordo del nodo prima di cambiarlo: " + networkView.getNodeView(nodi.get(0)).getVisualProperty(BasicVisualLexicon.NODE_BORDER_WIDTH));
 					Animo.setRowValue(rete.getRow(nodi.get(0)), Model.Properties.SHOWN_LEVEL, Double.class, 0.6);
+//					networkView.getNodeView(nodi.get(0)).setVisualProperty(BasicVisualLexicon.NODE_BORDER_WIDTH, 6.0);
+					
 				}
+//				networkView.setViewDefault(BasicVisualLexicon.NODE_BORDER_WIDTH, 6.0); //visualStyle.getDefaultValue(BasicVisualLexicon.NODE_BORDER_WIDTH));
+				visualStyle.apply(networkView);
+				networkView.updateView();
+				tryAdjustment();
+				//System.err.println("Ecco il default della proprieta' della grossezza del bordo di un nodo: " + BasicVisualLexicon.NODE_BORDER_WIDTH.getDefault());
+				//System.err.println("Grossezza del bordo del nodo di default (dal visual style " + visualStyle.getTitle() + "): " + visualStyle.getDefaultValue(BasicVisualLexicon.NODE_BORDER_WIDTH));
+				//System.err.println("Mapping impostato per la grossezza del nodo: " + visualStyle.getVisualMappingFunction(BasicVisualLexicon.NODE_BORDER_WIDTH));
+				//System.err.println("Valore mappato dal visual style per la grossezza del nodo: " + visualStyle.getVisualMappingFunction(BasicVisualLexicon.NODE_BORDER_WIDTH).getMappedValue(rete.getRow(nodi.get(0))));
+				
 				//Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
-				Animo.getCytoscapeApp().getVisualMappingManager().getCurrentVisualStyle().apply(Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView());
-				SwingUtilities.invokeLater(new Thread() {
-					public void run() {
-						Animo.getCytoscapeApp().getVisualMappingManager().getCurrentVisualStyle().apply(Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView());
-						Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
-					}
-				});
+//				visualStyle.apply(networkView);
+//				networkView.updateView();
+//				System.err.println("Grossezza del bordo del nodo appena cambiato: " + networkView.getNodeView(nodi.get(0)).getVisualProperty(BasicVisualLexicon.NODE_BORDER_WIDTH));
+//				new Thread() {
+//					public void run() {
+//						try {
+//							Thread.sleep(2000);
+//						} catch (Exception ex) {
+//						}
+//						//vmm.setCurrentVisualStyle(visualStyle);
+//						System.err.println("Grossezza del bordo del nodo dopo un po': " + networkView.getNodeView(nodi.get(0)).getVisualProperty(BasicVisualLexicon.NODE_BORDER_WIDTH));
+//						
+//						visualStyle.apply(networkView);
+//						networkView.updateView();
+//					}
+//				}.start();
 			}
 		});
 		buttons.add(bottoneDellaSfiga, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
