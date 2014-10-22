@@ -36,6 +36,7 @@ import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
+import org.cytoscape.model.CyTable;
 import org.cytoscape.model.events.AddedEdgesEvent;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesEvent;
@@ -57,6 +58,8 @@ import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.xml.sax.SAXException;
 
+import animo.core.model.Model;
+
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
 		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
 		VisualStyleSetListener, CytoPanelComponentSelectedListener {
@@ -67,17 +70,35 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 * Adds the newly created Edge to the Model
 	 */
 	@Override
-	public void handleEvent(AddedEdgesEvent arg0) {
-		final CyNetwork network = arg0.getSource();
-		Collection<CyEdge> edgeSet = arg0.getPayloadCollection();
+	public void handleEvent(AddedEdgesEvent e) {
+		final CyNetwork network = e.getSource();
+		Collection<CyEdge> edgeSet = e.getPayloadCollection();
+		CyTable hiddenEdgeTable = network.getTable(CyEdge.class, CyNetwork.HIDDEN_ATTRS);
 		for (final CyEdge edge : edgeSet) {
-			EventQueue.invokeLater(new Runnable() {
-				@Override
-				public void run() {
-					EdgeDialog edgeDialog = new EdgeDialog(network, edge);
-					edgeDialog.showYourself();
+			if (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) != null
+				&& hiddenEdgeTable.getRow(edge).isSet(Model.Properties.AUTOMATICALLY_ADDED)
+				&& hiddenEdgeTable.getRow(edge).get(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class)) {
+			
+				System.err.println("NON mostro il dialog per l'edge " + edge);
+				//Set the property to false, so that next time we can react as usual
+				hiddenEdgeTable.getRow(edge).set(Model.Properties.AUTOMATICALLY_ADDED, false);
+			} else {
+				System.err.println("Mostro il dialog per l'edge " + edge + ", perche':");
+				System.err.println("\tColonna esiste? " + (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) != null));
+				if (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) != null) {
+					System.err.println("\tE' settata per l'edge attuale? " + hiddenEdgeTable.getRow(edge).isSet(Model.Properties.AUTOMATICALLY_ADDED));
+					if (hiddenEdgeTable.getRow(edge).isSet(Model.Properties.AUTOMATICALLY_ADDED)) {
+						System.err.println("\tHa valore true? " + hiddenEdgeTable.getRow(edge).get(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class));
+					}
 				}
-			});
+				EventQueue.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						EdgeDialog edgeDialog = new EdgeDialog(network, edge);
+						edgeDialog.showYourself();
+					}
+				});
+			}
 		}
 	}
 
@@ -85,17 +106,28 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 * Adds the newly created Node to the Model
 	 */
 	@Override
-	public void handleEvent(AddedNodesEvent arg0) {
-		final CyNetwork network = arg0.getSource();
-		Collection<CyNode> nodeSet = arg0.getPayloadCollection();
+	public void handleEvent(AddedNodesEvent e) {
+		final CyNetwork network = e.getSource();
+		Collection<CyNode> nodeSet = e.getPayloadCollection();
+		CyTable hiddenNodeTable = network.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS);
 		for (final CyNode node : nodeSet) {
-			EventQueue.invokeLater(new Runnable() {
-				@Override
-				public void run() {
-					NodeDialog nodeDialog = new NodeDialog(network, node);
-					nodeDialog.showYourself();
-				}
-			});
+			if (hiddenNodeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) != null
+				&& hiddenNodeTable.getRow(node).isSet(Model.Properties.AUTOMATICALLY_ADDED)
+				&& hiddenNodeTable.getRow(node).get(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class)) {
+				
+				//Set the property to false, so that next time we can react as usual
+				System.err.println("NON mostro il dialog per il nodo " + node);
+				hiddenNodeTable.getRow(node).set(Model.Properties.AUTOMATICALLY_ADDED, false);
+			} else {
+				System.err.println("Mostro il dialog per il nodo " + node);
+				EventQueue.invokeLater(new Runnable() {
+					@Override
+					public void run() {
+						NodeDialog nodeDialog = new NodeDialog(network, node);
+						nodeDialog.showYourself();
+					}
+				});
+			}
 		}
 	}
 

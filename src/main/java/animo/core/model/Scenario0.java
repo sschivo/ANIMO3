@@ -5,7 +5,6 @@ public class Scenario0 extends Scenario {
 
 	public Scenario0() {
 		super();
-		// TODO: set defaultK as parameter: parameters.put(key, value)
 		parameters.put(Model.Properties.SCENARIO_PARAMETER_K, DEFAULT_K);
 	}
 

@@ -33,6 +33,7 @@ import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -55,16 +56,17 @@ import org.cytoscape.application.swing.CyNetworkViewDesktopMgr;
 import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.application.swing.CytoPanelState;
+import org.cytoscape.event.CyEventHelper;
+import org.cytoscape.model.CyColumn;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.model.CyTable;
 import org.cytoscape.model.SavePolicy;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.View;
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
-import org.cytoscape.view.vizmap.VisualMappingManager;
-import org.cytoscape.view.vizmap.VisualStyle;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -158,6 +160,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	private HashMap<String, HashMap<String, Object>> savedEdgeAttributes;
 	private static final String PROP_POSITION_X = "Position.X";
 	private static final String PROP_POSITION_Y = "Position.Y";
+	private static final String PROP_PREVIOUS_ID = "Previous ID";
 	private static final String DEFAULT_TITLE = "ANIMO Results";
 	/**
 	 * The three strings here are for one button. Everybody normally shows START_DIFFERENCE. When the user presses on the button (differenceWith takes the value of this for the
@@ -363,18 +366,25 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager()
 						.getCurrentNetworkView();
 
-				Component componentToBeSaved = Animo.getCytoscape().getJFrame();// TODO: Vies lelijk enzo, ipv netwerk saved ie nu volledige window, moet eleganter kunnen, was:
-																				// currentNetworkView.getComponent();
-
-				savedNetworkImage = new BufferedImage(currentNetworkView.getVisualProperty(
-						BasicVisualLexicon.NETWORK_WIDTH).intValue() / 2, currentNetworkView.getVisualProperty(
-						BasicVisualLexicon.NETWORK_HEIGHT).intValue() / 2, BufferedImage.TYPE_INT_ARGB);
-				Graphics2D graphic = savedNetworkImage.createGraphics();
-				graphic.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
-				graphic.scale(0.5, 0.5);
-				graphic.setPaint(Animo.getCytoscape().getJFrame().getBackground()); // Cytoscape.getVisualMappingManager().getVisualStyle().getGlobalAppearanceCalculator().getDefaultBackgroundColor());
-				graphic.fillRect(0, 0, componentToBeSaved.getWidth(), componentToBeSaved.getHeight());
-				componentToBeSaved.paint(graphic);
+				try {
+					Component componentToBeSaved = findInnerCanvas(Animo.getCytoscape().getJFrame()); // Animo.getCytoscape().getJFrame();// TODO: Vies lelijk enzo, ipv netwerk saved ie nu volledige window, moet eleganter kunnen, was:
+																					// currentNetworkView.getComponent();
+					savedNetworkImage = new BufferedImage(currentNetworkView.getVisualProperty(
+							BasicVisualLexicon.NETWORK_WIDTH).intValue() / 2, currentNetworkView.getVisualProperty(
+							BasicVisualLexicon.NETWORK_HEIGHT).intValue() / 2, BufferedImage.TYPE_INT_ARGB);
+					Graphics2D graphic = savedNetworkImage.createGraphics();
+					graphic.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+					graphic.scale(0.5, 0.5);
+					//graphic.setPaint(Animo.getCytoscape().getJFrame().getBackground()); // Cytoscape.getVisualMappingManager().getVisualStyle().getGlobalAppearanceCalculator().getDefaultBackgroundColor());
+					graphic.setPaint(Animo.getCytoscapeApp().getVisualMappingManager().getCurrentVisualStyle().getDefaultValue(BasicVisualLexicon.NETWORK_BACKGROUND_PAINT));
+					graphic.fillRect(0, 0, componentToBeSaved.getWidth(), componentToBeSaved.getHeight());
+					componentToBeSaved.paint(graphic);
+				} catch (Exception ex) {
+					ex.printStackTrace(System.err);
+				}
+				
+				savedNetwork = copyNetwork(originalNetwork);
+				
 				CyNetworkView originalView = Animo.getCytoscapeApp().getCyNetworkViewManager()
 						.getNetworkViews(originalNetwork).iterator().next(); // TODO confirm there's only one network view
 				Animo.getCytoscapeApp().getCyApplicationManager().setCurrentNetworkView(originalView);
@@ -383,12 +393,13 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				for (View<CyNode> n : hiddenNodes) { // re-hide the hidden nodes after finishing
 					n.setVisualProperty(BasicVisualLexicon.NODE_VISIBLE, false);
 				}
-
+				
 				// TODO make focus
 				// Animo.getCytoscape().getJFrame().getFrame(originalView).setSelected(true);
+				((JInternalFrame)findComponentByName(Animo.getCytoscape().getJFrame(), "JInternalFrame")).setSelected(true);
 			} catch (Exception ex) {
-				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Exception: " + ex);
-				ex.printStackTrace();
+				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Error while saving fall-back network:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
+				ex.printStackTrace(System.err);
 			}
 		} else {
 			this.savedNetwork = null;
@@ -558,95 +569,105 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						resetToThisNetwork.setEnabled(false);
 						return;
 					}
-
+					
 					CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 					CyNetwork net = cyApplicationManager.getCurrentNetwork();
-
+					
 					List<CyNode> nodes = net.getNodeList();
 					List<CyEdge> edges = net.getEdgeList();
 					net.removeEdges(edges);
 					net.removeNodes(nodes);
-					HashMap<CyNode, CyNode> map = new HashMap<>();
+					HashMap<CyNode, CyNode> nodeToNodeMap = new HashMap<>(); //(old) node in the savedNetwork --> new node in current network
+					CyTable hiddenNodeTable = savedNetwork.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS);
+					System.err.print("Ecco i nodi attualmente presenti prima di iniziare a ripristinare: "); //Ma ovviamente la lista e' ancora vuota! Ho appena rimosso tutti i nodi!
+					for (CyNode node : net.getNodeList()) {
+						System.err.print(node.toString());
+					}
+					System.err.println();
+					for (CyNode node : savedNetwork.getNodeList()) {
+						CyNode oldNode = net.getNode(hiddenNodeTable.getRow(node.getSUID()).get(PROP_PREVIOUS_ID, Long.class));
+						if (oldNode != null) {
+							System.err.println("Vecchio nodo salvato come " + node + " trovato, prima era " + oldNode);
+							nodeToNodeMap.put(node, oldNode);
+						} else {
+							CyNode newNode = net.addNode();
+							System.err.println("Vecchio nodo salvato come " + node + " (altrimenti noto con l'id " + hiddenNodeTable.getRow(node.getSUID()).get(PROP_PREVIOUS_ID, Long.class) + ") NON trovato: ho creato il nuovo nodo " + newNode);
+							nodeToNodeMap.put(node, newNode);
+						}
+					}
 					for (CyEdge edge : savedNetwork.getEdgeList()) {
 						CyNode source = edge.getSource();
 						CyNode target = edge.getTarget();
 						CyNode newSource;
 						CyNode newTarget;
-						if (map.containsKey(source)) {
-							newSource = map.get(source);
+						if (nodeToNodeMap.containsKey(source)) {
+							newSource = nodeToNodeMap.get(source);
 						} else {
 							newSource = net.addNode();
-							map.put(source, newSource);
+							nodeToNodeMap.put(source, newSource);
 						}
-						if (map.containsKey(target)) {
-							newTarget = map.get(target);
+						if (nodeToNodeMap.containsKey(target)) {
+							newTarget = nodeToNodeMap.get(target);
 						} else {
 							newTarget = net.addNode();
-							map.put(target, newTarget);
+							nodeToNodeMap.put(target, newTarget);
 						}
 						net.addEdge(newSource, newTarget, true);
 					}
 					for (CyNode node : net.getNodeList()) {
-						if (!map.containsKey(node)) {
+						if (!nodeToNodeMap.values().contains(node)) {
 							net.addNode();
 						}
 					}
-					CyNetworkView currentView = Animo.getCytoscapeApp().getCyApplicationManager()
-							.getCurrentNetworkView();
-					nodes = net.getNodeList();
-					for (CyNode n : nodes) {
-						if (savedNodeAttributes.containsKey(n.getSUID().toString())) {
-							HashMap<String, Object> m = savedNodeAttributes.get(n.getSUID().toString());
-							for (String k : m.keySet()) {
-								Object o = m.get(k);
-								if (o instanceof Boolean) {
-									Animo.setRowValue(net.getRow(n), k, Boolean.class, o);
-								} else if (o instanceof Double) {
-									Animo.setRowValue(net.getRow(n), k, Double.class, o);
-								} else if (o instanceof Float) {
-									Animo.setRowValue(net.getRow(n), k, Double.class, new Double((Float) o));
-								} else if (o instanceof Integer) {
-									Animo.setRowValue(net.getRow(n), k, Integer.class, o);
-								} else if (o instanceof List) {
-									Animo.setRowValue(net.getRow(n), k, List.class, o);
-								} else if (o instanceof Map) {
-									Animo.setRowValue(net.getRow(n), k, Map.class, o);
-								} else if (o instanceof String) {
-									Animo.setRowValue(net.getRow(n), k, String.class, o);
-								}
-							}
+					
+					//Declare all added nodes and edges as "automatically added", to avoid that the dialogs open for every one
+					hiddenNodeTable = net.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS);
+					CyTable hiddenEdgeTable = net.getTable(CyEdge.class, CyNetwork.HIDDEN_ATTRS);
+					if (hiddenNodeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
+						hiddenNodeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
+					}
+					if (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
+						hiddenEdgeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
+					}
+					for (CyNode node : net.getNodeList()) {
+						hiddenNodeTable.getRow(node.getSUID()).set(Model.Properties.AUTOMATICALLY_ADDED, true);
+					}
+					for (CyEdge edge : net.getEdgeList()) {
+						hiddenEdgeTable.getRow(edge.getSUID()).set(Model.Properties.AUTOMATICALLY_ADDED, true);
+					}
+					//Now fire the events so that we can get also the node/edge views later on
+					CyEventHelper eventHelper = Animo.getCyServiceRegistrar().getService(CyEventHelper.class);
+					eventHelper.flushPayloadEvents(); //<-- This should not be abused: we call it only once after creating all nodes and edges, not after each one
+					
+					CyNetworkView currentView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+					for (CyNode node : savedNetwork.getNodeList()) {
+						CyRow nodeRow = hiddenNodeTable.getRow(node.getSUID());
+						Double xLocation = nodeRow.get(PROP_POSITION_X, Double.class),
+							   yLocation = nodeRow.get(PROP_POSITION_Y, Double.class);
+						
+						currentView.getNodeView(nodeToNodeMap.get(node)).setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, xLocation);
+						currentView.getNodeView(nodeToNodeMap.get(node)).setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, yLocation);
+					}
+					currentView.updateView();
+					CyTable defaultNodeTable = savedNetwork.getTable(CyNode.class, CyNetwork.DEFAULT_ATTRS),
+							defaultEdgeTable = savedNetwork.getTable(CyEdge.class, CyNetwork.DEFAULT_ATTRS);
+					for (CyNode node : savedNetwork.getNodeList()) {
+						CyRow nodeRow = defaultNodeTable.getRow(node.getSUID());
+						for (CyColumn column : defaultNodeTable.getColumns()) {
+							Animo.setRowValue(net.getRow(nodeToNodeMap.get(node)), column.getName(), column.getType(), nodeRow.get(column.getName(), column.getType()));
 						}
 					}
-					edges = net.getEdgeList();
-					for (CyEdge ed : edges) {
-						if (savedEdgeAttributes.containsKey(ed.getSUID())) {
-							HashMap<String, Object> m = savedEdgeAttributes.get(ed.getSUID());
-							for (String k : m.keySet()) {
-								Object o = m.get(k);
-								if (o instanceof Boolean) {
-									Animo.setRowValue(net.getRow(ed), k, Boolean.class, o);
-								} else if (o instanceof Double) {
-									Animo.setRowValue(net.getRow(ed), k, Double.class, o);
-								} else if (o instanceof Float) {
-									Animo.setRowValue(net.getRow(ed), k, Double.class, new Double((Float) o));
-								} else if (o instanceof Integer) {
-									Animo.setRowValue(net.getRow(ed), k, Integer.class, o);
-								} else if (o instanceof List) {
-									Animo.setRowValue(net.getRow(ed), k, List.class, o);
-								} else if (o instanceof Map) {
-									Animo.setRowValue(net.getRow(ed), k, Map.class, o);
-								} else if (o instanceof String) {
-									Animo.setRowValue(net.getRow(ed), k, String.class, o);
-								}
-							}
+					for (CyEdge edge : savedNetwork.getEdgeList()) {
+						CyNode source = nodeToNodeMap.get(edge.getSource()),
+							   target = nodeToNodeMap.get(edge.getTarget());
+						CyRow savedEdgeRow = defaultEdgeTable.getRow(edge.getSUID()),
+							  edgeRow = net.getRow(net.getConnectingEdgeList(source, target, CyEdge.Type.DIRECTED).get(0));
+						for (CyColumn column : defaultEdgeTable.getColumns()) {
+							Animo.setRowValue(edgeRow, column.getName(), column.getType(), savedEdgeRow.get(column.getName(), column.getType()));
 						}
 					}
-					for (View<CyNode> n : currentView.getNodeViews()) {
-						n.setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION,
-								savedNetwork.getRow(n).get(PROP_POSITION_X, Double.class));
-						n.setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION,
-								savedNetwork.getRow(n).get(PROP_POSITION_Y, Double.class));
-					}
+					
+					NodeDialog.tryNetworkViewUpdate();
 				}
 			});
 			try {
@@ -760,45 +781,110 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		Animo.removeResultPanel(container);
 		allExistingPanels.remove(this);
 	}
+	
+	private Component findInnerCanvas(Container c) {
+		return findComponentByName(c, "InnerCanvas");
+	}
+
+	private Component findComponentByName(Container c, String className) {
+		for (Component child : c.getComponents()) {
+			if (child.getClass().getName().endsWith(className)) {
+				return child;
+			} else if (child instanceof Container) {
+				Component result = findComponentByName((Container)child, className);
+				if (result != null) {
+					return result;
+				}
+			}
+		}
+		return null;
+	}
 
 	protected CyNetwork copyNetwork(CyNetwork originalNetwork) {
-
+		
 		savedNetwork = Animo.getCytoscapeApp().getCyNetworkFactory().createNetwork(SavePolicy.DO_NOT_SAVE);
 		List<CyNode> origNodes = originalNetwork.getNodeList();
 		List<CyEdge> origEdges = originalNetwork.getEdgeList();
 		savedNodeAttributes = new HashMap<String, HashMap<String, Object>>();
 		savedEdgeAttributes = new HashMap<String, HashMap<String, Object>>();
-
+		
 		Map<CyNode, CyNode> nodeToNodeMap = new HashMap<CyNode, CyNode>();
-
+		
 		for (CyNode n : origNodes) {
 			CyNode newNode = savedNetwork.addNode();
+			System.err.println("Salvando, aggiungo il nodo " + newNode + ", che rappresenta il vecchio nodo " + n);
 			nodeToNodeMap.put(n, newNode);
+			CyRow newNodeRow = savedNetwork.getRow(newNode);
 			for (Map.Entry<String, Object> field : originalNetwork.getRow(n).getAllValues().entrySet()) {
-				Animo.setRowValue(savedNetwork.getRow(newNode), field.getKey(), field.getValue().getClass(),
+				Animo.setRowValue(newNodeRow, field.getKey(), field.getValue().getClass(),
 						field.getValue());
 			}
 		}
-
 		for (CyEdge e : origEdges) {
-
-			CyEdge newEdge = savedNetwork.addEdge(nodeToNodeMap.get(e.getSource()), nodeToNodeMap.get(e.getTarget()),
-					true);
+			CyEdge newEdge = savedNetwork.addEdge(nodeToNodeMap.get(e.getSource()), nodeToNodeMap.get(e.getTarget()), true);
+			CyRow newEdgeRow = savedNetwork.getRow(newEdge);
 			for (Map.Entry<String, Object> field : originalNetwork.getRow(e).getAllValues().entrySet()) {
 				if (field.getKey() != null && field.getValue() != null) {
-					Animo.setRowValue(savedNetwork.getRow(newEdge), field.getKey(), field.getValue().getClass(),
+					Animo.setRowValue(newEdgeRow, field.getKey(), field.getValue().getClass(),
 							field.getValue());
 				}
 			}
 		}
-		CyNetworkView originalView = Animo.getCytoscapeApp().getCyNetworkViewManager().getNetworkViews(originalNetwork)
-				.iterator().next();
-
+		//Now fire the events so that we can get also the node/edge views later on
+		CyEventHelper eventHelper = Animo.getCyServiceRegistrar().getService(CyEventHelper.class);
+		eventHelper.flushPayloadEvents(); //<-- This should not be abused: we call it only once after creating all nodes and edges, not after each one
+		
+		CyNetworkView originalView = Animo.getCytoscapeApp().getCyNetworkViewManager().getNetworkViews(originalNetwork).iterator().next();
+		
+		CyTable hiddenNodeTable = savedNetwork.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS);
+		if (hiddenNodeTable.getColumn(PROP_PREVIOUS_ID) == null) {
+			hiddenNodeTable.createColumn(PROP_PREVIOUS_ID, Long.class, false);
+		}
+		if (hiddenNodeTable.getColumn(PROP_POSITION_X) == null) {
+			hiddenNodeTable.createColumn(PROP_POSITION_X, Double.class, false);
+		}
+		if (hiddenNodeTable.getColumn(PROP_POSITION_Y) == null) {
+			hiddenNodeTable.createColumn(PROP_POSITION_Y, Double.class, false);
+		}
+		if (hiddenNodeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
+			hiddenNodeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
+		}
 		for (View<CyNode> n : originalView.getNodeViews()) { // sets offset for all nodes
-			n.setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION,
-					savedNetwork.getRow(n).get(PROP_POSITION_X, Double.class));
-			n.setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION,
-					savedNetwork.getRow(n).get(PROP_POSITION_Y, Double.class));
+			CyRow hiddenRow = hiddenNodeTable.getRow(nodeToNodeMap.get(n.getModel()).getSUID());
+			if (n.isSet(BasicVisualLexicon.NODE_X_LOCATION)) {
+				hiddenRow.set(PROP_POSITION_X, n.getVisualProperty(BasicVisualLexicon.NODE_X_LOCATION));
+			}
+			if (n.isSet(BasicVisualLexicon.NODE_X_LOCATION)) {
+				hiddenRow.set(PROP_POSITION_Y, n.getVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION));
+			}
+			hiddenRow.set(PROP_PREVIOUS_ID, n.getModel().getSUID());
+			hiddenRow.set(Model.Properties.AUTOMATICALLY_ADDED, true);
+		}
+		CyTable hiddenEdgeTable = savedNetwork.getTable(CyEdge.class, CyNetwork.HIDDEN_ATTRS);
+		if (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
+			hiddenEdgeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
+		}
+		for (CyEdge e : savedNetwork.getEdgeList()) {
+			hiddenEdgeTable.getRow(e.getSUID()).set(Model.Properties.AUTOMATICALLY_ADDED, true);
+		}
+		
+		CyTable defaultNodeTable = originalNetwork.getTable(CyNode.class, CyNetwork.DEFAULT_ATTRS),
+				defaultEdgeTable = originalNetwork.getTable(CyEdge.class, CyNetwork.DEFAULT_ATTRS);
+		for (CyNode node : originalNetwork.getNodeList()) {
+			CyRow originalNodeRow = originalNetwork.getRow(node),
+				  savedNodeRow = savedNetwork.getRow(nodeToNodeMap.get(node));
+			for (CyColumn column : defaultNodeTable.getColumns()) {
+				Animo.setRowValue(savedNodeRow, column.getName(), column.getType(), originalNodeRow.get(column.getName(), column.getType()));
+			}
+		}
+		for (CyEdge edge : originalNetwork.getEdgeList()) {
+			CyNode savedSource = nodeToNodeMap.get(edge.getSource()),
+				   savedTarget = nodeToNodeMap.get(edge.getTarget());
+			CyRow originalEdgeRow = originalNetwork.getRow(edge),
+				  savedEdgeRow = savedNetwork.getRow(savedNetwork.getConnectingEdgeList(savedSource, savedTarget, CyEdge.Type.DIRECTED).get(0));
+			for (CyColumn column : defaultEdgeTable.getColumns()) {
+				Animo.setRowValue(savedEdgeRow, column.getName(), column.getType(), originalEdgeRow.get(column.getName(), column.getType()));
+			}
 		}
 
 		return savedNetwork;
@@ -823,7 +909,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					myMapModelIDtoCytoscapeID.put(myMapCytoscapeIDtoModelID.get(k), k);
 				}
 
-				SimpleLevelResult diff = this.result.difference(differenceWith.result, myMapModelIDtoCytoscapeID,
+				SimpleLevelResult diff = (SimpleLevelResult)this.result.difference(differenceWith.result, myMapModelIDtoCytoscapeID,
 						hisMapCytoscapeIDtoModelID);
 				if (diff.isEmpty()) {
 					JOptionPane
@@ -1007,7 +1093,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	public void stateChanged(ChangeEvent e) {
 		if (this.slider.getValueIsAdjusting()) {
 			//System.err.println("Evito l'aggiornamento perche' stai ancora slidando");
-			dontUpdateNetworkView();
+			NodeDialog.dontUpdateNetworkView();
 		}
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork net = cyApplicationManager.getCurrentNetwork();
@@ -1135,60 +1221,9 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		//Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
 		if (!this.slider.getValueIsAdjusting()) {
 			//System.err.println("Non stai slidando, quindi provo ad aggiornare");
-			tryNetworkViewUpdate();
+			NodeDialog.tryNetworkViewUpdate();
 		}
 	}
 	
-	private Thread networkViewUpdater = null;
-	
-	private void tryNetworkViewUpdate() {
-		if (networkViewUpdater == null) {
-			networkViewUpdater = new Thread() {
-				final VisualMappingManager vmm = Animo.getCytoscapeApp().getVisualMappingManager();
-				final CyNetworkView networkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-				final VisualStyle visualStyle = vmm.getCurrentVisualStyle();
-				
-				public void run() {
-					//System.err.println("Inizia il threado");
-					while (true) { //Try to do the update each time you are notified to do it. Before doing the update, wait X seconds: if you are interrupted before that time, do nothing and go back waiting for the next request
-						if (!slider.getValueIsAdjusting()) {
-							boolean doUpdate = true;
-							try {
-								Thread.sleep(200);
-							} catch (InterruptedException ex) {
-								//System.err.println("Hai premuto il bottone troppo presto: non ho fatto in tempo ad aggiornare");
-								doUpdate = false;
-							}
-							if (doUpdate) {
-								//System.err.println("Ho atteso abbastanza: aggiorno");
-								visualStyle.apply(networkView);
-								networkView.updateView();
-							}
-						}
-						synchronized (this) {
-							try {
-								//System.err.println("Mi metto in attesa di poter fare un aggiornamento");
-								this.wait();
-							} catch (InterruptedException ex) {
-								//System.err.println("Mi dicono che devo provare a fare l'aggiornamento");
-							}
-						}
-					}
-				}
-			};
-			networkViewUpdater.start();
-		}
-		synchronized (networkViewUpdater) {
-			networkViewUpdater.notify();
-		}
-	}
-	
-	private void dontUpdateNetworkView() {
-		if (networkViewUpdater != null) {
-			if (networkViewUpdater.getState().equals(Thread.State.TIMED_WAITING)) { //We break the sleep only: if it is already doing the "wait", we let it stay there because we don't want to try a new update
-				networkViewUpdater.interrupt();
-			}
-		}
-	}
 
 }

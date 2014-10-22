@@ -34,6 +34,10 @@ import animo.util.XmlConfiguration;
 public class Model implements Serializable {
 	public static class Properties {
 		/**
+		 * Tells us whether the node/edge has been automatically added, so we shouldn't open an edit dialog
+		 */
+		public static final String AUTOMATICALLY_ADDED = "automatically added";
+		/**
 		 * Property that can belong to a node or to a network. If related to a single node, it represents the maximum number of levels for that single reactant. If related to a
 		 * complete network, it is the maximum value of the NUMBER_OF_LEVELS property among all nodes in the network. Expressed as integer number in [0, 100] (chosen by the user).
 		 */
@@ -398,8 +402,8 @@ public class Model implements Serializable {
 			// Check that the edge has the definition of all parameters requested by the selected scenario
 			// otherwise set the parameters to their default values
 			Scenario scenario;
-			if (scenarioIdx >= 0 && scenarioIdx < Scenario.SIX_SCENARIOS.length) {
-				scenario = Scenario.SIX_SCENARIOS[scenarioIdx];
+			if (scenarioIdx >= 0 && scenarioIdx < Scenario.THREE_SCENARIOS.length) {
+				scenario = Scenario.THREE_SCENARIOS[scenarioIdx];
 			} else {
 				// scenario = Scenario.sixScenarios[0];
 				scenarioIdx = 0;
@@ -593,7 +597,7 @@ public class Model implements Serializable {
 			CyRow e1 = network.getRow(edge.getSource());
 			CyRow e2 = network.getRow(edge.getTarget());
 
-			Scenario[] scenarios = Scenario.SIX_SCENARIOS;
+			Scenario[] scenarios = Scenario.THREE_SCENARIOS;
 			Integer scenarioIdx = network.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
 			if (scenarioIdx == null) {
 				scenarioIdx = 0;
@@ -947,7 +951,7 @@ public class Model implements Serializable {
 				nLevelsR2 = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
 			}
 
-			Scenario[] scenarios = Scenario.SIX_SCENARIOS;
+			Scenario[] scenarios = Scenario.THREE_SCENARIOS;
 			Integer scenarioIdx;
 			scenarioIdx = network.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
 			Scenario scenario;

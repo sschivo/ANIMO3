@@ -108,7 +108,7 @@ public class ParameterFitter extends WindowAdapter {
 
 		this.scenarioFittingParameters = new HashMap<Reaction, ScenarioFitting>();
 		this.reactantComparisons = new HashMap<Reactant, ReactantComparison>();
-		this.scenarios = Scenario.SIX_SCENARIOS;
+		this.scenarios = Scenario.THREE_SCENARIOS;
 
 	}
 

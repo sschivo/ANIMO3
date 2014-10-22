@@ -40,14 +40,9 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 	}
 
 	@Override
-	public LevelResult difference(LevelResult subtractFrom, Map<String, String> myMapModelIDtoCytoscapeID,
-			Map<String, String> hisMapCytoscapeIDtoModelID) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	public SimpleLevelResult difference(SimpleLevelResult subtractFrom, Map<String, String> myMapModelIDtoCytoscapeID,
+	public LevelResult difference(LevelResult subtractFrom_, Map<String, String> myMapModelIDtoCytoscapeID,
 			Map<String, String> hisMapCytoscapeIDtoModel) {
+		SimpleLevelResult subtractFrom = (SimpleLevelResult)subtractFrom_;
 		Map<String, SortedMap<Double, Double>> lev = new HashMap<String, SortedMap<Double, Double>>();
 		// System.err.println("Differenzio tra " + subtractFrom + " (" + subtractFrom.getNumberOfLevels() + " livelli) e " + this + " (" + this.getNumberOfLevels() + " livelli)");
 		int maxNLevels = Math.max(subtractFrom.getNumberOfLevels(), this.getNumberOfLevels());

@@ -36,6 +36,9 @@ import javax.swing.event.ChangeListener;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.view.model.CyNetworkView;
+import org.cytoscape.view.vizmap.VisualMappingManager;
+import org.cytoscape.view.vizmap.VisualStyle;
 
 import animo.core.model.Model;
 
@@ -307,6 +310,8 @@ public class NodeDialog extends JDialog {
 				Animo.setRowValue(nodeAttributesRow, Model.Properties.DESCRIPTION, String.class, description.getText());
 
 				NodeDialog.this.dispose();
+				
+				tryNetworkViewUpdate();
 			}
 		}));
 
@@ -342,5 +347,57 @@ public class NodeDialog extends JDialog {
 
 	public void setCreatedNewNode() {
 		wasNewlyCreated = true;
+	}
+	
+	
+
+	private static Thread networkViewUpdater = null;
+	
+	public static void tryNetworkViewUpdate() {
+		if (networkViewUpdater == null) {
+			networkViewUpdater = new Thread() {
+				final VisualMappingManager vmm = Animo.getCytoscapeApp().getVisualMappingManager();
+				final CyNetworkView networkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+				final VisualStyle visualStyle = vmm.getCurrentVisualStyle();
+				
+				public void run() {
+					//System.err.println("Inizia il threado");
+					while (true) { //Try to do the update each time you are notified to do it. Before doing the update, wait X seconds: if you are interrupted before that time, do nothing and go back waiting for the next request
+						boolean doUpdate = true;
+						try {
+							Thread.sleep(200);
+						} catch (InterruptedException ex) {
+							//System.err.println("Hai premuto il bottone troppo presto: non ho fatto in tempo ad aggiornare");
+							doUpdate = false;
+						}
+						if (doUpdate) {
+							//System.err.println("Ho atteso abbastanza: aggiorno");
+							visualStyle.apply(networkView);
+							networkView.updateView();
+						}
+						synchronized (this) {
+							try {
+								//System.err.println("Mi metto in attesa di poter fare un aggiornamento");
+								this.wait();
+							} catch (InterruptedException ex) {
+								//System.err.println("Mi dicono che devo provare a fare l'aggiornamento");
+							}
+						}
+					}
+				}
+			};
+			networkViewUpdater.start();
+		}
+		synchronized (networkViewUpdater) {
+			networkViewUpdater.notify();
+		}
+	}
+	
+	public static void dontUpdateNetworkView() {
+		if (networkViewUpdater != null) {
+			if (networkViewUpdater.getState().equals(Thread.State.TIMED_WAITING)) { //We break the sleep only: if it is already doing the "wait", we let it stay there because we don't want to try a new update
+				networkViewUpdater.interrupt();
+			}
+		}
 	}
 }

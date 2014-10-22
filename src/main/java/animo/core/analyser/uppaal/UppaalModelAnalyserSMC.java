@@ -658,8 +658,6 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				try {
 					br.mark(1024);
 				} catch (IOException e) {
-					// TODO Auto-generated catch block
-					e.printStackTrace();
 				}
 			}
 

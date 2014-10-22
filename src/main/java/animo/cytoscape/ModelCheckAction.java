@@ -93,9 +93,8 @@ public class ModelCheckAction extends AnimoActionTask {
 					Model model = null;
 					try {
 						model = Model.generateModelFromCurrentNetwork(monitor, null, generateTables);
-					} catch (AnimoException e1) {
-						// TODO Auto-generated catch block
-						e1.printStackTrace();
+					} catch (AnimoException e) {
+						e.printStackTrace(System.err);
 					}
 					formulaToCheck.setReactantIDs(model); // This is enough to set the proper model IDs to all reactants in the formula
 					model.getProperties().let(Model.Properties.MODEL_CHECKING_TYPE)
@@ -104,8 +103,7 @@ public class ModelCheckAction extends AnimoActionTask {
 						performModelChecking(model, formulaToCheck.toString(), formulaToCheck.toHumanReadable(),
 								monitor);
 					} catch (AnalysisException e) {
-						// TODO Auto-generated catch block
-						e.printStackTrace();
+						e.printStackTrace(System.err);
 					}
 				}
 			});

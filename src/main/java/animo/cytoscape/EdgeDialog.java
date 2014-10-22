@@ -61,7 +61,7 @@ public class EdgeDialog extends JDialog {
 			SCENARIO = Model.Properties.SCENARIO, CANONICAL_NAME = Model.Properties.CANONICAL_NAME,
 			INCREMENT = Model.Properties.INCREMENT, UNCERTAINTY = Model.Properties.UNCERTAINTY;
 
-	private Scenario[] scenarios = Scenario.SIX_SCENARIOS;
+	private Scenario[] scenarios = Scenario.THREE_SCENARIOS;
 	private String[] reactantAliases;
 	private String[] reactantIdentifiers; // The identifiers and aliases of all reactants in the network
 	// private int previouslySelectedScenario = -1;
@@ -314,9 +314,9 @@ public class EdgeDialog extends JDialog {
 							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
 									Boolean.class, false);
 						}
-						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID + "E2", reactantIdentifiers[listE1.getSelectedIndex()]);
+						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID + "E2", reactantIdentifiers[listE2.getSelectedIndex()]);
 						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class,
-								reactantIdentifiers[listE1.getSelectedIndex()]);
+								reactantIdentifiers[listE2.getSelectedIndex()]);
 						if (listE2act.getSelectedIndex() == 0) {
 							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", true);
 							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
@@ -347,8 +347,7 @@ public class EdgeDialog extends JDialog {
 				// edgeAttrib.getRow(edge).set(SCENARIO, comboScenario.getSelectedIndex());
 				Animo.setRowValue(network.getRow(edge), SCENARIO, Integer.class, comboScenario.getSelectedIndex());
 				// edgeAttrib.getRow(edge).set(INCREMENT, ((positiveIncrement.isSelected()) ? 1 : -1));
-				Animo.setRowValue(network.getRow(edge), INCREMENT, Integer.class, ((positiveIncrement.isSelected()) ? 1
-						: -1));
+				Animo.setRowValue(network.getRow(edge), INCREMENT, Integer.class, ((positiveIncrement.isSelected()) ? 1 : -1));
 				// edgeAttrib.getRow(edge).set(Model.Properties.DESCRIPTION, description.getText());
 				Animo.setRowValue(network.getRow(edge), Model.Properties.DESCRIPTION, String.class,
 						description.getText());

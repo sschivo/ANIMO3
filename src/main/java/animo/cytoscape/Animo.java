@@ -4,6 +4,8 @@ import java.io.File;
 import java.io.IOException;
 import java.util.Properties;
 
+import javax.swing.JOptionPane;
+
 import org.cytoscape.app.CyAppAdapter;
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.CySwingApplication;
@@ -192,10 +194,6 @@ public class Animo extends AbstractCyActivator {
 		cytoscape = getService(bc, CySwingApplication.class);
 		cytoscapeapp = getService(bc, CyAppAdapter.class);
 		cyServiceRegistrar = getService(bc, CyServiceRegistrar.class);
-		/*
-		 * TODO: Wordt nergens gebruikt, gaat wel op zijn plaat
-		mappingfunction = getService(bc, AbstractVisualMappingFunction.class);
-		 */
 		String folder = System.getProperty("user.home") + File.separatorChar + ".animo" + File.separatorChar;
 		String file = "animo_configuration.xml";
 		File configuration = new File(folder + file);
@@ -206,22 +204,18 @@ public class Animo extends AbstractCyActivator {
 
 				configuration.createNewFile();
 			}
-		} catch (IOException e1) {
-			// TODO Auto-generated catch block
-			e1.printStackTrace();
+		} catch (IOException e) {
+			JOptionPane.showMessageDialog(getCytoscape().getJFrame(), "Couldn't write the file " + configuration.getAbsolutePath(), "Cannot create file", JOptionPane.ERROR_MESSAGE);
+			e.printStackTrace(System.err);
 		}
 		try {
 			AnimoBackend.initialise(configuration);
 		} catch (AnimoException e) {
-
+			JOptionPane.showMessageDialog(getCytoscape().getJFrame(), "Couldn't initialize ANIMO: " + e.getMessage(), "Cannot start ANIMO", JOptionPane.ERROR_MESSAGE);
+			e.printStackTrace(System.err);
 		}
 		hookListeners(bc);
 		initVisuals(bc, cytoscapeapp.getCyApplicationManager());
 	}
 
-	// public static AbstractVisualMappingFunction getMappingFunction()
-	// {
-	// return mappingfunction;
-
-	// }
 }

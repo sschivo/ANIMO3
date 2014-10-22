@@ -34,7 +34,7 @@ public abstract class Scenario {
 	/**
 	 * The default predefined scenarios
 	 */
-	public static final Scenario[] SIX_SCENARIOS = { new Scenario0(), new Scenario1(), new Scenario2() };
+	public static final Scenario[] THREE_SCENARIOS = { new Scenario0(), new Scenario1(), new Scenario2() };
 
 	public Scenario() {
 		k = defaultK;
