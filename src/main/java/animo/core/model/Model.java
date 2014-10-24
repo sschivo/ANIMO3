@@ -33,10 +33,10 @@ import animo.util.XmlConfiguration;
  */
 public class Model implements Serializable {
 	public static class Properties {
-		/**
-		 * Tells us whether the node/edge has been automatically added, so we shouldn't open an edit dialog
-		 */
-		public static final String AUTOMATICALLY_ADDED = "automatically added";
+//		/**
+//		 * Tells us whether the node/edge has been automatically added, so we shouldn't open an edit dialog
+//		 */
+//		public static final String AUTOMATICALLY_ADDED = "automatically added";
 		/**
 		 * Property that can belong to a node or to a network. If related to a single node, it represents the maximum number of levels for that single reactant. If related to a
 		 * complete network, it is the maximum value of the NUMBER_OF_LEVELS property among all nodes in the network. Expressed as integer number in [0, 100] (chosen by the user).

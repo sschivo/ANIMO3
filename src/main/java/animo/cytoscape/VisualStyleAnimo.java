@@ -6,6 +6,9 @@ import java.awt.Paint;
 import java.util.Arrays;
 import java.util.List;
 
+import org.cytoscape.model.CyEdge;
+import org.cytoscape.model.CyNetwork;
+import org.cytoscape.model.CyTable;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.presentation.property.ArrowShapeVisualProperty;
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
@@ -342,6 +345,15 @@ public class VisualStyleAnimo {
 				!visualStyleName.equals(ANIMO_DIFF_VISUAL_STYLE)) {
 			return;
 		}
+		
+		CyTable edgeLocalAttrs = networkview.getModel().getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS); //Make sure that the edge attribute "activityRatio" is present: in older versions of ANIMO we destroyed it when it was not needed, but it is better to keep it
+		if (edgeLocalAttrs.getColumn(Model.Properties.SHOWN_LEVEL) == null) {
+			edgeLocalAttrs.createColumn(Model.Properties.SHOWN_LEVEL, Double.class, false);
+			for (CyEdge edge : networkview.getModel().getEdgeList()) {
+				edgeLocalAttrs.getRow(edge.getSUID()).set(Model.Properties.SHOWN_LEVEL, 0.25);
+			}
+		}
+		
 		this.currentNetworkView = networkview;
 		this.currentVisualStyle = visualMappingManager.getVisualStyle(currentNetworkView);
 		if (!visualStyleName.equals(currentVisualStyle.getTitle())) {
