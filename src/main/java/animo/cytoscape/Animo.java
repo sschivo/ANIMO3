@@ -101,7 +101,7 @@ public class Animo extends AbstractCyActivator {
 
 	public static void setRowValue(CyRow row, String columnName, Class<?> type, Object value) {
 		if (row.getTable().getColumn(columnName) == null) {
-			row.getTable().createColumn(columnName, type, false);
+			row.getTable().createColumn(columnName, type, false); //Simulazione da una rete ripristinata: Perche' mi dice che la colonna esiste gia'?? Ho appena controllato e non c'era!!
 
 		}
 		row.set(columnName, value);
