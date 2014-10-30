@@ -15,6 +15,7 @@ import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.work.TaskMonitor;
 
 import animo.core.AnimoBackend;
@@ -222,7 +223,9 @@ public class Model implements Serializable {
 		 */
 		CyApplicationManager appmanager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork network = appmanager.getCurrentNetwork();
-
+		CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
+		network = rootNetworkManager.getRootNetwork(network).getBaseNetwork();
+		
 		// ============================== FIRST PART: CHECK THAT ALL PROPERTIES ARE SET =====================================
 		// TODO: we could collect the list of all things that were set automatically and show them before continuing with the
 		// generation of the model. Alternatively, we could throw exceptions like bullets for any slight misbehavior =)
@@ -232,58 +235,81 @@ public class Model implements Serializable {
 		/*
          * 
          */
-		Integer nLvl = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
-		if (nLvl == null) {
-			// throw new InatException("Network attribute '" + NUMBER_OF_LEVELS + "' is missing.");
-			nLvl = 15;
-//			int defaultNLevels = 15;
-//			String inputLevels = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-//					"Missing number of levels for the network. Please insert the max number of levels",
-//					Integer.valueOf(defaultNLevels));
-//			if (inputLevels != null) {
-//				try {
-//					nLvl = Integer.valueOf(inputLevels);
-//				} catch (NumberFormatException ex) {
-//					nLvl = defaultNLevels;
-//				}
-//			} else {
-//				nLvl = defaultNLevels;
-//			}
-//			// network.getRow(network).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
-
+		Integer nLvl = 15;
+		if (network.getRow(network).getTable().getColumn(Model.Properties.NUMBER_OF_LEVELS) == null
+			|| !network.getRow(network).isSet(Model.Properties.NUMBER_OF_LEVELS)
+			|| network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class) == null) {
 			Animo.setRowValue(network.getRow(network), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
-
+		} else { 
+			nLvl = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 		}
-		Double nSecPerPoint = network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class);
-		if (nSecPerPoint == null) {
-			// throw new InatException("Network attribute '" + SECONDS_PER_POINT + "' is missing.");
-			nSecPerPoint = 1.0;
-//			double defaultSecondsPerPoint = 1;
-//			String inputSecs = JOptionPane
-//					.showInputDialog(
-//							Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-//							"Missing number of seconds per point for the network.\nPlease insert the number of real-life seconds a simulation point will represent",
-//							defaultSecondsPerPoint);
-//			if (inputSecs != null) {
-//				try {
-//					nSecPerPoint = new Double(inputSecs);
-//				} catch (NumberFormatException ex) {
-//					nSecPerPoint = defaultSecondsPerPoint;
-//				}
-//			} else {
-//				nSecPerPoint = defaultSecondsPerPoint;
-//			}
-//			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, nSecPerPoint);
+//		if (nLvl == null) {
+//			// throw new InatException("Network attribute '" + NUMBER_OF_LEVELS + "' is missing.");
+//			nLvl = 15;
+////			int defaultNLevels = 15;
+////			String inputLevels = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
+////					"Missing number of levels for the network. Please insert the max number of levels",
+////					Integer.valueOf(defaultNLevels));
+////			if (inputLevels != null) {
+////				try {
+////					nLvl = Integer.valueOf(inputLevels);
+////				} catch (NumberFormatException ex) {
+////					nLvl = defaultNLevels;
+////				}
+////			} else {
+////				nLvl = defaultNLevels;
+////			}
+////			// network.getRow(network).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
+//
+//			Animo.setRowValue(network.getRow(network), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
+//
+//		}
+		Double nSecPerPoint = 1.0;
+		if (network.getRow(network).getTable().getColumn(Model.Properties.SECONDS_PER_POINT) == null
+			|| !network.getRow(network).isSet(Model.Properties.SECONDS_PER_POINT)
+			|| network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class) == null) {
 			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, nSecPerPoint);
+		} else {
+			nSecPerPoint = network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 		}
+//		if (nSecPerPoint == null) {
+//			// throw new InatException("Network attribute '" + SECONDS_PER_POINT + "' is missing.");
+//			nSecPerPoint = 1.0;
+////			double defaultSecondsPerPoint = 1;
+////			String inputSecs = JOptionPane
+////					.showInputDialog(
+////							Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
+////							"Missing number of seconds per point for the network.\nPlease insert the number of real-life seconds a simulation point will represent",
+////							defaultSecondsPerPoint);
+////			if (inputSecs != null) {
+////				try {
+////					nSecPerPoint = new Double(inputSecs);
+////				} catch (NumberFormatException ex) {
+////					nSecPerPoint = defaultSecondsPerPoint;
+////				}
+////			} else {
+////				nSecPerPoint = defaultSecondsPerPoint;
+////			}
+////			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, nSecPerPoint);
+//			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, nSecPerPoint);
+//		}
 
-		Double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
-		if (secStepFactor == null) {
-			secStepFactor = 1.0;
-			// network.getRow(network).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
+		Double secStepFactor = 1.0;
+		if (network.getRow(network).getTable().getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
+			|| !network.getRow(network).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
+			|| network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
 			Animo.setRowValue(network.getRow(network), Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class,
 					secStepFactor);
+		} else {
+			secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 		}
+//		Double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+//		if (secStepFactor == null) {
+//			secStepFactor = 1.0;
+//			// network.getRow(network).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
+//			Animo.setRowValue(network.getRow(network), Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class,
+//					secStepFactor);
+//		}
 
 		boolean noReactantsPlotted = true;
 		// Iterator<CyNode> nodes = (Iterator<CyNode>) network.getNodeList().iterator();
@@ -842,6 +868,8 @@ public class Model implements Serializable {
 		Model model = new Model();
 
 		CyNetwork network = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+		CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
+		network = rootNetworkManager.getRootNetwork(network).getBaseNetwork();
 
 		final int totalWork = network.getNodeCount() + network.getEdgeCount();
 		int doneWork = 0;
@@ -858,7 +886,11 @@ public class Model implements Serializable {
 				.be(network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
 		model.getProperties().let(Model.Properties.SECONDS_PER_POINT)
 				.be(network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class));
-		double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+		double secStepFactor = network
+				.
+				getRow(network)
+				.
+				get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 		model.getProperties().let(Model.Properties.SECS_POINT_SCALE_FACTOR).be(secStepFactor);
 
 		final Integer maxNLevels = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);

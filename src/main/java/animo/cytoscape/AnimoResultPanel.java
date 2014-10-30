@@ -66,6 +66,7 @@ import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
 import org.cytoscape.model.SavePolicy;
 import org.cytoscape.model.subnetwork.CyRootNetworkManager;
+import org.cytoscape.model.subnetwork.CySubNetwork;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.CyNetworkViewFactory;
 import org.cytoscape.view.model.CyNetworkViewManager;
@@ -590,6 +591,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					//eventHelper.silenceEventSource(net); //Just silence the event source so we don't open the dialogs when new nodes/edges are added
 					EventListener.setListenerStatus(false);
 					
+					CyRootNetworkManager rootNetworkManager = Animo.getCyServiceRegistrar().getService(CyRootNetworkManager.class);
 					CyNetworkViewManager netViewManager = Animo.getCyServiceRegistrar().getService(CyNetworkViewManager.class);
 					CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
 					CyNetworkViewDesktopMgr networkViewDesktopManager = Animo.getCyServiceRegistrar().getService(CyNetworkViewDesktopMgr.class);
@@ -599,18 +601,27 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						   netCenterY = currentNetworkView.getVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Y_LOCATION),
 						   netCenterZ = currentNetworkView.getVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Z_LOCATION);
 					netViewManager.destroyNetworkView(currentNetworkView);
+					if (net instanceof CySubNetwork && !net.equals(rootNetworkManager.getRootNetwork(savedNetwork).getBaseNetwork())) {
+						if (Animo.getCytoscapeApp().getCyNetworkManager().networkExists(net.getSUID())) {
+							//rootNetworkManager.getRootNetwork(savedNetwork).removeSubNetwork((CySubNetwork)net);
+							Animo.getCyServiceRegistrar().getService(CyNetworkManager.class).destroyNetwork(net);
+						}
+					}
 					CyNetworkViewFactory netViewFactory = Animo.getCyServiceRegistrar().getService(CyNetworkViewFactory.class);
-					CyNetworkView savedNetView = netViewFactory.createNetworkView(savedNetwork);
-					netViewManager.addNetworkView(savedNetView);
-					for (View<CyNode> node : savedNetView.getNodeViews()) {
+					CyNetwork recoveredNetwork = rootNetworkManager.getRootNetwork(savedNetwork).addSubNetwork(savedNodesList, savedEdgesList);
+					recoveredNetwork.getRow(recoveredNetwork).set(CyNetwork.NAME, "Based on " + getTitle());
+					Animo.getCyServiceRegistrar().getService(CyNetworkManager.class).addNetwork(recoveredNetwork);
+					CyNetworkView recoveredNetView = netViewFactory.createNetworkView(recoveredNetwork);
+					netViewManager.addNetworkView(recoveredNetView);
+					for (View<CyNode> node : recoveredNetView.getNodeViews()) {
 						node.setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_X));
 						node.setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_Y));
 					}				
-					networkViewDesktopManager.setBounds(savedNetView, windowBounds);
-					savedNetView.setVisualProperty(BasicVisualLexicon.NETWORK_SCALE_FACTOR, scaleFactor);
-					savedNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_X_LOCATION, netCenterX);
-					savedNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Y_LOCATION, netCenterY);
-					savedNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Z_LOCATION, netCenterZ);
+					networkViewDesktopManager.setBounds(recoveredNetView, windowBounds);
+					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_SCALE_FACTOR, scaleFactor);
+					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_X_LOCATION, netCenterX);
+					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Y_LOCATION, netCenterY);
+					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Z_LOCATION, netCenterZ);
 					eventHelper.flushPayloadEvents();
 					EventListener.setListenerStatus(true);
 					
@@ -908,8 +919,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		if (savedNetwork != null && countSessionChanges <= 1) { // We destroy network & vizmap only if we are still in "our" session. Otherwise, we would risk destroying a network
 																// from another session
 			try {
-				if (Animo.getCytoscapeApp().getCyNetworkManager().networkExists(savedNetwork.getSUID())
-					&& !Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().equals(savedNetwork)) //If the saved network is currently being used, we don't delete it
+				if (Animo.getCytoscapeApp().getCyNetworkManager().networkExists(savedNetwork.getSUID()))
 					Animo.getCytoscapeApp().getCyNetworkManager().destroyNetwork(savedNetwork);
 			} catch (Exception ex) {
 				ex.printStackTrace();
