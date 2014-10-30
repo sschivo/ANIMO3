@@ -623,6 +623,28 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Y_LOCATION, netCenterY);
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Z_LOCATION, netCenterZ);
 					eventHelper.flushPayloadEvents();
+					for (CyNode node : savedNodeAttributes.keySet()) {
+						System.err.println("** Nodo " + node);
+						for (String k : savedNodeAttributes.get(node).keySet()) {
+							Object val = savedNodeAttributes.get(k); //Perche' magicamente qui sono tutti null???????????????????????????????????????????????????????????????????????????
+							System.err.println("Recupero " + k + " --> " + val);
+							if (val != null) {
+								Animo.setRowValue(recoveredNetwork.getRow(node), k, val.getClass(), val);
+								//recoveredNetwork.getRow(node).set(k, savedNodeAttributes.get(k));
+							}
+						}
+					}
+					for (CyEdge edge : savedEdgeAttributes.keySet()) {
+						System.err.println("** Edgio " + edge);
+						for (String k : savedEdgeAttributes.get(edge).keySet()) {
+							Object val = savedEdgeAttributes.get(k);
+							System.err.println("Recupero " + k + " --> " + val);
+							if (val != null) {
+								Animo.setRowValue(recoveredNetwork.getRow(edge), k, val.getClass(), val);
+								//recoveredNetwork.getRow(edge).set(k, savedEdgeAttributes.get(k));
+							}
+						}
+					}
 					EventListener.setListenerStatus(true);
 					
 					int b = 34;
@@ -973,15 +995,27 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		savedEdgeAttributes = new HashMap<CyEdge, Map<String, Object>>();
 		CyNetworkView netView = Animo.getCytoscapeApp().getCyNetworkViewManager().getNetworkViews(originalNetwork).iterator().next();
 		for (CyNode node : savedNodesList) {
+			System.err.println("** Nodo " + node);
 			CyRow nodeRow = originalNetwork.getRow(node);
-			Map<String, Object> attributes = nodeRow.getAllValues();
+			Map<String, Object> attributes = new HashMap<String, Object>();
 			attributes.put(PROP_POSITION_X, netView.getNodeView(node).getVisualProperty(BasicVisualLexicon.NODE_X_LOCATION));
 			attributes.put(PROP_POSITION_Y, netView.getNodeView(node).getVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION));
+			for (String k : nodeRow.getAllValues().keySet()) {
+				Object val = nodeRow.getRaw(k);
+				System.err.println("Salvo " + k + " --> " + val + " (tipo " + (val!=null?val.getClass():"null") + ")");
+				attributes.put(k, val);
+			}
 			savedNodeAttributes.put(node, attributes);
 		}
 		for (CyEdge edge : savedEdgesList) {
+			System.err.println("** Edgio " + edge);
 			CyRow edgeRow = originalNetwork.getRow(edge);
-			Map<String, Object> attributes = edgeRow.getAllValues();
+			Map<String, Object> attributes = new HashMap<String, Object>();
+			for (String k : edgeRow.getAllValues().keySet()) {
+				Object val = edgeRow.getRaw(k);
+				System.err.println("Salvo " + k + " --> " + val + " (tipo " + (val!=null?val.getClass():"null") + ")");
+				attributes.put(k, val);
+			}
 			savedEdgeAttributes.put(edge, attributes);
 		}
 //		savedNetwork = Animo.getCytoscapeApp().getCyNetworkFactory().createNetwork(SavePolicy.DO_NOT_SAVE); //Tanto perche' altrove controllo se questa non e' null per fare o meno il ripristino

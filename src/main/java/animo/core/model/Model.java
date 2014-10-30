@@ -886,11 +886,7 @@ public class Model implements Serializable {
 				.be(network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
 		model.getProperties().let(Model.Properties.SECONDS_PER_POINT)
 				.be(network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class));
-		double secStepFactor = network
-				.
-				getRow(network)
-				.
-				get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+		double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 		model.getProperties().let(Model.Properties.SECS_POINT_SCALE_FACTOR).be(secStepFactor);
 
 		final Integer maxNLevels = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
