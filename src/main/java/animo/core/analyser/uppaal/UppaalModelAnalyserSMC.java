@@ -994,6 +994,10 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			modelFileOut.append(uppaalModel);
 			modelFileOut.close();
 			modelFile.deleteOnExit();
+			
+			if (monitor != null) {
+				monitor.setStatusMessage("Model saved in " + modelFile.getAbsolutePath());
+			}
 
 			FileWriter queryFileOut = new FileWriter(queryFile);
 			queryFileOut.append(uppaalQuery);
@@ -1153,7 +1157,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			proc.getOutputStream().close();
 			// }
 
-		} catch (IOException | InterruptedException e) {
+		} catch (Exception e) {
 			throw new AnalysisException("Error during analysis: " + e.getMessage(), e);
 		}
 
@@ -1204,6 +1208,10 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			modelFileOut.append(uppaalModel);
 			modelFileOut.close();
 			modelFile.deleteOnExit();
+			
+			if (monitor != null) {
+				monitor.setStatusMessage("Model saved in " + modelFile.getAbsolutePath());
+			}
 
 			FileWriter queryFileOut = new FileWriter(queryFile);
 			queryFileOut.append(probabilisticQuery);

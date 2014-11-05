@@ -4,10 +4,6 @@
 package animo.core;
 
 import java.io.File;
-import java.io.IOException;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
 
 import org.xml.sax.SAXException;
 
@@ -100,7 +96,7 @@ public class AnimoBackend {
 			}
 			// } catch (SAXException e) {
 			// throw new InatException("Could not parse configuration file '" + configuration + "'", e);
-		} catch (ParserConfigurationException | TransformerException | IOException e) {
+		} catch (Exception e) {
 			e.printStackTrace();
 			throw new AnimoException("An error has occured");
 		}

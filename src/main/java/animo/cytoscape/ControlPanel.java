@@ -12,7 +12,6 @@ import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
-import java.io.IOException;
 import java.text.DecimalFormat;
 
 import javax.swing.AbstractAction;
@@ -33,8 +32,6 @@ import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.transform.TransformerException;
 
 import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
@@ -477,7 +474,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 						configuration.set(XmlConfiguration.MODEL_TYPE_KEY, modelTypeValue);
 						try {
 							configuration.writeConfigFile();
-						} catch (ParserConfigurationException | TransformerException | IOException ex) {
+						} catch (Exception ex) {
 							JOptionPane
 									.showMessageDialog(Animo.getCytoscape().getJFrame(), "Unexpected problem: " + ex);
 							ex.printStackTrace();

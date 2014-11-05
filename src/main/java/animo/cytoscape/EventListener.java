@@ -22,10 +22,8 @@ import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerConfigurationException;
 import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
-import javax.xml.transform.TransformerFactoryConfigurationError;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
@@ -55,7 +53,6 @@ import org.cytoscape.view.vizmap.events.VisualStyleSetListener;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
-import org.xml.sax.SAXException;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
 		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
@@ -200,7 +197,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			Document doc;
 			try {
 				doc = DocumentBuilderFactory.newInstance().newDocumentBuilder().parse(f);
-			} catch (SAXException | IOException | ParserConfigurationException e) {
+			} catch (Exception e) {
 				e.printStackTrace();
 				continue;
 			}
@@ -282,7 +279,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			Transformer tra;
 			try {
 				tra = TransformerFactory.newInstance().newTransformer();
-			} catch (TransformerConfigurationException | TransformerFactoryConfigurationError e) {
+			} catch (Throwable e) {
 				e.printStackTrace();
 				return;
 			}

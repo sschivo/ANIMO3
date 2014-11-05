@@ -45,36 +45,25 @@ public class RunAction extends AnimoActionTask {
 	private class RunTask extends AbstractTask {
 
 		private Model model;
+		private boolean complete = false;
 
-		public RunTask() throws AnimoException {
-			// Just check that we understand how many minutes to run the simulation
-			int nMinutesToSimulate = 0;
-			try {
-				nMinutesToSimulate = Integer.parseInt(timeToFormula.getValue().toString());
-			} catch (NumberFormatException ex) {
-				if (!smcUppaal.isSelected()) {
-					throw new AnimoException("Unable to understand the number of minutes requested for the simulation.");
-				}
-			}
-
-			final boolean generateTables;
-			XmlConfiguration configuration = AnimoBackend.get().configuration();
-			String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
-			if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
-				generateTables = true;
-			} else {
-				generateTables = false;
-			}
-
-			final int nMinutesToSimulate2 = nMinutesToSimulate;
-			final Model model;
-			if (smcUppaal.isSelected()) {
-				model = Model.generateModelFromCurrentNetwork(null, null, generateTables);
-			} else {
-				model = Model.generateModelFromCurrentNetwork(null, nMinutesToSimulate2, generateTables);
-			}
-			this.model = model;
+		public RunTask() {
+			
 		}
+		
+
+		public boolean isComplete() {
+			return complete;
+		}
+
+
+
+		@SuppressWarnings("unused")
+		public void setComplete(boolean complete) {
+			this.complete = complete;
+		}
+
+		
 
 		// private TaskMonitor monitor;
 
@@ -108,8 +97,8 @@ public class RunAction extends AnimoActionTask {
 			scale = (double) nMinutesToSimulate / timeTo;
 
 			// this.monitor.setStatus("Analyzing model with UPPAAL");
-			monitor.setStatusMessage("Analyzing model with UPPAAL");
-			monitor.setProgress(-1);
+//			monitor.setStatusMessage("Analyzing model with UPPAAL");
+//			monitor.setProgress(-1);
 
 			// composite the analyser (this should be done from
 			// configuration)
@@ -227,8 +216,8 @@ public class RunAction extends AnimoActionTask {
 				probabilisticFormula = sb.toString();
 			}
 
-			monitor.setStatusMessage("Analyzing model with UPPAAL");
-			monitor.setProgress(-1);
+//			monitor.setStatusMessage("Analyzing model with UPPAAL");
+//			monitor.setProgress(-1);
 
 			// analyse model
 			final SMCResult result;
@@ -257,6 +246,40 @@ public class RunAction extends AnimoActionTask {
 			needToStop = false;
 			monitor.setStatusMessage("Creating model representation");
 			monitor.setProgress(0);
+			
+			// Just check that we understand how many minutes to run the simulation
+			int nMinutesToSimulate = 0;
+			try {
+				nMinutesToSimulate = Integer.parseInt(timeToFormula.getValue().toString());
+			} catch (NumberFormatException ex) {
+				if (!smcUppaal.isSelected()) {
+					throw new AnimoException("Unable to understand the number of minutes requested for the simulation.");
+				}
+			}
+
+			final boolean generateTables;
+			XmlConfiguration configuration = AnimoBackend.get().configuration();
+			String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
+			if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
+				generateTables = true;
+			} else {
+				generateTables = false;
+			}
+
+			final int nMinutesToSimulate2 = nMinutesToSimulate;
+			Model model = null;
+			try {
+				if (smcUppaal.isSelected()) {
+					model = Model.generateModelFromCurrentNetwork(null, null, generateTables);
+				} else {
+					model = Model.generateModelFromCurrentNetwork(null, nMinutesToSimulate2, generateTables);
+				}
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
+				this.complete = true;
+				return;
+			}
+			this.model = model;
 
 			model.getProperties().let(Model.Properties.MODEL_CHECKING_TYPE)
 					.be(Model.Properties.STATISTICAL_MODEL_CHECKING);
@@ -290,7 +313,10 @@ public class RunAction extends AnimoActionTask {
 				performNormalAnalysis(monitor);
 			}
 
+			this.complete = true;
 		}
+
+
 
 	}
 
@@ -337,13 +363,7 @@ public class RunAction extends AnimoActionTask {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		RunTask task = null;
-		try {
-			task = new RunTask();
-		} catch (AnimoException e1) {
-			e1.printStackTrace();
-			return;
-		}
+		RunTask task = new RunTask();
 
 		// TODO: Nog geen oplossing voor gevonden voor cytoscape 3
 
@@ -372,14 +392,25 @@ public class RunAction extends AnimoActionTask {
 			}
 			logFile.deleteOnExit();
 			logStream = new PrintStream(new FileOutputStream(logFile));
-			System.setErr(logStream);
+//			System.setErr(logStream);
 		} catch (IOException ex) {
 			// We have no log file, bad luck: we will have to use System.err.
 		}
 
 		// Execute Task in New Thread; pops open JTask Dialog Box.
-
 		Animo.getCytoscapeApp().getTaskManager().execute(new TaskIterator(task));
+		
+		//Execute task and WAIT FOR IT (!!) otherwise we just close the log file before the task has started..
+		//Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class).execute(new TaskIterator(task)); <-- This does not create a task monitor, but we do want a task monitor, so we must end up waiting until the task finishes...)
+		while (true) {
+			try {
+				Thread.sleep(50);
+			} catch (Exception ex) {
+			}
+			if (task.isComplete()) {
+				break;
+			}
+		}
 
 		long endTime = System.currentTimeMillis();
 

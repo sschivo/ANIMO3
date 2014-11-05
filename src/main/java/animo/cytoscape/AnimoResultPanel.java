@@ -57,14 +57,12 @@ import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.application.swing.CytoPanelState;
 import org.cytoscape.event.CyEventHelper;
-import org.cytoscape.model.CyColumn;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNetworkManager;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
-import org.cytoscape.model.CyTable;
-import org.cytoscape.model.SavePolicy;
+import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.model.subnetwork.CySubNetwork;
 import org.cytoscape.view.model.CyNetworkView;
@@ -173,7 +171,6 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	private HashMap<CyEdge, Map<String, Object>> savedEdgeAttributes;
 	private static final String PROP_POSITION_X = "Position.X";
 	private static final String PROP_POSITION_Y = "Position.Y";
-	private static final String PROP_PREVIOUS_ID = "Previous ID";
 	private static final String DEFAULT_TITLE = "ANIMO Results";
 	/**
 	 * The three strings here are for one button. Everybody normally shows START_DIFFERENCE. When the user presses on the button (differenceWith takes the value of this for the
@@ -609,14 +606,21 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					}
 					CyNetworkViewFactory netViewFactory = Animo.getCyServiceRegistrar().getService(CyNetworkViewFactory.class);
 					CyNetwork recoveredNetwork = rootNetworkManager.getRootNetwork(savedNetwork).addSubNetwork(savedNodesList, savedEdgesList);
-					recoveredNetwork.getRow(recoveredNetwork).set(CyNetwork.NAME, "Based on " + getTitle());
+					//Recover the network attributes
+					try {
+						Map<String, Object> savedRow = savedNetwork.getTable(CyNetwork.class, CyNetwork.LOCAL_ATTRS).getRow(savedNetwork.getSUID()).getAllValues();
+						CyRow recoveredRow = recoveredNetwork.getTable(CyNetwork.class, CyNetwork.LOCAL_ATTRS).getRow(recoveredNetwork.getSUID());
+						for (String k : savedRow.keySet()) {
+							Object value = savedRow.get(k);
+							Animo.setRowValue(recoveredRow, k, value.getClass(), value);
+						}
+					} catch (Exception ex) {
+						ex.printStackTrace(System.err);
+					}
+					recoveredNetwork.getRow(recoveredNetwork).set(CyNetwork.NAME, "Based on " + getTitle()); //The name is based on the current result panel title, so we set this property after copying all, otherwise it is overwritten
 					Animo.getCyServiceRegistrar().getService(CyNetworkManager.class).addNetwork(recoveredNetwork);
 					CyNetworkView recoveredNetView = netViewFactory.createNetworkView(recoveredNetwork);
 					netViewManager.addNetworkView(recoveredNetView);
-					for (View<CyNode> node : recoveredNetView.getNodeViews()) {
-						node.setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_X));
-						node.setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_Y));
-					}				
 					networkViewDesktopManager.setBounds(recoveredNetView, windowBounds);
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_SCALE_FACTOR, scaleFactor);
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_X_LOCATION, netCenterX);
@@ -624,219 +628,26 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Z_LOCATION, netCenterZ);
 					eventHelper.flushPayloadEvents();
 					for (CyNode node : savedNodeAttributes.keySet()) {
-						System.err.println("** Nodo " + node);
 						for (String k : savedNodeAttributes.get(node).keySet()) {
-							Object val = savedNodeAttributes.get(k); //Perche' magicamente qui sono tutti null???????????????????????????????????????????????????????????????????????????
-							System.err.println("Recupero " + k + " --> " + val);
+							Object val = savedNodeAttributes.get(node).get(k);
 							if (val != null) {
 								Animo.setRowValue(recoveredNetwork.getRow(node), k, val.getClass(), val);
-								//recoveredNetwork.getRow(node).set(k, savedNodeAttributes.get(k));
 							}
 						}
 					}
+					for (View<CyNode> node : recoveredNetView.getNodeViews()) {
+						node.setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_X));
+						node.setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_Y));
+					}				
 					for (CyEdge edge : savedEdgeAttributes.keySet()) {
-						System.err.println("** Edgio " + edge);
 						for (String k : savedEdgeAttributes.get(edge).keySet()) {
-							Object val = savedEdgeAttributes.get(k);
-							System.err.println("Recupero " + k + " --> " + val);
+							Object val = savedEdgeAttributes.get(edge).get(k);
 							if (val != null) {
 								Animo.setRowValue(recoveredNetwork.getRow(edge), k, val.getClass(), val);
-								//recoveredNetwork.getRow(edge).set(k, savedEdgeAttributes.get(k));
 							}
 						}
 					}
 					EventListener.setListenerStatus(true);
-					
-					int b = 34;
-					if (b > 0) return;
-					
-					Map<CyNode, CyNode> oldNodeToNew = new HashMap<>();
-					Map<CyEdge, CyEdge> oldEdgeToNew = new HashMap<>();
-					CyNetworkView netView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-					for (CyNode node : savedNodesList) {
-						CyNode newNode = net.addNode();
-						oldNodeToNew.put(node, newNode);
-						Map<String, Object> attributes = savedNodeAttributes.get(node);
-						for (String k : attributes.keySet()) {
-							try {
-								net.getRow(newNode).set(k, attributes.get(k));
-							} catch (Exception ex) {
-								//ex.printStackTrace(System.err);
-								System.err.println(ex.getMessage());
-							}
-						}
-					}
-					for (CyEdge edge : savedEdgesList) {
-						CyEdge newEdge = net.addEdge(oldNodeToNew.get(edge.getSource()), oldNodeToNew.get(edge.getTarget()), true);
-						oldEdgeToNew.put(edge, newEdge);
-						Map<String, Object> attributes = savedEdgeAttributes.get(edge);
-						for (String k : attributes.keySet()) {
-							try {
-								net.getRow(newEdge).set(k, attributes.get(k));
-							} catch (Exception ex) {
-								//ex.printStackTrace(System.err);
-								System.err.println(ex.getMessage());
-							}
-						} 
-					}
-					eventHelper.flushPayloadEvents();
-
-					for (CyNode node : savedNodesList) {
-						CyNode newNode = oldNodeToNew.get(node);
-						//Set X, Y for node view reading them from the saved attributes
-						netView.getNodeView(newNode).setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, (Double)savedNodeAttributes.get(node).get(PROP_POSITION_X));
-						netView.getNodeView(newNode).setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, (Double)savedNodeAttributes.get(node).get(PROP_POSITION_Y));
-					}
-					
-					int a = 1;
-					if (a < 1) {
-						
-						//Remove only the nodes and edges that are not in the saved network anymore. Keep the others. We will add those that are not there anymore
-						List<CyNode> nodes = net.getNodeList();
-						List<CyEdge> edges = net.getEdgeList();
-						CyTable hiddenNodeTable = savedNetwork.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS),
-								hiddenEdgeTable = savedNetwork.getTable(CyEdge.class, CyNetwork.HIDDEN_ATTRS);
-						ArrayList<CyNode> nodesToBeRemoved = new ArrayList<CyNode>();
-						ArrayList<CyEdge> edgesToBeRemoved = new ArrayList<CyEdge>();
-						for (CyNode existingNode : nodes) {
-							Collection<CyRow> foundNodes = hiddenNodeTable.getMatchingRows(PROP_PREVIOUS_ID, existingNode.getSUID());
-							if (foundNodes.isEmpty()) {
-								nodesToBeRemoved.add(existingNode);
-							}
-						}
-						net.removeNodes(nodesToBeRemoved);
-						for (CyEdge existingEdge : edges) {
-							Collection<CyRow> foundEdges = hiddenEdgeTable.getMatchingRows(PROP_PREVIOUS_ID, existingEdge.getSUID());
-							if (foundEdges.isEmpty()) {
-								edgesToBeRemoved.add(existingEdge);
-							}
-						}
-						net.removeEdges(edgesToBeRemoved);
-						
-	//					net.removeEdges(edges);
-	//					net.removeNodes(nodes);
-						HashMap<CyNode, CyNode> nodeToNodeMap = new HashMap<>(); //(old) node in the savedNetwork --> new node in current network
-						HashMap<CyEdge, CyEdge> edgeToEdgeMap = new HashMap<>(); //(old) edge in the savedNetwork --> new edge in current network
-						System.err.print("Ecco i nodi attualmente presenti prima di iniziare a ripristinare: "); //Ma ovviamente la lista e' ancora vuota! Ho appena rimosso tutti i nodi!
-						//Dovrei rimuovere i nodi che non sono tra quelli salvati, piuttosto, e gli altri li tengo (quindi anche quelli che non ci sono piu' ora ma c'erano prima)
-						for (CyNode node : net.getNodeList()) {
-							System.err.print(node.toString() + ", ");
-						}
-						System.err.println();
-						for (CyNode node : savedNetwork.getNodeList()) {
-							CyNode oldNode = net.getNode(hiddenNodeTable.getRow(node.getSUID()).get(PROP_PREVIOUS_ID, Long.class));
-							if (oldNode != null) {
-								System.err.println("Vecchio nodo salvato come " + node + " trovato, prima era " + oldNode);
-								nodeToNodeMap.put(node, oldNode);
-							} else {
-								CyNode newNode = net.addNode();
-								System.err.println("Vecchio nodo salvato come " + node + " (altrimenti noto con l'id " + hiddenNodeTable.getRow(node.getSUID()).get(PROP_PREVIOUS_ID, Long.class) + ") NON trovato: ho creato il nuovo nodo " + newNode);
-								nodeToNodeMap.put(node, newNode);
-							}
-						}
-						for (CyEdge edge : savedNetwork.getEdgeList()) {
-							CyNode source = edge.getSource();
-							CyNode target = edge.getTarget();
-							CyNode newSource;
-							CyNode newTarget;
-	//						if (nodeToNodeMap.containsKey(source)) {
-	//							newSource = nodeToNodeMap.get(source);
-	//						} else {
-	//							newSource = net.addNode();
-	//							nodeToNodeMap.put(source, newSource);
-	//						}
-	//						if (nodeToNodeMap.containsKey(target)) {
-	//							newTarget = nodeToNodeMap.get(target);
-	//						} else {
-	//							newTarget = net.addNode();
-	//							nodeToNodeMap.put(target, newTarget);
-	//						}
-							newSource = nodeToNodeMap.get(source);
-							newTarget = nodeToNodeMap.get(target);
-							CyEdge newEdge;
-							if (net.getConnectingEdgeList(newSource, newTarget, CyEdge.Type.DIRECTED).isEmpty()) { //In ANIMO we never have more than one edge going in the same direction between the same couple of nodes
-								newEdge = net.addEdge(newSource, newTarget, true);
-							} else {
-								List<CyEdge> listaEdgiCheConnettono = net.getConnectingEdgeList(newSource, newTarget, CyEdge.Type.DIRECTED);
-								newEdge = net.getEdge(hiddenEdgeTable.getRow(edge.getSUID()).get(PROP_PREVIOUS_ID, Long.class));
-								System.err.println("L'edge esisteva gia', con l'ID " + hiddenEdgeTable.getRow(edge.getSUID()).get(PROP_PREVIOUS_ID, Long.class) + ". L'ho recuperato: " + newEdge + " (il primo in lista era " + listaEdgiCheConnettono.get(0) + ", ID " + (listaEdgiCheConnettono.get(0)!=null?listaEdgiCheConnettono.get(0).getSUID():"null") + ")");
-								if (newEdge == null && listaEdgiCheConnettono.get(0) != null) { //Ma perche' se mi dici che l'edge diretto esiste poi mi dici null????
-									newEdge = listaEdgiCheConnettono.get(0);
-								}
-							}
-							edgeToEdgeMap.put(edge, newEdge);
-						}
-	//					for (CyNode node : net.getNodeList()) {
-	//						if (!nodeToNodeMap.values().contains(node)) {
-	//							net.addNode();
-	//						}
-	//					}
-						
-						//Declare all added nodes and edges as "automatically added", to avoid that the dialogs open for every one
-	//					hiddenNodeTable = net.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS);
-	//					hiddenEdgeTable = net.getTable(CyEdge.class, CyNetwork.HIDDEN_ATTRS);
-	//					if (hiddenNodeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
-	//						hiddenNodeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
-	//					}
-	//					if (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
-	//						hiddenEdgeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
-	//					}
-	//					for (CyNode node : net.getNodeList()) {
-	//						hiddenNodeTable.getRow(node.getSUID()).set(Model.Properties.AUTOMATICALLY_ADDED, true);
-	//					}
-	//					for (CyEdge edge : net.getEdgeList()) {
-	//						System.err.println("Rete " + net + ", edge " + edge + ": setto auto added = true");
-	//						hiddenEdgeTable.getRow(edge.getSUID()).set(Model.Properties.AUTOMATICALLY_ADDED, true);
-	//					}
-						//eventHelper.unsilenceEventSource(net);
-						//Now fire the events so that we can get also the node/edge views later on
-						eventHelper.flushPayloadEvents(); //<-- This should not be abused: we call it only once after creating all nodes and edges, not after each one
-						EventListener.setListenerStatus(true);
-						
-						CyNetworkView currentView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-						for (CyNode node : savedNetwork.getNodeList()) {
-							CyRow nodeRow = hiddenNodeTable.getRow(node.getSUID());
-							Double xLocation = nodeRow.get(PROP_POSITION_X, Double.class),
-								   yLocation = nodeRow.get(PROP_POSITION_Y, Double.class);
-						
-							//Qui sotto c'e' nullpointerexception se cancelli un nodo dopo aver fatto una simulazione, e fai reset to here alla rete col nodo non-cancellato. Forse la nodeview di quel nodo qui non la trovo piu'?
-							System.err.println("Cerco di ottenere il nodo che avevo salvato come " + node + " e ora sarebbe " + nodeToNodeMap.get(node) + " e di NodeView fa " + currentView.getNodeView(nodeToNodeMap.get(node)));
-							currentView.getNodeView(nodeToNodeMap.get(node)).setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, xLocation);
-							currentView.getNodeView(nodeToNodeMap.get(node)).setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, yLocation);
-						}
-						currentView.updateView();
-						CyTable localNodeTable = savedNetwork.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS),
-								localEdgeTable = savedNetwork.getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS);
-						for (CyNode node : savedNetwork.getNodeList()) {
-							CyRow nodeRow = localNodeTable.getRow(node.getSUID());
-							for (CyColumn column : localNodeTable.getColumns()) {
-								Animo.setRowValue(net.getRow(nodeToNodeMap.get(node)), column.getName(), column.getType(), nodeRow.get(column.getName(), column.getType()));
-							}
-						}
-						for (CyEdge edge : savedNetwork.getEdgeList()) {
-							CyRow savedEdgeRow = localEdgeTable.getRow(edge.getSUID()),
-								  edgeRow = net.getRow(edgeToEdgeMap.get(edge));
-							for (CyColumn column : localEdgeTable.getColumns()) {
-								Animo.setRowValue(edgeRow, column.getName(), column.getType(), savedEdgeRow.get(column.getName(), column.getType()));
-							}
-						}
-						
-	//					//If one of the two extremities of an edge is disabled, also the edge gets disabled (copied from EnableDisableNodeMenu)
-	//					for (CyEdge edge : net.getEdgeList()) {
-	//						 CyNode source = (CyNode)edge.getSource(),
-	//								target = (CyNode)edge.getTarget();
-	//						 CyRow rowSource = net.getRow(source),
-	//							   rowTarget = net.getRow(target);
-	//						 if ((rowSource.isSet(Model.Properties.ENABLED) && !rowSource.get(Model.Properties.ENABLED, Boolean.class))
-	//							|| (rowTarget.isSet(Model.Properties.ENABLED) && !rowTarget.get(Model.Properties.ENABLED, Boolean.class))) {
-	//							 
-	//							 CyRow edgeRow = net.getRow(edge);
-	//							 edgeRow.set(Model.Properties.ENABLED, false);
-	//						 }
-	//					}
-					}
-					
-					
 					NodeDialog.tryNetworkViewUpdate();
 				}
 			});
@@ -971,157 +782,40 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	}
 
 	protected void copyNetwork(CyNetwork originalNetwork) {
-		
-//		System.err.println("Clono la rete attuale...");
-//		CyTable nodesTable = originalNetwork.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS);
-//		Collection<CyRow> selectedNodes = nodesTable.getMatchingRows(CyNetwork.SELECTED, true);
-//		for (CyNode node : originalNetwork.getNodeList()) {
-//			nodesTable.getRow(node.getSUID()).set(CyNetwork.SELECTED, true);
-//		}
-//		TaskIterator ti = Animo.getCyServiceRegistrar().getService(NewNetworkSelectedNodesOnlyTaskFactory.class).createTaskIterator(originalNetwork);
-//		SynchronousTaskManager tm = Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class);
-//		tm.setExecutionContext(new HashMap<String, Object>());
-//		tm.execute(ti);
-//		for (CyNode node : originalNetwork.getNodeList()) {
-//			if (!selectedNodes.contains(node)) {
-//				nodesTable.getRow(node.getSUID()).set(CyNetwork.SELECTED, false);
-//			}
-//		}
-//		System.err.println("Boh, credo di aver clonato la rete attuale?");
-		
 		savedNodesList = originalNetwork.getNodeList();
 		savedEdgesList = originalNetwork.getEdgeList();
 		savedNodeAttributes = new HashMap<CyNode, Map<String, Object>>();
 		savedEdgeAttributes = new HashMap<CyEdge, Map<String, Object>>();
 		CyNetworkView netView = Animo.getCytoscapeApp().getCyNetworkViewManager().getNetworkViews(originalNetwork).iterator().next();
 		for (CyNode node : savedNodesList) {
-			System.err.println("** Nodo " + node);
 			CyRow nodeRow = originalNetwork.getRow(node);
 			Map<String, Object> attributes = new HashMap<String, Object>();
-			attributes.put(PROP_POSITION_X, netView.getNodeView(node).getVisualProperty(BasicVisualLexicon.NODE_X_LOCATION));
-			attributes.put(PROP_POSITION_Y, netView.getNodeView(node).getVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION));
 			for (String k : nodeRow.getAllValues().keySet()) {
 				Object val = nodeRow.getRaw(k);
-				System.err.println("Salvo " + k + " --> " + val + " (tipo " + (val!=null?val.getClass():"null") + ")");
 				attributes.put(k, val);
 			}
+			attributes.put(PROP_POSITION_X, netView.getNodeView(node).getVisualProperty(BasicVisualLexicon.NODE_X_LOCATION));
+			attributes.put(PROP_POSITION_Y, netView.getNodeView(node).getVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION));
 			savedNodeAttributes.put(node, attributes);
 		}
 		for (CyEdge edge : savedEdgesList) {
-			System.err.println("** Edgio " + edge);
 			CyRow edgeRow = originalNetwork.getRow(edge);
 			Map<String, Object> attributes = new HashMap<String, Object>();
 			for (String k : edgeRow.getAllValues().keySet()) {
 				Object val = edgeRow.getRaw(k);
-				System.err.println("Salvo " + k + " --> " + val + " (tipo " + (val!=null?val.getClass():"null") + ")");
 				attributes.put(k, val);
 			}
 			savedEdgeAttributes.put(edge, attributes);
 		}
-//		savedNetwork = Animo.getCytoscapeApp().getCyNetworkFactory().createNetwork(SavePolicy.DO_NOT_SAVE); //Tanto perche' altrove controllo se questa non e' null per fare o meno il ripristino
-//		savedNetwork.addNode(); //..e guardo anche se c'e' almeno un nodo (che stress)
 		savedNetwork = Animo.getCyServiceRegistrar().getService(CyRootNetworkManager.class).getRootNetwork(originalNetwork).addSubNetwork(savedNodesList, savedEdgesList);
 		savedNetwork.getRow(savedNetwork).set(CyNetwork.NAME, this.getTitle() + " - Network");
 		Animo.getCyServiceRegistrar().getService(CyNetworkManager.class).addNetwork(savedNetwork);
-		
-		int a = 0;
-		if (a < 1) return;
-		
-		
-		savedNetwork = Animo.getCytoscapeApp().getCyNetworkFactory().createNetwork(SavePolicy.DO_NOT_SAVE);
-		List<CyNode> origNodes = originalNetwork.getNodeList();
-		List<CyEdge> origEdges = originalNetwork.getEdgeList();
-		savedNodeAttributes = new HashMap<CyNode, Map<String, Object>>();
-		savedEdgeAttributes = new HashMap<CyEdge, Map<String, Object>>();
-		
-		Map<CyNode, CyNode> nodeToNodeMap = new HashMap<CyNode, CyNode>(); // existing node --> saved node
-		Map<CyEdge, CyEdge> edgeToEdgeMap = new HashMap<CyEdge, CyEdge>(); // saved edge --> existing edge
-		
-		for (CyNode n : origNodes) {
-			CyNode newNode = savedNetwork.addNode();
-			System.err.println("Salvando, aggiungo il nodo " + newNode + ", che rappresenta il vecchio nodo " + n);
-			nodeToNodeMap.put(n, newNode);
-			CyRow newNodeRow = savedNetwork.getRow(newNode);
-			for (Map.Entry<String, Object> field : originalNetwork.getRow(n).getAllValues().entrySet()) {
-				Animo.setRowValue(newNodeRow, field.getKey(), field.getValue().getClass(),
-						field.getValue());
-			}
+		Map<String, Object> originalRow = originalNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS).getRow(originalNetwork.getSUID()).getAllValues(); //Copy also the current network properties
+		CyRow savedRow = savedNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS).getRow(savedNetwork.getSUID());
+		for (String k : originalRow.keySet()) {
+			Object value = originalRow.get(k);
+			Animo.setRowValue(savedRow, k, value.getClass(), value);
 		}
-		for (CyEdge e : origEdges) {
-			CyEdge newEdge = savedNetwork.addEdge(nodeToNodeMap.get(e.getSource()), nodeToNodeMap.get(e.getTarget()), true);
-			edgeToEdgeMap.put(newEdge, e);
-			CyRow newEdgeRow = savedNetwork.getRow(newEdge);
-			for (Map.Entry<String, Object> field : originalNetwork.getRow(e).getAllValues().entrySet()) {
-				if (field.getKey() != null && field.getValue() != null) {
-					Animo.setRowValue(newEdgeRow, field.getKey(), field.getValue().getClass(),
-							field.getValue());
-				}
-			}
-		}
-		//Now fire the events so that we can get also the node/edge views later on
-		CyEventHelper eventHelper = Animo.getCyServiceRegistrar().getService(CyEventHelper.class);
-		eventHelper.flushPayloadEvents(); //<-- This should not be abused: we call it only once after creating all nodes and edges, not after each one
-		
-		CyNetworkView originalView = Animo.getCytoscapeApp().getCyNetworkViewManager().getNetworkViews(originalNetwork).iterator().next();
-		
-		CyTable hiddenNodeTable = savedNetwork.getTable(CyNode.class, CyNetwork.HIDDEN_ATTRS);
-		if (hiddenNodeTable.getColumn(PROP_PREVIOUS_ID) == null) {
-			hiddenNodeTable.createColumn(PROP_PREVIOUS_ID, Long.class, false);
-		}
-		if (hiddenNodeTable.getColumn(PROP_POSITION_X) == null) {
-			hiddenNodeTable.createColumn(PROP_POSITION_X, Double.class, false);
-		}
-		if (hiddenNodeTable.getColumn(PROP_POSITION_Y) == null) {
-			hiddenNodeTable.createColumn(PROP_POSITION_Y, Double.class, false);
-		}
-//		if (hiddenNodeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
-//			hiddenNodeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
-//		}
-		for (View<CyNode> n : originalView.getNodeViews()) { // sets offset for all nodes
-			CyRow hiddenRow = hiddenNodeTable.getRow(nodeToNodeMap.get(n.getModel()).getSUID());
-			if (n.isSet(BasicVisualLexicon.NODE_X_LOCATION)) {
-				System.err.println("Nodo " + n + ", x = " + n.getVisualProperty(BasicVisualLexicon.NODE_X_LOCATION));
-				hiddenRow.set(PROP_POSITION_X, n.getVisualProperty(BasicVisualLexicon.NODE_X_LOCATION));
-			}
-			if (n.isSet(BasicVisualLexicon.NODE_X_LOCATION)) {
-				System.err.println("Nodo " + n + ", y = " + n.getVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION));
-				hiddenRow.set(PROP_POSITION_Y, n.getVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION));
-			}
-			hiddenRow.set(PROP_PREVIOUS_ID, n.getModel().getSUID());
-//			hiddenRow.set(Model.Properties.AUTOMATICALLY_ADDED, true);
-		}
-		CyTable hiddenEdgeTable = savedNetwork.getTable(CyEdge.class, CyNetwork.HIDDEN_ATTRS);
-//		if (hiddenEdgeTable.getColumn(Model.Properties.AUTOMATICALLY_ADDED) == null) {
-//			hiddenEdgeTable.createColumn(Model.Properties.AUTOMATICALLY_ADDED, Boolean.class, false);
-//		}
-		if (hiddenEdgeTable.getColumn(PROP_PREVIOUS_ID) == null) {
-			hiddenEdgeTable.createColumn(PROP_PREVIOUS_ID, Long.class, false);
-		}
-		for (CyEdge e : savedNetwork.getEdgeList()) {
-			CyRow hiddenRow = hiddenEdgeTable.getRow(e.getSUID());
-//			hiddenRow.set(Model.Properties.AUTOMATICALLY_ADDED, true);
-			hiddenRow.set(PROP_PREVIOUS_ID, edgeToEdgeMap.get(e).getSUID());
-		}
-		
-		CyTable localNodeTable = originalNetwork.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS),
-				localEdgeTable = originalNetwork.getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS);
-		for (CyNode node : originalNetwork.getNodeList()) {
-			CyRow originalNodeRow = originalNetwork.getRow(node),
-				  savedNodeRow = savedNetwork.getRow(nodeToNodeMap.get(node));
-			for (CyColumn column : localNodeTable.getColumns()) {
-				Animo.setRowValue(savedNodeRow, column.getName(), column.getType(), originalNodeRow.get(column.getName(), column.getType()));
-			}
-		}
-		for (CyEdge edge : originalNetwork.getEdgeList()) {
-			CyNode savedSource = nodeToNodeMap.get(edge.getSource()),
-				   savedTarget = nodeToNodeMap.get(edge.getTarget());
-			CyRow originalEdgeRow = originalNetwork.getRow(edge),
-				  savedEdgeRow = savedNetwork.getRow(savedNetwork.getConnectingEdgeList(savedSource, savedTarget, CyEdge.Type.DIRECTED).get(0));
-			for (CyColumn column : localEdgeTable.getColumns()) {
-				Animo.setRowValue(savedEdgeRow, column.getName(), column.getType(), originalEdgeRow.get(column.getName(), column.getType()));
-			}
-		}
-
 	}
 
 	private void differenceButtonPressed(String caption) {

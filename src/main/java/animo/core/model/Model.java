@@ -15,7 +15,8 @@ import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
-import org.cytoscape.model.subnetwork.CyRootNetworkManager;
+import org.cytoscape.model.CyTable;
+import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.work.TaskMonitor;
 
 import animo.core.AnimoBackend;
@@ -222,9 +223,10 @@ public class Model implements Serializable {
 		 * get the property tables
 		 */
 		CyApplicationManager appmanager = Animo.getCytoscapeApp().getCyApplicationManager();
-		CyNetwork network = appmanager.getCurrentNetwork();
-		CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
-		network = rootNetworkManager.getRootNetwork(network).getBaseNetwork();
+		CyNetwork currentNetwork = appmanager.getCurrentNetwork();
+		//CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
+		//CyNetwork rootNetwork = rootNetworkManager.getRootNetwork(currentNetwork); //.getBaseNetwork();
+		//network = currentNetwork; //Non dovrebbe aver senso controllare i parametri per la root network. E comunque, la default table e' quella condivisa, quindi quando modifico le proprieta' di nodi/edgi, si dovrebbe "vedere" la modifica anche dalla rete root
 		
 		// ============================== FIRST PART: CHECK THAT ALL PROPERTIES ARE SET =====================================
 		// TODO: we could collect the list of all things that were set automatically and show them before continuing with the
@@ -232,16 +234,19 @@ public class Model implements Serializable {
 		// Another alternative is to collect the list of what we want to change, and actually make the changes only after the
 		// user has approved them. Otherwise, interrupt the analysis by throwing exception.
 
-		/*
-         * 
-         */
+		//We specifically use the local table for the current network, because we want to keep those attributes separate from the other (sub)networks
+		CyTable currentNetworkLocalTable = currentNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS);
+		
 		Integer nLvl = 15;
-		if (network.getRow(network).getTable().getColumn(Model.Properties.NUMBER_OF_LEVELS) == null
-			|| !network.getRow(network).isSet(Model.Properties.NUMBER_OF_LEVELS)
-			|| network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class) == null) {
-			Animo.setRowValue(network.getRow(network), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
+		if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null
+			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.NUMBER_OF_LEVELS)
+			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class) == null) {
+			if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null) {
+				currentNetworkLocalTable.createColumn(Model.Properties.NUMBER_OF_LEVELS, Integer.class, false);
+			}
+			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
 		} else { 
-			nLvl = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+			nLvl = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 		}
 //		if (nLvl == null) {
 //			// throw new InatException("Network attribute '" + NUMBER_OF_LEVELS + "' is missing.");
@@ -265,12 +270,15 @@ public class Model implements Serializable {
 //
 //		}
 		Double nSecPerPoint = 1.0;
-		if (network.getRow(network).getTable().getColumn(Model.Properties.SECONDS_PER_POINT) == null
-			|| !network.getRow(network).isSet(Model.Properties.SECONDS_PER_POINT)
-			|| network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class) == null) {
-			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, nSecPerPoint);
+		if (currentNetworkLocalTable.getColumn(Model.Properties.SECONDS_PER_POINT) == null
+			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECONDS_PER_POINT)
+			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class) == null) {
+			if (currentNetworkLocalTable.getColumn(Model.Properties.SECONDS_PER_POINT) == null) {
+				currentNetworkLocalTable.createColumn(Model.Properties.SECONDS_PER_POINT, Double.class, false);
+			}
+			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.SECONDS_PER_POINT, nSecPerPoint);
 		} else {
-			nSecPerPoint = network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class);
+			nSecPerPoint = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 		}
 //		if (nSecPerPoint == null) {
 //			// throw new InatException("Network attribute '" + SECONDS_PER_POINT + "' is missing.");
@@ -295,13 +303,15 @@ public class Model implements Serializable {
 //		}
 
 		Double secStepFactor = 1.0;
-		if (network.getRow(network).getTable().getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
-			|| !network.getRow(network).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
-			|| network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
-			Animo.setRowValue(network.getRow(network), Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class,
-					secStepFactor);
+		if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
+			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
+			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
+			if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null) {
+				currentNetworkLocalTable.createColumn(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, false);
+			}
+			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
 		} else {
-			secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+			secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 		}
 //		Double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 //		if (secStepFactor == null) {
@@ -313,25 +323,25 @@ public class Model implements Serializable {
 
 		boolean noReactantsPlotted = true;
 		// Iterator<CyNode> nodes = (Iterator<CyNode>) network.getNodeList().iterator();
-		for (CyNode node : network.getNodeList()) {
+		for (CyNode node : currentNetwork.getNodeList()) {
 
 			// }
 			// for (CyNode node = nodes.next(); nodes.hasNext(); node = nodes.next())
 			// {
-			Boolean enabled = network.getRow(node).get(Model.Properties.ENABLED, Boolean.class);
+			Boolean enabled = currentNetwork.getRow(node).get(Model.Properties.ENABLED, Boolean.class);
 			if (enabled == null) {
 				enabled = true;
 				// network.getRow(node).set(Model.Properties.ENABLED, enabled);
-				Animo.setRowValue(network.getRow(node), Model.Properties.ENABLED, Boolean.class, enabled);
+				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.ENABLED, Boolean.class, enabled);
 			}
 
 			if (!enabled)
 				continue;
 
-			Boolean plotted = network.getRow(node).get(Model.Properties.PLOTTED, Boolean.class);
+			Boolean plotted = currentNetwork.getRow(node).get(Model.Properties.PLOTTED, Boolean.class);
 			if (plotted == null) {
 				// network.getRow(node).set(Model.Properties.PLOTTED, true);
-				Animo.setRowValue(network.getRow(node), Model.Properties.PLOTTED, Boolean.class, true);
+				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.PLOTTED, Boolean.class, true);
 				plotted = true;
 				if (enabled) {
 					noReactantsPlotted = false;
@@ -340,17 +350,17 @@ public class Model implements Serializable {
 				noReactantsPlotted = false;
 			}
 
-			Integer nodeLvl = network.getRow(node).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+			Integer nodeLvl = currentNetwork.getRow(node).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			if (nodeLvl == null) {
 				// network.getRow(node).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
-				Animo.setRowValue(network.getRow(node), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
+				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
 			}
 
-			Integer initialLevel = network.getRow(node).get(Model.Properties.INITIAL_LEVEL, Integer.class);
+			Integer initialLevel = currentNetwork.getRow(node).get(Model.Properties.INITIAL_LEVEL, Integer.class);
 			if (initialLevel == null) {
 				// throw new InatException("CyNode attribute 'initialConcentration' is missing on '" + node.getIdentifier() + "'");
 				// network.getRow(node).set(Model.Properties.INITIAL_LEVEL, 0);
-				Animo.setRowValue(network.getRow(node), Model.Properties.INITIAL_LEVEL, Integer.class, 0);
+				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.INITIAL_LEVEL, Integer.class, 0);
 			}
 
 			// if (!nodeAttributes.hasAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR)) {
@@ -371,19 +381,19 @@ public class Model implements Serializable {
 			}
 		}
 
-		Iterator<CyEdge> edges = network.getEdgeList().iterator();
-		for (CyEdge edge : network.getEdgeList()) {
-			Boolean enabled = network.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
+		Iterator<CyEdge> edges = currentNetwork.getEdgeList().iterator();
+		for (CyEdge edge : currentNetwork.getEdgeList()) {
+			Boolean enabled = currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
 			if (enabled == null) {
 				// network.getRow(edge).set(Model.Properties.ENABLED, true);
-				Animo.setRowValue(network.getRow(edge), Model.Properties.ENABLED, Boolean.class, true);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.ENABLED, Boolean.class, true);
 				enabled = true;
 			}
 
 			if (!enabled)
 				continue;
 
-			Integer increment = network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class);
+			Integer increment = currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class);
 			if (increment == null) {
 				if (edge.getSource().equals(edge.getTarget())) {
 					increment = -1;
@@ -392,7 +402,7 @@ public class Model implements Serializable {
 				}
 			}
 
-			String res = network.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
+			String res = currentNetwork.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
 			String edgeName;
 			StringBuilder reactionName = new StringBuilder();
 			if (res == null) {
@@ -403,7 +413,7 @@ public class Model implements Serializable {
 				} else {
 					reactionName.append(" --| ");
 				}
-				res = network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
+				res = currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
 				if (res == null) {
 					edgeName = "" + edge.getSource() + " --> " + edge.getTarget();
 				} else {
@@ -415,11 +425,11 @@ public class Model implements Serializable {
 			}
 
 			// Check that the edge has a selected scenario
-			Integer scenarioIdx = network.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
+			Integer scenarioIdx = currentNetwork.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
 			if (scenarioIdx == null) {
 				scenarioIdx = 0;
 				// network.getRow(edge).set(Model.Properties.SCENARIO, scenarioIdx);
-				Animo.setRowValue(network.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
 			}
 			// Check that the edge has the definition of all parameters requested by the selected scenario
 			// otherwise set the parameters to their default values
@@ -430,49 +440,49 @@ public class Model implements Serializable {
 				// scenario = Scenario.sixScenarios[0];
 				scenarioIdx = 0;
 				// network.getRow(edge).set(Model.Properties.SCENARIO, scenarioIdx);
-				Animo.setRowValue(network.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
 				throw new AnimoException("The reaction " + edgeName + " has an invalid scenario setting ("
 						+ scenarioIdx + "). Now I set it to the first available: please set the correct parameters.");
 			}
 			String[] paramNames = scenario.listVariableParameters();
 			for (String param : paramNames) {
-				Double d = network.getRow(edge).get(param, Double.class);
+				Double d = currentNetwork.getRow(edge).get(param, Double.class);
 				if (d == null) {
 					// network.getRow(edge).set(param, scenario.getDefaultParameterValue(param));
-					Animo.setRowValue(network.getRow(edge), param, Double.class,
+					Animo.setRowValue(currentNetwork.getRow(edge), param, Double.class,
 							scenario.getDefaultParameterValue(param));
 				}
 			}
 
-			if (network.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class) == null) {
+			if (currentNetwork.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class) == null) {
 				// network.getRow(edge).set(Model.Properties.UNCERTAINTY, 0);
-				Animo.setRowValue(network.getRow(edge), Model.Properties.UNCERTAINTY, Integer.class, 0);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.UNCERTAINTY, Integer.class, 0);
 			}
 
-			if (network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) == null) {
+			if (currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) == null) {
 				// network.getRow(edge).set(Model.Properties.INCREMENT, 1);
-				Animo.setRowValue(network.getRow(edge), Model.Properties.INCREMENT, Integer.class, 1);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.INCREMENT, Integer.class, 1);
 			}
 
 			if (scenarioIdx == 2) {
-				if (network.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E1")) {
+				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E1")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_ID + "E1", edge.getSource().getSUID());
-					Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, edge
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, edge
 							.getSource().getSUID().toString());
 				}
-				if (network.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1")) {
+				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", true);
-					Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
 							Boolean.class, true);
 				}
-				if (network.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E2")) {
+				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E2")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_ID + "E2", edge.getTarget().getSUID());
-					Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, edge
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, edge
 							.getTarget().getSUID().toString());
 				}
-				if (network.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2")) {
+				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", true);
-					Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
 							Boolean.class, true);
 				}
 
@@ -480,23 +490,23 @@ public class Model implements Serializable {
 				CyNode e1 = edge.getSource();
 				CyNode e2 = edge.getTarget();
 
-				if (network.getRow(e1).isSet(Model.Properties.CANONICAL_NAME)) {
-					nameBuilder.append(network.getRow(e1).get(Model.Properties.CANONICAL_NAME, String.class));
+				if (currentNetwork.getRow(e1).isSet(Model.Properties.CANONICAL_NAME)) {
+					nameBuilder.append(currentNetwork.getRow(e1).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(network.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class));
+					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class));
 				}
 
 				nameBuilder.append(" AND ");
-				if (network.getRow(e2).isSet(Model.Properties.CANONICAL_NAME)) {
-					nameBuilder.append(network.getRow(e2).get(Model.Properties.CANONICAL_NAME, String.class));
+				if (currentNetwork.getRow(e2).isSet(Model.Properties.CANONICAL_NAME)) {
+					nameBuilder.append(currentNetwork.getRow(e2).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(network.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class));
+					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class));
 				}
 
 				nameBuilder.append(increment >= 0 ? " --> " : " --| ");
 
-				if (network.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)) {
-					nameBuilder.append(network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME,
+				if (currentNetwork.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)) {
+					nameBuilder.append(currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME,
 							String.class));
 				} else {
 					nameBuilder.append(edge.getTarget());
@@ -507,8 +517,8 @@ public class Model implements Serializable {
 			switch (scenarioIdx) {
 			case 0:
 			case 1:
-				CyRow source = network.getRow(edge.getSource());
-				CyRow target = network.getRow(edge.getTarget());
+				CyRow source = currentNetwork.getRow(edge.getSource());
+				CyRow target = currentNetwork.getRow(edge.getTarget());
 				if (!source.get(Model.Properties.ENABLED, Boolean.class)
 						&& target.get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that reactant \""
@@ -530,47 +540,47 @@ public class Model implements Serializable {
 				}
 				break;
 			case 2:
-				CyRow e1 = network.getRow(edge.getSource());
-				CyRow e2 = network.getRow(edge.getTarget());
+				CyRow e1 = currentNetwork.getRow(edge.getSource());
+				CyRow e2 = currentNetwork.getRow(edge.getTarget());
 				if (!e1.get(Model.Properties.ENABLED, Boolean.class) && e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& network.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+						&& currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that reactant \""
 							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\" is enabled, or reaction \""
 							+ edgeName + "\" cannot stay enabled.");
 				} else if (!e1.get(Model.Properties.ENABLED, Boolean.class)
 						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& network.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+						&& currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that both reactants \""
 							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
 							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" are enabled, or reaction \""
 							+ edgeName + "\" cannot stay enabled.");
 				} else if (e1.get(Model.Properties.ENABLED, Boolean.class)
 						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& network.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+						&& currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that reactant \""
 							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" is enabled, or reaction \""
 							+ edgeName + "\" cannot stay enabled.");
 				} else if (!e1.get(Model.Properties.ENABLED, Boolean.class)
 						&& e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& !network.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+						&& !currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that both reactants \""
 							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
+							+ currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
 				} else if (!e1.get(Model.Properties.ENABLED, Boolean.class)
 						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& !network.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+						&& !currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that reactants \""
 							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\", \""
 							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
+							+ currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
 				} else if (e1.get(Model.Properties.ENABLED, Boolean.class)
 						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& !network.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+						&& !currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
 					throw new AnimoException("Please check that both reactants \""
 							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
+							+ currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
 				} else {
 					// They are both enabled: all is good
@@ -580,19 +590,19 @@ public class Model implements Serializable {
 				break;
 			}
 
-			Integer tempScaleUpstream = network.getRow(edge).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+			Integer tempScaleUpstream = currentNetwork.getRow(edge).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			if (tempScaleUpstream != null) {
 				Double scaleUpstream = tempScaleUpstream.doubleValue();
 				scaleUpstream /= 15.0;
 				// Double scaleDownstream = network.getRow(edge.getTarget()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class).doubleValue() / 15;
 				// network.getRow(edge.getSource()).set(Model.Properties.LEVELS_SCALE_FACTOR, scaleUpstream);
-				Animo.setRowValue(network.getRow(edge.getSource()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
+				Animo.setRowValue(currentNetwork.getRow(edge.getSource()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
 						scaleUpstream);
 				// network.getRow(edge.getTarget()).set(Model.Properties.LEVELS_SCALE_FACTOR, scaleUpstream);
-				Animo.setRowValue(network.getRow(edge.getTarget()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
+				Animo.setRowValue(currentNetwork.getRow(edge.getTarget()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
 						scaleUpstream);
 				// network.getRow(edge).set(Model.Properties.LEVELS_SCALE_FACTOR, null);
-				Animo.setRowValue(network.getRow(edge), Model.Properties.LEVELS_SCALE_FACTOR, Double.class, null);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.LEVELS_SCALE_FACTOR, Double.class, null);
 			}
 		}
 
@@ -603,24 +613,24 @@ public class Model implements Serializable {
 		double maxSecStep = Double.POSITIVE_INFINITY, // The lower bound of the "valid" interval for secs/step (minSecStep) is the maximum of the lower bounds we find for it, while
 														// the upper bound (maxSecStep) is the minimum of all upper bounds. This is why we compute them in this apparently strange
 														// way
-		secPerStep = network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class);
+		secPerStep = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 
-		edges = network.getEdgeList().iterator();
+		edges = currentNetwork.getEdgeList().iterator();
 		while (edges.hasNext()) {
 			CyEdge edge = edges.next();
-			Boolean enabled = network.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
+			Boolean enabled = currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
 			if (enabled == null)
 				continue;
 			double levelsScaleFactor;
-			double scaleFactorR1 = network.getRow(edge.getSource())
+			double scaleFactorR1 = currentNetwork.getRow(edge.getSource())
 					.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class).doubleValue();
-			double scaleFactorR2 = network.getRow(edge.getTarget())
+			double scaleFactorR2 = currentNetwork.getRow(edge.getTarget())
 					.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class).doubleValue();
-			CyRow e1 = network.getRow(edge.getSource());
-			CyRow e2 = network.getRow(edge.getTarget());
+			CyRow e1 = currentNetwork.getRow(edge.getSource());
+			CyRow e2 = currentNetwork.getRow(edge.getTarget());
 
 			Scenario[] scenarios = Scenario.THREE_SCENARIOS;
-			Integer scenarioIdx = network.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
+			Integer scenarioIdx = currentNetwork.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
 			if (scenarioIdx == null) {
 				scenarioIdx = 0;
 			}
@@ -632,8 +642,8 @@ public class Model implements Serializable {
 				levelsScaleFactor = scaleFactorR1;
 				break;
 			case 2:
-				e1 = network.getRow(edge.getSource());
-				e2 = network.getRow(edge.getTarget());
+				e1 = currentNetwork.getRow(edge.getSource());
+				e2 = currentNetwork.getRow(edge.getTarget());
 				double scaleFactorE1 = e1.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 				double scaleFactorE2 = e2.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 				levelsScaleFactor = 1 / scaleFactorR2 * scaleFactorE1 * scaleFactorE2;
@@ -644,13 +654,13 @@ public class Model implements Serializable {
 			}
 
 			int increment;
-			increment = network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class);
+			increment = currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class);
 			Scenario scenario;
 			if (scenarioIdx >= 0 && scenarioIdx < scenarios.length) {
 				scenario = scenarios[scenarioIdx];
 			} else {
 				// scenario = scenarios[0];
-				CyRow myEdge = network.getRow(edge);
+				CyRow myEdge = currentNetwork.getRow(edge);
 				myEdge.set(Model.Properties.SCENARIO, 0);
 				String edgeName;
 				StringBuilder reactionName = new StringBuilder();
@@ -677,8 +687,8 @@ public class Model implements Serializable {
 			}
 
 			if (scenarioIdx == 2) {
-				e1 = network.getRow(edge.getSource());
-				e2 = network.getRow(edge.getTarget());
+				e1 = currentNetwork.getRow(edge.getSource());
+				e2 = currentNetwork.getRow(edge.getTarget());
 			}
 
 			int nLevelsR1 = 0;
@@ -689,7 +699,7 @@ public class Model implements Serializable {
 			if (e2.isSet(Model.Properties.NUMBER_OF_LEVELS)) {
 				nLevelsR2 = e2.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			} else {
-				nLevelsR2 = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+				nLevelsR2 = currentNetwork.getRow(currentNetwork).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			}
 
 			boolean activeR1 = true, activeR2 = false;
@@ -703,13 +713,13 @@ public class Model implements Serializable {
 					activeR2 = true;
 				}
 			} else if (scenarioIdx == 2) {
-				activeR1 = network.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
-				activeR2 = network.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
+				activeR1 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
+				activeR2 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
 			}
 
 			String[] parameters = scenario.listVariableParameters();
 			for (int j = 0; j < parameters.length; j++) {
-				Double parVal = network.getRow(edge).get(parameters[j], Double.class);
+				Double parVal = currentNetwork.getRow(edge).get(parameters[j], Double.class);
 				if (parVal != null) {
 					scenario.setParameter(parameters[j], parVal);
 				} else {
@@ -717,7 +727,7 @@ public class Model implements Serializable {
 				}
 			}
 
-			Integer tempUncertainty = network.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class);
+			Integer tempUncertainty = currentNetwork.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class);
 			Double uncertainty = null;
 			if (tempUncertainty == null) {
 				uncertainty = 0d;
@@ -829,7 +839,7 @@ public class Model implements Serializable {
 					+ ", so take " + maxSecStep);
 			secPerStep = maxSecStep;
 			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, secPerStep);
-			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
+			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
 		} else {
 			// System.err.println("\tNon vado sopra il massimo: " + secPerStep + " <= " + maxSecStep);
 		}
@@ -840,7 +850,7 @@ public class Model implements Serializable {
 					+ ", so take " + minSecStep);
 			secPerStep = minSecStep;
 			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, secPerStep);
-			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
+			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
 		}
 	}
 
@@ -867,37 +877,42 @@ public class Model implements Serializable {
 
 		Model model = new Model();
 
-		CyNetwork network = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
-		CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
-		network = rootNetworkManager.getRootNetwork(network).getBaseNetwork();
-
-		final int totalWork = network.getNodeCount() + network.getEdgeCount();
+		CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+		//CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
+		//CyNetwork rootNetwork = rootNetworkManager.getRootNetwork(currentNetwork); //.getBaseNetwork();
+		//network = currentNetwork;
+		
+		//We specifically use the local table for the current network, because we want to keep those attributes separate from the other (sub)networks
+		CyTable currentNetworkLocalTable = currentNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS);
+		
+		
+		final int totalWork = currentNetwork.getNodeCount() + currentNetwork.getEdgeCount();
 		int doneWork = 0;
 
-		if (network.getRow(network).isSet("deltaAlternating")) {
+		if (currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet("deltaAlternating")) {
 			model.getProperties().let("deltaAlternating")
-					.be(network.getRow(network).get("deltaAlternating", Boolean.class));
+					.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get("deltaAlternating", Boolean.class));
 		}
-		if (network.getRow(network).isSet("useOldResetting")) {
+		if (currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet("useOldResetting")) {
 			model.getProperties().let("useOldResetting")
-					.be(network.getRow(network).get("useOldResetting", Boolean.class));
+					.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get("useOldResetting", Boolean.class));
 		}
 		model.getProperties().let(Model.Properties.NUMBER_OF_LEVELS)
-				.be(network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
+				.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
 		model.getProperties().let(Model.Properties.SECONDS_PER_POINT)
-				.be(network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class));
-		double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+				.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class));
+		double secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 		model.getProperties().let(Model.Properties.SECS_POINT_SCALE_FACTOR).be(secStepFactor);
 
-		final Integer maxNLevels = network.getRow(network).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
-		final Double nSecondsPerPoint = network.getRow(network).get(Model.Properties.SECONDS_PER_POINT, Double.class);
+		final Integer maxNLevels = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+		final Double nSecondsPerPoint = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 
 		model.getProperties().let(Model.Properties.NUMBER_OF_LEVELS).be(maxNLevels);
 		model.getProperties().let(Model.Properties.SECONDS_PER_POINT).be(nSecondsPerPoint);
 
 		// do nodes first
 
-		final Iterator<CyNode> nodes = network.getNodeList().iterator();
+		final Iterator<CyNode> nodes = currentNetwork.getNodeList().iterator(); //Properties are read from the base network, but nodes/edges lists are read from the current network
 		for (int i = 0; nodes.hasNext(); i++) {
 			if (monitor != null) {
 				monitor.setProgress((100 * doneWork++) / totalWork);
@@ -910,26 +925,26 @@ public class Model implements Serializable {
 			// TODO: types zijn nogal gegokt
 			r.let(Model.Properties.CYTOSCAPE_ID).be(node.getSUID().toString());
 			r.let(Model.Properties.REACTANT_NAME).be(node.getSUID().toString());
-			r.setName(network.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class));
+			r.setName(currentNetwork.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class));
 			r.let(Model.Properties.NUMBER_OF_LEVELS).be(
-					network.getRow(node).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
+					currentNetwork.getRow(node).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
 			r.let(Model.Properties.LEVELS_SCALE_FACTOR).be(
-					network.getRow(node).get(Model.Properties.LEVELS_SCALE_FACTOR, Double.class));
-			r.let(Model.Properties.GROUP).be(network.getRow(node).get(Model.Properties.GROUP, String.class));
-			r.let(Model.Properties.ENABLED).be(network.getRow(node).get(Model.Properties.ENABLED, Boolean.class));
-			r.let(Model.Properties.PLOTTED).be(network.getRow(node).get(Model.Properties.PLOTTED, Boolean.class));
+					currentNetwork.getRow(node).get(Model.Properties.LEVELS_SCALE_FACTOR, Double.class));
+			r.let(Model.Properties.GROUP).be(currentNetwork.getRow(node).get(Model.Properties.GROUP, String.class));
+			r.let(Model.Properties.ENABLED).be(currentNetwork.getRow(node).get(Model.Properties.ENABLED, Boolean.class));
+			r.let(Model.Properties.PLOTTED).be(currentNetwork.getRow(node).get(Model.Properties.PLOTTED, Boolean.class));
 			r.let(Model.Properties.INITIAL_LEVEL).be(
-					network.getRow(node).get(Model.Properties.INITIAL_LEVEL, Integer.class));
+					currentNetwork.getRow(node).get(Model.Properties.INITIAL_LEVEL, Integer.class));
 
 			model.add(r);
 		}
 
 		// do edges next
 
-		final Iterator<CyEdge> edges = network.getEdgeList().iterator();
+		final Iterator<CyEdge> edges = currentNetwork.getEdgeList().iterator();
 		int minTimeModel = Integer.MAX_VALUE;
 		int maxTimeModel = Integer.MIN_VALUE;
-		Integer unc = 5; // Uncertainty value is now ANIMO-wide (TODO: is that a bit excessive? One would expect the uncertainty to be connected to the model...)
+		Integer unc = 0; // Uncertainty value is now ANIMO-wide (TODO: is that a bit excessive? One would expect the uncertainty to be connected to the model...)
 		XmlConfiguration configuration = AnimoBackend.get().configuration();
 		try {
 			unc = Integer.valueOf(configuration.get(XmlConfiguration.UNCERTAINTY_KEY));
@@ -941,7 +956,7 @@ public class Model implements Serializable {
 				monitor.setProgress((100 * doneWork++) / totalWork);
 
 			CyEdge edge = edges.next();
-			if (!network.getRow(edge).get(Model.Properties.ENABLED, Boolean.class))
+			if (!currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class))
 				continue;
 
 			Double levelsScaleFactor;
@@ -949,9 +964,9 @@ public class Model implements Serializable {
 			Reaction r = new Reaction(reactionId);
 			edgeNameToId.put(edge.getSUID().toString(), reactionId);
 
-			network.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
-			r.let(Model.Properties.ENABLED).be(network.getRow(edge).get(Model.Properties.ENABLED, Boolean.class));
-			r.let(Model.Properties.INCREMENT).be(network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class));
+			currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
+			r.let(Model.Properties.ENABLED).be(currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class));
+			r.let(Model.Properties.INCREMENT).be(currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class));
 			r.let(Model.Properties.CYTOSCAPE_ID).be("E" + edge.getSUID());
 
 			r.let(Model.Properties.REACTION_TYPE).be(Model.Properties.BI_REACTION);
@@ -977,7 +992,7 @@ public class Model implements Serializable {
 
 			Scenario[] scenarios = Scenario.THREE_SCENARIOS;
 			Integer scenarioIdx;
-			scenarioIdx = network.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
+			scenarioIdx = currentNetwork.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
 			Scenario scenario;
 			if (scenarioIdx >= 0 && scenarioIdx < scenarios.length) {
 				scenario = scenarios[scenarioIdx];
@@ -992,8 +1007,8 @@ public class Model implements Serializable {
 							.as(Integer.class);
 					break;
 				case 2:
-					String e1_id = network.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class);
-					String e2_id = network.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
+					String e1_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class);
+					String e2_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
 					String e1 = nodeNameToId.get(e1_id);
 					String e2 = nodeNameToId.get(e2_id);
 					levelsScaleFactor = 1.0
@@ -1008,10 +1023,10 @@ public class Model implements Serializable {
 					break;
 				}
 			} else {
-				Animo.setRowValue(network.getRow(edge), Model.Properties.SCENARIO, Integer.class, 0);
+				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, 0);
 				int increment;
-				if (network.getRow(edge).isSet(Properties.INCREMENT)) {
-					increment = network.getRow(edge).get(Properties.INCREMENT, Integer.class);
+				if (currentNetwork.getRow(edge).isSet(Properties.INCREMENT)) {
+					increment = currentNetwork.getRow(edge).get(Properties.INCREMENT, Integer.class);
 				} else {
 					if (edge.getSource().equals(edge.getTarget())) {
 						increment = -1;
@@ -1022,8 +1037,8 @@ public class Model implements Serializable {
 				String res;
 				String edgeName;
 				StringBuilder reactionName = new StringBuilder();
-				if (network.getRow(edge.getSource()).isSet(Model.Properties.CANONICAL_NAME)) {
-					res = network.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
+				if (currentNetwork.getRow(edge.getSource()).isSet(Model.Properties.CANONICAL_NAME)) {
+					res = currentNetwork.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
 					reactionName.append(res);
 
 					if (increment >= 0) {
@@ -1031,8 +1046,8 @@ public class Model implements Serializable {
 					} else {
 						reactionName.append(" --| ");
 					}
-					if (network.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)) {
-						res = network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
+					if (currentNetwork.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)) {
+						res = currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
 						reactionName.append(res);
 						edgeName = reactionName.toString();
 					} else {
@@ -1047,12 +1062,12 @@ public class Model implements Serializable {
 			r.let(Model.Properties.SCENARIO).be(scenarioIdx);
 			r.let(Model.Properties.LEVELS_SCALE_FACTOR + "_reaction").be(levelsScaleFactor);
 			r.let(Model.Properties.SCENARIO_PARAMETER_K).be(
-					network.getRow(edge).get(Model.Properties.SCENARIO_PARAMETER_K, Double.class));
+					currentNetwork.getRow(edge).get(Model.Properties.SCENARIO_PARAMETER_K, Double.class));
 
 			String[] parameters = scenario.listVariableParameters();
 			HashMap<String, Double> scenarioParameterValues = new HashMap<String, Double>();
 			for (int j = 0; j < parameters.length; j++) {
-				Double parVal = network.getRow(edge).get(parameters[j], Double.class);
+				Double parVal = currentNetwork.getRow(edge).get(parameters[j], Double.class);
 				if (parVal != null) {
 					scenario.setParameter(parameters[j], parVal);
 					scenarioParameterValues.put(parameters[j], parVal);
@@ -1065,15 +1080,15 @@ public class Model implements Serializable {
 			double uncertainty = unc;
 			// Also: while we are here, we delete the Model.Properties.UNCERTAINTY attribute if we find it
 
-			if (network.getRow(edge).isSet(Model.Properties.UNCERTAINTY)) {
-				network.getRow(edge).set(Model.Properties.UNCERTAINTY, null);
+			if (currentNetwork.getRow(edge).isSet(Model.Properties.UNCERTAINTY)) {
+				currentNetwork.getRow(edge).set(Model.Properties.UNCERTAINTY, null);
 
 			}
 
 			if (scenarioIdx == 2) { // actually, they are both catalysts
 				String cata, reac;
-				cata = nodeNameToId.get(network.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class));
-				reac = nodeNameToId.get(network.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class));
+				cata = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class));
+				reac = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class));
 				r.let(Model.Properties.CATALYST).be(cata);
 				r.let(Model.Properties.REACTANT).be(reac);
 				if (!model.getReactant(cata).get(Model.Properties.NUMBER_OF_LEVELS).isNull()) {
@@ -1117,14 +1132,14 @@ public class Model implements Serializable {
 
 			if (scenarioIdx == 0 || scenarioIdx == 1) {
 				activeR1 = true;
-				if (network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) >= 0) {
+				if (currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) >= 0) {
 					activeR2 = false;
 				} else {
 					activeR2 = true;
 				}
 			} else if (scenarioIdx == 2) {
-				activeR1 = network.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
-				activeR2 = network.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
+				activeR1 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
+				activeR2 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
 				r.let(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1").be(activeR1);
 				r.let(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2").be(activeR2);
 				reactant1IsDownstream = r.get(Model.Properties.CATALYST).as(String.class)

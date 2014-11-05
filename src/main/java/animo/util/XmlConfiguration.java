@@ -61,7 +61,7 @@ public class XmlConfiguration {
 
 	// The value for uncertainty in the reaction parameters
 	public static final String UNCERTAINTY_KEY = "/ANIMO/Uncertainty";
-	private static final String DEFAULT_UNCERTAINTY = "5";
+	private static final String DEFAULT_UNCERTAINTY = "0";
 
 	// We can use reaction-centered model (default), reaction-centered with tables, and reactant-centered.
 	public static final String MODEL_TYPE_KEY = "/ANIMO/ModelType";

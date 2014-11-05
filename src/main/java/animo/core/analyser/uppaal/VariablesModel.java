@@ -1,7 +1,6 @@
 package animo.core.analyser.uppaal;
 
 import java.io.ByteArrayInputStream;
-import java.io.IOException;
 import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
@@ -9,16 +8,13 @@ import java.util.Vector;
 
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
-import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.transform.OutputKeys;
 import javax.xml.transform.Transformer;
-import javax.xml.transform.TransformerException;
 import javax.xml.transform.TransformerFactory;
 import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
-import org.xml.sax.SAXException;
 
 import animo.core.model.Model;
 import animo.core.model.Property;
@@ -521,7 +517,7 @@ public class VariablesModel implements ModelTransformer {
 			out.append(outString.toString());
 			out.append(newLine);
 			out.append(newLine);
-		} catch (IOException | SAXException | TransformerException | ParserConfigurationException e) {
+		} catch (Exception e) {
 			System.err.println("Error: " + e);
 			e.printStackTrace();
 		}

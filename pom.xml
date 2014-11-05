@@ -37,7 +37,7 @@
 			                <goal>copy-resources</goal>
 			            </goals>
 			            <configuration>
-			                <outputDirectory>/local/schivos/CytoscapeConfiguration/3/apps/installed</outputDirectory>
+			                <outputDirectory>/Users/stefano/CytoscapeConfiguration/3/apps/installed</outputDirectory>
 			                <resources>
 			                    <resource>
 			                        <directory>${project.build.directory}</directory>

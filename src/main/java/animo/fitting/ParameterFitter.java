@@ -57,7 +57,6 @@ import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 
 import animo.core.AnimoBackend;
-import animo.core.analyser.AnalysisException;
 import animo.core.analyser.LevelResult;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.analyser.uppaal.VariablesModel;
@@ -1448,7 +1447,7 @@ public class ParameterFitter extends WindowAdapter {
 				Pair<Boolean, Double> comparisonResult = compareResults(result);
 				allConfigurations.set(actualIndexToRemember, new AcceptableConfiguration(currentConfiguration, result,
 						"Max abs diff: " + decimalFormat.format(comparisonResult.second)));
-			} catch (AnalysisException | IOException ex) {
+			} catch (Exception ex) {
 				ex.printStackTrace();
 			}
 			synchronized (System.out) {
