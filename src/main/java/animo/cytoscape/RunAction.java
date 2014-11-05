@@ -392,7 +392,7 @@ public class RunAction extends AnimoActionTask {
 			}
 			logFile.deleteOnExit();
 			logStream = new PrintStream(new FileOutputStream(logFile));
-//			System.setErr(logStream);
+			System.setErr(logStream);
 		} catch (IOException ex) {
 			// We have no log file, bad luck: we will have to use System.err.
 		}
