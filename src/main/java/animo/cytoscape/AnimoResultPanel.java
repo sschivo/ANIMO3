@@ -1064,8 +1064,10 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			if (this.model.getReactant(r) == null)
 				continue;
 			final String id = this.model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
+			CyNode node = net.getNode(Long.valueOf(id));
+			if (node == null) continue; //The node may be null if we are looking at a network where the node does not exist and playing a simulation from another network (where the node existed)
 			final double level = this.result.getConcentration(r, t);
-			CyRow nodeRow = net.getRow(net.getNode(Long.valueOf(id)));
+			CyRow nodeRow = net.getRow(node);
 			Animo.setRowValue(nodeRow, Model.Properties.SHOWN_LEVEL, Double.class, level / levels);
 		}
 		
