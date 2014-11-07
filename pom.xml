@@ -104,9 +104,15 @@
 						<Bundle-Version>${project.version}</Bundle-Version>
 						<Private-Package>${bundle.namespace}.*</Private-Package>
 						<Bundle-Activator>animo.cytoscape.Animo</Bundle-Activator>
+						
+						<Embed-Dependency>core;groupId=com.googlecode.efficient-java-matrix-library;inline=true</Embed-Dependency>
+	                    <Import-Package>*;resolution:=optional</Import-Package>
+						<Embed-Dependency>equation;groupId=com.googlecode.efficient-java-matrix-library;inline=true</Embed-Dependency>
+	                    <Import-Package>*;resolution:=optional</Import-Package>
 					</instructions>
 				</configuration>
 			</plugin>
+			
 		</plugins>
 	</build>
 

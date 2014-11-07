@@ -41,6 +41,7 @@ import animo.core.AnimoBackend;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.graph.FileUtils;
 import animo.fitting.ParameterFitter;
+import animo.util.LevenbergMarquardt;
 import animo.util.XmlConfiguration;
 
 public class ControlPanel extends JPanel implements CytoPanelComponent {
@@ -622,6 +623,16 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 //		});
 //		buttons.add(bottoneDellaSfiga, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 //				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		
+		JButton bottoneDeiParametri = new JButton("Proviamo con quel nome complicato");
+		bottoneDeiParametri.addActionListener(new ActionListener() {
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				new LevenbergMarquardt.FaiIlLavoro().vai();
+			}
+		});
+		buttons.add(bottoneDeiParametri, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
+				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		
 //		panel.add(buttons);
 //		panel.setVisible(true);
