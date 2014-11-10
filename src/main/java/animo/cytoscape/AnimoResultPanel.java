@@ -813,7 +813,9 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		Map<String, Object> originalRow = originalNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS).getRow(originalNetwork.getSUID()).getAllValues(); //Copy also the current network properties
 		CyRow savedRow = savedNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS).getRow(savedNetwork.getSUID());
 		for (String k : originalRow.keySet()) {
+			if (k.equals("__Annotations")) continue; //What the HELL is this property???
 			Object value = originalRow.get(k);
+//			System.err.println("Copio la proprieta' " + k + ", che vale " + value);
 			Animo.setRowValue(savedRow, k, value.getClass(), value);
 		}
 	}

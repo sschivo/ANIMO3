@@ -356,17 +356,18 @@ public class LevenbergMarquardt {
 	}
 	
 	public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult) {
+		System.err.println("Traduco un level result: " + levelResult);
 		Vector<String> columnNames = new Vector<String>();
 		columnNames.addAll(levelResult.getReactantIds());
 		List<Double> timeIndices = levelResult.getTimeIndices();
 		double data[][] = new double[(1 + columnNames.size()) * timeIndices.size()][1];
 		int cnt = 0;
-//		System.out.println("Lette " + columnNames.size() + " colonne, e " + timeIndices.size() + " righe.");
+		System.out.println("Lette " + columnNames.size() + " colonne, e " + timeIndices.size() + " righe.");
 		for (double t : timeIndices) {
 			data[cnt++][0] = t;
 			for (String col : columnNames) {
 				data[cnt++][0] = levelResult.getConcentration(col, t);
-//				System.out.println(levelResult.getConcentration(col, t));
+				System.out.println(levelResult.getConcentration(col, t));
 			}
 		}
 		return new DenseMatrix64F(data);
@@ -488,10 +489,10 @@ public class LevenbergMarquardt {
     	public void vai() {
     		DenseMatrix64F scass = null;
     		try {
-				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt.csv", Arrays.asList("ERK data"), 120);
+    			//c:\Users\stefano\Desktop\FOS 2014
+				scass = readCSVtoMatrix("/Users/stefano/Desktop/FOS 2014/Data_Wnt.csv", Arrays.asList("ERK data"), 120);
 				//printMatrix(scass);
 			} catch (IOException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
     		Function function = new Function() {
@@ -573,6 +574,7 @@ public class LevenbergMarquardt {
 					wnt_frzld.let(Model.Properties.REACTANT).be("R1"); //target
 					wnt_frzld.let(Model.Properties.CATALYST).be("R0"); //source
 					setScenario(model, wnt_frzld, 1, 0.01, 1);
+					model.add(wnt_frzld);
 					
 					frzld_frzldInt = new Reaction("FRZLD -> FRZLD Int");
 					frzld_frzldInt.let(Model.Properties.ENABLED).be(true);
@@ -582,6 +584,7 @@ public class LevenbergMarquardt {
 					frzld_frzldInt.let(Model.Properties.REACTANT).be("R2"); //target
 					frzld_frzldInt.let(Model.Properties.CATALYST).be("R1"); //source
 					setScenario(model, frzld_frzldInt, 1, 0.01, 1);
+					model.add(frzld_frzldInt);
 					
 					frzldInt_frzld = new Reaction("FRZLD Int -| FRZLD");
 					frzldInt_frzld.let(Model.Properties.ENABLED).be(true);
@@ -591,6 +594,7 @@ public class LevenbergMarquardt {
 					frzldInt_frzld.let(Model.Properties.REACTANT).be("R1"); //target
 					frzldInt_frzld.let(Model.Properties.CATALYST).be("R2"); //source
 					setScenario(model, frzldInt_frzld, 0, 0.01, -1);
+					model.add(frzldInt_frzld);
 					
 					frzld_erk = new Reaction("FRZLD -> ERK");
 					frzld_erk.let(Model.Properties.ENABLED).be(true);
@@ -600,6 +604,7 @@ public class LevenbergMarquardt {
 					frzld_erk.let(Model.Properties.REACTANT).be("R3"); //target
 					frzld_erk.let(Model.Properties.CATALYST).be("R1"); //source
 					setScenario(model, frzld_erk, 1, 0.01, 1);
+					model.add(frzld_erk);
 					
 					erkP_erk = new Reaction("ERK P -| ERK");
 					erkP_erk.let(Model.Properties.ENABLED).be(true);
@@ -609,6 +614,7 @@ public class LevenbergMarquardt {
 					erkP_erk.let(Model.Properties.REACTANT).be("R3"); //target
 					erkP_erk.let(Model.Properties.CATALYST).be("R4"); //source
 					setScenario(model, erkP_erk, 0, 0.01, -1);
+					model.add(erkP_erk);
 					
 					if (minTimeModel == Integer.MAX_VALUE) {
 						minTimeModel = VariablesModel.INFINITE_TIME;
@@ -848,7 +854,10 @@ public class LevenbergMarquardt {
         	//Y = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {10}, {10}, {15}, {15}}); //{10}, {15}, {15}});
         	X = new DenseMatrix64F(new double[][]{{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}});
         	Y = scass;
-        	boolean success = lm.optimize(initParam, X, Y);
+        	boolean success = false;
+//        	success = lm.optimize(initParam, X, Y);
+        	function.compute(initParam, X, Y);
+        	printMatrix(Y);
         	if (success) {
         		System.out.println("Ho trovato i parametri migliori: " + lm.getParameters());
         		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());

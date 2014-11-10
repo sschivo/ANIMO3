@@ -40,6 +40,8 @@ import org.cytoscape.model.events.AddedNodesEvent;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedEvent;
 import org.cytoscape.model.events.NetworkAddedListener;
+import org.cytoscape.model.events.TableAddedEvent;
+import org.cytoscape.model.events.TableAddedListener;
 import org.cytoscape.session.events.SessionAboutToBeSavedEvent;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedEvent;
@@ -56,7 +58,7 @@ import org.w3c.dom.Element;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
 		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
-		VisualStyleSetListener, CytoPanelComponentSelectedListener {
+		VisualStyleSetListener, CytoPanelComponentSelectedListener, TableAddedListener {
 
 	public static final String APPNAME = "AppSession";
 	private static boolean listenerStatus = true; //The switch to activate/deactivate the methods to deal with node/edge added events
@@ -140,6 +142,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	public void handleEvent(NetworkViewAddedEvent e) {
 		Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
 		//Before (Cytoscape 2.8.x) we added here also the listeners to node/edge double click events. Now they are added in Animo.hookListeners(), and they are disguised as Edge/NodeViewTaskFactories
+		System.err.println("Network view added (rete " + e.getNetworkView().getModel() + "): dovrebbe succedere DOPO network added");
 	}
 	
 	
@@ -147,6 +150,14 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	public void handleEvent(NetworkAddedEvent e) {
 		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE); //Default to normal style for newly created networks
 		Animo.selectAnimoControlPanel();
+		System.err.println("Network added (rete " + e.getNetwork() + "): dovrebbe succedere PRIMA di network view added"); //peccato che la prima rete che creo non lanci questa proprieta'...
+	}
+	
+	@Override
+	public void handleEvent(TableAddedEvent e) {
+		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE); //Default to normal style for newly created networks
+		Animo.selectAnimoControlPanel();
+		System.err.println("Table added (titolo: " + e.getTable().getTitle() + "): dovrebbe succedere DOPO di network added");
 	}
 
 	/**

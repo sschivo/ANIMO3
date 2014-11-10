@@ -17,6 +17,7 @@ import org.cytoscape.model.CyRow;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedListener;
+import org.cytoscape.model.events.TableAddedListener;
 import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
@@ -129,6 +130,7 @@ public class Animo extends AbstractCyActivator {
 		//Apply our visual style to any network view
 		registerService(bc, eventListener, NetworkAddedListener.class, new Properties());
 		registerService(bc, eventListener, NetworkViewAddedListener.class, new Properties());
+		registerService(bc, eventListener, TableAddedListener.class, new Properties());
 		//Update the colors and shapes legends if the visual style has changed
 		registerService(bc, eventListener, VisualStyleChangedListener.class, new Properties());
 		registerService(bc, eventListener, VisualStyleSetListener.class, new Properties());
