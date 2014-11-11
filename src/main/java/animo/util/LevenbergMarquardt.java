@@ -356,7 +356,7 @@ public class LevenbergMarquardt {
 	}
 	
 	public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult) {
-		System.err.println("Traduco un level result: " + levelResult);
+		System.err.println("Traduco un level result: " + levelResult); //TODO: it looks like in windows we read an empty result, even though the simulation completes correctly and generates good data
 		Vector<String> columnNames = new Vector<String>();
 		columnNames.addAll(levelResult.getReactantIds());
 		List<Double> timeIndices = levelResult.getTimeIndices();

@@ -372,7 +372,7 @@ public class NodeDialog extends JDialog {
 						}
 						if (doUpdate) {
 							//System.err.println("Ho atteso abbastanza: aggiorno");
-							visualStyle.apply(networkView);
+							visualStyle.apply(networkView); //TODO: problem, this can raise a concurrent modification exception because we may be updating the view concurrently with cytoscape (who I truly wish would mind its own business..)
 							networkView.updateView();
 						}
 						synchronized (this) {
