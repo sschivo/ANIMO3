@@ -14,6 +14,7 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -354,20 +355,33 @@ public class LevenbergMarquardt {
 		LevelResult levelResult = readCSVtoLevelResult(csvFileName, selectedColumns, untilTime);
 		return levelResultToMatrix(levelResult);
 	}
+    
+    public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult) {
+    	return levelResultToMatrix(levelResult, 1.0);
+    }
+    
+    public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, double scaleFactor) {
+    	return levelResultToMatrix(levelResult, 1.0, Collections.<Double>emptyList());
+    }
 	
-	public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult) {
-		System.err.println("Traduco un level result: " + levelResult); //TODO: it looks like in windows we read an empty result, even though the simulation completes correctly and generates good data
+	public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, double scaleFactor, List<Double> timePoints) {
 		Vector<String> columnNames = new Vector<String>();
 		columnNames.addAll(levelResult.getReactantIds());
-		List<Double> timeIndices = levelResult.getTimeIndices();
+		List<Double> timeIndices;
+		if (!timePoints.isEmpty()) {
+			timeIndices = timePoints;
+		} else {
+			timeIndices = levelResult.getTimeIndices();
+		}
 		double data[][] = new double[(1 + columnNames.size()) * timeIndices.size()][1];
 		int cnt = 0;
 		System.out.println("Lette " + columnNames.size() + " colonne, e " + timeIndices.size() + " righe.");
 		for (double t : timeIndices) {
 			data[cnt++][0] = t;
 			for (String col : columnNames) {
-				data[cnt++][0] = levelResult.getConcentration(col, t);
-				System.out.println(levelResult.getConcentration(col, t));
+				double v = levelResult.getConcentration(col, t / scaleFactor);
+				data[cnt++][0] = v;
+				System.out.println(col + "[" + t + "] = " + data[cnt-1][0]);
 			}
 		}
 		return new DenseMatrix64F(data);
@@ -633,6 +647,7 @@ public class LevenbergMarquardt {
         				   p2 = params.get(2),
         				   p3 = params.get(3),
         				   p4 = params.get(4);
+        			System.err.println("Nuovi parameteri: " + p0 + ", " + p1 + ", " + p2 + ", " + p3 + ", " + p4);
         			setScenario(model, wnt_frzld, 1, p0, 1);
         			setScenario(model, frzld_frzldInt, 1, p1, 1);
         			setScenario(model, frzldInt_frzld, 0, p2, -1);
@@ -836,28 +851,28 @@ public class LevenbergMarquardt {
     				updateParameters(param);
     				int nMinutesToSimulate = 120;
     				int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
-    				//double scale = (double) nMinutesToSimulate / timeTo;
+    				double scale = (double) nMinutesToSimulate / timeTo;
     				SimpleLevelResult result = null;
     				try {
-    					result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(Arrays.asList("ERK"));
+    					result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(Arrays.asList("R3"));
     				} catch (Exception ex) {
     					ex.printStackTrace(System.out);
     				}
-    				y.set(levelResultToMatrix(result));
+    				y.set(levelResultToMatrix(result, scale, Arrays.asList(0.0, 30.0, 60.0, 120.0)));
     			}
         	};
     		LevenbergMarquardt lm = new LevenbergMarquardt(function);
-        	lm.MIN_COST = 0.5;
+        	//lm.MIN_COST = 0.5;
         	DenseMatrix64F initParam, X, Y;
-        	initParam = new DenseMatrix64F(new double[][]{{0.01}, {0.01}, {0.01}, {0.01}, {0.01}});
+        	initParam = new DenseMatrix64F(new double[][]{{0.000625}, {0.0001}, {0.0008}, {0.04}, {0.015}}); //{0.01}, {0.01}, {0.01}, {0.01}, {0.01}});
         	//X = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {0}, {10}, {15}, {0}}); //{10}, {15}, {0}}); //Cosi' va in 5 tentativi. Ora proviamo a salvare tutta una serie di dati in riga (perche' vuole le righe??)
         	//Y = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {10}, {10}, {15}, {15}}); //{10}, {15}, {15}});
         	X = new DenseMatrix64F(new double[][]{{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}});
         	Y = scass;
         	boolean success = false;
-//        	success = lm.optimize(initParam, X, Y);
-        	function.compute(initParam, X, Y);
-        	printMatrix(Y);
+        	success = lm.optimize(initParam, X, Y);
+//        	function.compute(initParam, X, Y);
+//        	printMatrix(Y);
         	if (success) {
         		System.out.println("Ho trovato i parametri migliori: " + lm.getParameters());
         		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());

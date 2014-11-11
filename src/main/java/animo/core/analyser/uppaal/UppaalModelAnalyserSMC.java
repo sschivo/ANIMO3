@@ -2,7 +2,6 @@ package animo.core.analyser.uppaal;
 
 import java.io.BufferedReader;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.IOException;
@@ -134,7 +133,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				reactantId = line.substring(0, line.indexOf(':'));
 				// System.err.println(reactantId + ": ");
 				line = br.readLine();
-				// System.err.println(line);
+//				System.err.println(line);
 				line = line.substring(line.indexOf(':'));
 				Matcher pointMatcher = simPointPattern.matcher(line);
 
@@ -208,7 +207,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			endTime = System.currentTimeMillis();
 			System.err.println("\tParsing the result produced by UPPAAL took "
 					+ AnimoActionTask.timeDifferenceFormat(startTime, endTime));
-
+			
 			return new SimpleLevelResult(maxNumberOfLevels, levels);
 		}
 
@@ -1030,11 +1029,6 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			// Runtime rt = Runtime.getRuntime();
 			ProcessBuilder pb = new ProcessBuilder(cmd[0], cmd[1], cmd[2]);
 			pb.redirectErrorStream(true);
-			File outputFile = null;
-			if (areWeUnderWindows()) {
-				outputFile = File.createTempFile("ANIMOoutput", ".log");
-				pb.redirectOutput(outputFile);
-			}
 			if (monitor != null) {
 				monitor.setStatusMessage("Analyzing model with UPPAAL.");
 			}
@@ -1043,12 +1037,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			final Vector<SimpleLevelResult> resultVector = new Vector<SimpleLevelResult>(1); // this has no other reason than to hack around the fact that an internal class needs
 																								// to have all variables it uses declared as final
 			final List<Exception> errors = new ArrayList<Exception>(); // same reason as above
-			final InputStream inputStream;
-			if (areWeUnderWindows()) {
-				inputStream = new FileInputStream(outputFile); //TODO: windows is really broken: we can't even redirect to output and read from that =(
-			} else {
-				inputStream = proc.getInputStream();
-			}
+			final InputStream inputStream = proc.getInputStream();
 			if (inputStream.markSupported()) {
 				inputStream.mark(10485760);
 			}
