@@ -62,6 +62,7 @@ import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNetworkManager;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.model.CyTable;
 import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.model.subnetwork.CySubNetwork;
@@ -781,7 +782,6 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		return null;
 	}
 
-	@SuppressWarnings("rawtypes")
 	protected void copyNetwork(CyNetwork originalNetwork) {
 		savedNodesList = originalNetwork.getNodeList();
 		savedEdgesList = originalNetwork.getEdgeList();
@@ -811,11 +811,14 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		savedNetwork = Animo.getCyServiceRegistrar().getService(CyRootNetworkManager.class).getRootNetwork(originalNetwork).addSubNetwork(savedNodesList, savedEdgesList);
 		savedNetwork.getRow(savedNetwork).set(CyNetwork.NAME, this.getTitle() + " - Network");
 		Animo.getCyServiceRegistrar().getService(CyNetworkManager.class).addNetwork(savedNetwork);
-		Map<String, Object> originalRow = originalNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS).getRow(originalNetwork.getSUID()).getAllValues(); //Copy also the current network properties
+		CyTable originalTable = originalNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS);
+		CyRow originalRow = originalTable.getRow(originalNetwork.getSUID());
+		Map<String, Object> originalRowValues = originalRow.getAllValues(); //Copy also the current network properties
 		CyRow savedRow = savedNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS).getRow(savedNetwork.getSUID());
-		for (String k : originalRow.keySet()) {
-			Object value = originalRow.get(k);
-			if (value instanceof List && ((List)value).isEmpty()) {
+		for (String k : originalRowValues.keySet()) {
+			Object value = originalRowValues.get(k);
+			Class<?> listType = originalTable.getColumn(k).getListElementType();
+			if (listType != null/* && (originalRow.getList(k, listType)).isEmpty()*/) { //Incredibile: usa anche la usa implementazione interna della lista, per cui dovrei probabilmente chiedere alla column se e' di tipo lista o no...
 				continue;
 			}
 //			System.err.println("Copio la proprieta' " + k + ", che vale " + value);

@@ -504,7 +504,7 @@ public class LevenbergMarquardt {
     		DenseMatrix64F scass = null;
     		try {
     			//c:\Users\stefano\Desktop\FOS 2014
-				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt_prova.csv", Arrays.asList("ERK data"), 120);
+				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt_prova.csv", Arrays.asList("ERK data"), 240);
 				//printMatrix(scass);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -849,7 +849,7 @@ public class LevenbergMarquardt {
     				contaTentativi++;
     				System.out.println("Tentativo " + contaTentativi); // + ". p = " + param);
     				updateParameters(param);
-    				int nMinutesToSimulate = 120;
+    				int nMinutesToSimulate = 240;
     				int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
     				double scale = (double) nMinutesToSimulate / timeTo;
     				SimpleLevelResult result = null;
@@ -858,7 +858,7 @@ public class LevenbergMarquardt {
     				} catch (Exception ex) {
     					ex.printStackTrace(System.out);
     				}
-    				y.set(levelResultToMatrix(result, scale, Arrays.asList(0.0, 30.0, 60.0, 120.0)));
+    				y.set(levelResultToMatrix(result, scale, Arrays.asList(0.0, 30.0, 60.0, 120.0, 240.0)));
     			}
         	};
     		LevenbergMarquardt lm = new LevenbergMarquardt(function);
@@ -866,21 +866,22 @@ public class LevenbergMarquardt {
         	lm.DELTA = 0.0001;
         	DenseMatrix64F initParam, X, Y;
         	//exact parameters: {0.000625}, {0.0001}, {0.0008}, {0.04}, {0.015}
+        	//with scenarios:        1         0        1         1       0
         	/*
-        	After 45 attempts (starting from {0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}, with scenarios = 1 apart from the last which is 0),
-        	which generate the data series [0, 31, 21, 0] 
+        	After 61 attempts (starting from {0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}, all with scenario = 1 apart from the last which is 0),
+        	which generate the data series [0, 31, 21, 0, 0] 
         	we get to these parameters
-				[ 5.696948008013194E-4 ]
-				[ 6.788055510570829E-5 ]
-				[ 0.0024630004079343655 ]
-				[ 0.007367386230470727 ]
-				[ 0.002412415556479887 ]
-			which generate the data series [0, 41, 52, 38] instead of [0, 41, 51, 38] (!!!)
+			[ 4.668297736019977E-4 ]
+			[ 5.564644858790185E-5 ]
+			[ 0.0032720555713418465 ]
+			[ 0.00804136519174234 ]
+			[ 0.0024406512494464087 ]
+			which generate the data series [0, 38, 52, 36, 6] which compared to [0, 41, 51, 38, 0] is quite good (!!!)
         	 */
         	initParam = new DenseMatrix64F(new double[][]{{0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}}); //{0.0004}, {0.0001}, {0.0008}, {0.04}, {0.015}});
         	//X = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {0}, {10}, {15}, {0}}); //{10}, {15}, {0}}); //Cosi' va in 5 tentativi. Ora proviamo a salvare tutta una serie di dati in riga (perche' vuole le righe??)
         	//Y = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {10}, {10}, {15}, {15}}); //{10}, {15}, {15}});
-        	X = new DenseMatrix64F(new double[][]{{0}, {0}, {0}, {0}}); //{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}
+        	X = new DenseMatrix64F(new double[][]{{0}, {0}, {0}, {0}, {0}}); //{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}
         	Y = scass;
         	System.out.println("X");
         	printMatrix(X);
