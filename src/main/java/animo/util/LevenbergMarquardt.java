@@ -64,7 +64,7 @@ import animo.fitting.ScenarioCfg;
 public class LevenbergMarquardt {
     // how much the numerical jacobian calculation perturbs the parameters by.
     // In better implementation there are better ways to compute this delta.  See Numerical Recipes.
-    private final static double DELTA = 1e-8;
+    public double DELTA = 1e-8;
     
     public double MIN_COST = 0.001; //The point at which we already are happy enough to stop
 
@@ -373,11 +373,11 @@ public class LevenbergMarquardt {
 		} else {
 			timeIndices = levelResult.getTimeIndices();
 		}
-		double data[][] = new double[(1 + columnNames.size()) * timeIndices.size()][1];
+		double data[][] = new double[(/*1 + */columnNames.size()) * timeIndices.size()][1];
 		int cnt = 0;
 		System.out.println("Lette " + columnNames.size() + " colonne, e " + timeIndices.size() + " righe.");
 		for (double t : timeIndices) {
-			data[cnt++][0] = t;
+			//data[cnt++][0] = t;
 			for (String col : columnNames) {
 				double v = levelResult.getConcentration(col, t / scaleFactor);
 				data[cnt++][0] = v;
@@ -504,7 +504,7 @@ public class LevenbergMarquardt {
     		DenseMatrix64F scass = null;
     		try {
     			//c:\Users\stefano\Desktop\FOS 2014
-				scass = readCSVtoMatrix("/Users/stefano/Desktop/FOS 2014/Data_Wnt.csv", Arrays.asList("ERK data"), 120);
+				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt_prova.csv", Arrays.asList("ERK data"), 120);
 				//printMatrix(scass);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -607,7 +607,7 @@ public class LevenbergMarquardt {
 					frzldInt_frzld.let(Model.Properties.REACTION_TYPE).be(Model.Properties.BI_REACTION);
 					frzldInt_frzld.let(Model.Properties.REACTANT).be("R1"); //target
 					frzldInt_frzld.let(Model.Properties.CATALYST).be("R2"); //source
-					setScenario(model, frzldInt_frzld, 0, 0.01, -1);
+					setScenario(model, frzldInt_frzld, 1, 0.01, -1);
 					model.add(frzldInt_frzld);
 					
 					frzld_erk = new Reaction("FRZLD -> ERK");
@@ -650,7 +650,7 @@ public class LevenbergMarquardt {
         			System.err.println("Nuovi parameteri: " + p0 + ", " + p1 + ", " + p2 + ", " + p3 + ", " + p4);
         			setScenario(model, wnt_frzld, 1, p0, 1);
         			setScenario(model, frzld_frzldInt, 1, p1, 1);
-        			setScenario(model, frzldInt_frzld, 0, p2, -1);
+        			setScenario(model, frzldInt_frzld, 1, p2, -1);
         			setScenario(model, frzld_erk, 1, p3, 1);
         			setScenario(model, erkP_erk, 0, p4, -1);
 
@@ -847,7 +847,7 @@ public class LevenbergMarquardt {
 //    				printMatrix(y);
     				
     				contaTentativi++;
-    				System.out.println("Tentativo " + contaTentativi + ". p = " + param);
+    				System.out.println("Tentativo " + contaTentativi); // + ". p = " + param);
     				updateParameters(param);
     				int nMinutesToSimulate = 120;
     				int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
@@ -862,13 +862,31 @@ public class LevenbergMarquardt {
     			}
         	};
     		LevenbergMarquardt lm = new LevenbergMarquardt(function);
-        	//lm.MIN_COST = 0.5;
+        	lm.MIN_COST = 0.5;
+        	lm.DELTA = 0.0001;
         	DenseMatrix64F initParam, X, Y;
-        	initParam = new DenseMatrix64F(new double[][]{{0.000625}, {0.0001}, {0.0008}, {0.04}, {0.015}}); //{0.01}, {0.01}, {0.01}, {0.01}, {0.01}});
+        	//exact parameters: {0.000625}, {0.0001}, {0.0008}, {0.04}, {0.015}
+        	/*
+        	After 45 attempts (starting from {0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}, with scenarios = 1 apart from the last which is 0),
+        	which generate the data series [0, 31, 21, 0] 
+        	we get to these parameters
+				[ 5.696948008013194E-4 ]
+				[ 6.788055510570829E-5 ]
+				[ 0.0024630004079343655 ]
+				[ 0.007367386230470727 ]
+				[ 0.002412415556479887 ]
+			which generate the data series [0, 41, 52, 38] instead of [0, 41, 51, 38] (!!!)
+        	 */
+        	initParam = new DenseMatrix64F(new double[][]{{0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}}); //{0.0004}, {0.0001}, {0.0008}, {0.04}, {0.015}});
         	//X = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {0}, {10}, {15}, {0}}); //{10}, {15}, {0}}); //Cosi' va in 5 tentativi. Ora proviamo a salvare tutta una serie di dati in riga (perche' vuole le righe??)
         	//Y = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {10}, {10}, {15}, {15}}); //{10}, {15}, {15}});
-        	X = new DenseMatrix64F(new double[][]{{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}});
+        	X = new DenseMatrix64F(new double[][]{{0}, {0}, {0}, {0}}); //{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}
         	Y = scass;
+        	System.out.println("X");
+        	printMatrix(X);
+        	System.out.println("Y");
+        	printMatrix(Y);
+        	System.out.println("Fine Y");
         	boolean success = false;
         	success = lm.optimize(initParam, X, Y);
 //        	function.compute(initParam, X, Y);
