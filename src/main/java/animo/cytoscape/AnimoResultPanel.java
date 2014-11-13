@@ -822,7 +822,11 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				continue;
 			}
 //			System.err.println("Copio la proprieta' " + k + ", che vale " + value);
-			Animo.setRowValue(savedRow, k, value.getClass(), value);
+			try {
+				Animo.setRowValue(savedRow, k, value.getClass(), value); //If I can't copy a property, it's not too bad: I will simply go on.
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
+			}
 		}
 	}
 

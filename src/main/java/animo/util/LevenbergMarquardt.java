@@ -504,7 +504,7 @@ public class LevenbergMarquardt {
     		DenseMatrix64F scass = null;
     		try {
     			//c:\Users\stefano\Desktop\FOS 2014
-				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt_prova.csv", Arrays.asList("ERK data"), 240);
+				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt_0-240_erk-frzld.csv", Arrays.asList("ERK data", "Frizzled data"), 240);
 				//printMatrix(scass);
 			} catch (IOException e) {
 				e.printStackTrace();
@@ -607,7 +607,7 @@ public class LevenbergMarquardt {
 					frzldInt_frzld.let(Model.Properties.REACTION_TYPE).be(Model.Properties.BI_REACTION);
 					frzldInt_frzld.let(Model.Properties.REACTANT).be("R1"); //target
 					frzldInt_frzld.let(Model.Properties.CATALYST).be("R2"); //source
-					setScenario(model, frzldInt_frzld, 1, 0.01, -1);
+					setScenario(model, frzldInt_frzld, 0, 0.01, -1);
 					model.add(frzldInt_frzld);
 					
 					frzld_erk = new Reaction("FRZLD -> ERK");
@@ -650,7 +650,7 @@ public class LevenbergMarquardt {
         			System.err.println("Nuovi parameteri: " + p0 + ", " + p1 + ", " + p2 + ", " + p3 + ", " + p4);
         			setScenario(model, wnt_frzld, 1, p0, 1);
         			setScenario(model, frzld_frzldInt, 1, p1, 1);
-        			setScenario(model, frzldInt_frzld, 1, p2, -1);
+        			setScenario(model, frzldInt_frzld, 0, p2, -1);
         			setScenario(model, frzld_erk, 1, p3, 1);
         			setScenario(model, erkP_erk, 0, p4, -1);
 
@@ -854,7 +854,7 @@ public class LevenbergMarquardt {
     				double scale = (double) nMinutesToSimulate / timeTo;
     				SimpleLevelResult result = null;
     				try {
-    					result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(Arrays.asList("R3"));
+    					result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(Arrays.asList("R3", "R1"));
     				} catch (Exception ex) {
     					ex.printStackTrace(System.out);
     				}
@@ -878,10 +878,21 @@ public class LevenbergMarquardt {
 			[ 0.0024406512494464087 ]
 			which generate the data series [0, 38, 52, 36, 6] which compared to [0, 41, 51, 38, 0] is quite good (!!!)
         	 */
-        	initParam = new DenseMatrix64F(new double[][]{{0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}}); //{0.0004}, {0.0001}, {0.0008}, {0.04}, {0.015}});
+        	/* It seems to work also with 2 series. Using the same scenarios (if I use scenario 1 in place of 0 for FRZLD_INH --| FRZLD I cannot expect to match both FRZLD and ERK with the data coming from a scenario 0..),
+        	 * starting from these parameters {0.0005}, {0.0002}, {0.0007}, {0.04}, {0.015}
+        	 * which give the series ERK [0, 31, 39, 9, 0] and FRZLD [0, 55, 62, 41, 12]
+        	 * after 33 attempts I get these parameters
+				[ 6.261770864790466E-4 ]
+				[ 9.820281731098279E-5 ]
+				[ 8.054458653958224E-4 ]
+				[ 0.03993577706209611 ]
+				[ 0.014830950368103588 ]
+			  which give the data series ERK [0, 42, 52, 39, 0] and FRZLD [0, 65, 76, 61, 34]
+        	 */
+        	initParam = new DenseMatrix64F(new double[][]{{0.0005}, {0.0002}, {0.0007}, {0.04}, {0.015}}); //{0.0004}, {0.0004}, {0.0032}, {0.008}, {0.002}}); //{0.0004}, {0.0001}, {0.0008}, {0.04}, {0.015}});
         	//X = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {0}, {10}, {15}, {0}}); //{10}, {15}, {0}}); //Cosi' va in 5 tentativi. Ora proviamo a salvare tutta una serie di dati in riga (perche' vuole le righe??)
         	//Y = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {10}, {10}, {15}, {15}}); //{10}, {15}, {15}});
-        	X = new DenseMatrix64F(new double[][]{{0}, {0}, {0}, {0}, {0}}); //{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}
+        	X = new DenseMatrix64F(new double[][]{{0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}}); //{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}
         	Y = scass;
         	System.out.println("X");
         	printMatrix(X);

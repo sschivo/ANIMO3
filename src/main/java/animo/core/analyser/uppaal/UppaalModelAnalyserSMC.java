@@ -73,7 +73,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			BufferedReader br = new BufferedReader(new InputStreamReader(output));
 			String line = br.readLine();
 
-			while (line != null && !line.startsWith(" -- Property is satisfied."))
+			while (line != null && !line.contains("is satisfied"))
 				line = br.readLine();
 
 			long endTime = System.currentTimeMillis();
