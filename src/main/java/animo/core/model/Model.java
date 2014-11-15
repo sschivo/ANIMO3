@@ -1,8 +1,10 @@
 package animo.core.model;
 
 import java.io.Serializable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
@@ -244,6 +246,7 @@ public class Model implements Serializable {
 			if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null) {
 				currentNetworkLocalTable.createColumn(Model.Properties.NUMBER_OF_LEVELS, Integer.class, false);
 			}
+			//TODO: THIS IS WRONG! We must set the number of levels for a network to the maximum number of levels among the nodes, not 15!
 			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
 		} else { 
 			nLvl = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
@@ -877,7 +880,7 @@ public class Model implements Serializable {
 
 		Model model = new Model();
 
-		CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+		final CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
 		//CyRootNetworkManager rootNetworkManager = Animo.getCytoscapeApp().getCyRootNetworkManager();
 		//CyNetwork rootNetwork = rootNetworkManager.getRootNetwork(currentNetwork); //.getBaseNetwork();
 		//network = currentNetwork;
@@ -912,7 +915,24 @@ public class Model implements Serializable {
 
 		// do nodes first
 
-		final Iterator<CyNode> nodes = currentNetwork.getNodeList().iterator(); //Properties are read from the base network, but nodes/edges lists are read from the current network
+		//final Iterator<CyNode> nodes = currentNetwork.getNodeList().iterator(); //Properties are read from the base network, but nodes/edges lists are read from the current network
+		List<CyNode> nodesList = currentNetwork.getNodeList();
+		Collections.sort(nodesList, new Comparator<CyNode>() {
+			@Override
+			public int compare(CyNode n1, CyNode n2) {
+				String name1, name2;
+				name1 = currentNetwork.getRow(n1).get(Model.Properties.CANONICAL_NAME, String.class);
+				if (name1 == null) {
+					name1 = currentNetwork.getRow(n1).get(CyNetwork.NAME, String.class);
+				}
+				name2 = currentNetwork.getRow(n2).get(Model.Properties.CANONICAL_NAME, String.class);
+				if (name2 == null) {
+					name2 = currentNetwork.getRow(n2).get(CyNetwork.NAME, String.class);
+				}
+				return name1.compareTo(name2);
+			}
+		});
+		final Iterator<CyNode> nodes = nodesList.iterator();
 		for (int i = 0; nodes.hasNext(); i++) {
 			if (monitor != null) {
 				monitor.setProgress((100 * doneWork++) / totalWork);
@@ -1433,6 +1453,18 @@ public class Model implements Serializable {
 
 	public Map<String, Reactant> getReactants() {
 		return this.reactants;
+	}
+	
+	public List<Reactant> getSortedReactantList() {
+		List<Reactant> result = new ArrayList<Reactant>();
+		result.addAll(this.reactants.values());
+		Collections.sort(result, new Comparator<Reactant>() {
+			@Override
+			public int compare(Reactant r1, Reactant r2) {
+				return r1.getName().compareTo(r2.getName());
+			}
+		});
+		return result;
 	}
 
 	/**

@@ -75,12 +75,8 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 
 	public ControlPanel() {
 		final XmlConfiguration configuration = AnimoBackend.get().configuration();
-		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
-		boolean areWeTheDeveloper = false;
-		if (areWeTheDeveloperStr != null) {
-			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
-		}
-
+		boolean areWeTheDeveloper = Animo.areWeTheDeveloper();
+		
 //		final JPanel panel = this;
 //		panel.setLayout(new BoxLayout(panel, BoxLayout.Y_AXIS));
 
@@ -624,15 +620,17 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 //		buttons.add(bottoneDellaSfiga, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 //				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		
-		JButton bottoneDeiParametri = new JButton("Proviamo con quel nome complicato");
-		bottoneDeiParametri.addActionListener(new ActionListener() {
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				new LevenbergMarquardt.FaiIlLavoro().vai();
-			}
-		});
-		buttons.add(bottoneDeiParametri, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
-				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		if (areWeTheDeveloper) {
+			JButton bottoneDeiParametri = new JButton("Proviamo con quel nome complicato");
+			bottoneDeiParametri.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					new LevenbergMarquardt.FaiIlLavoro().vai();
+				}
+			});
+			buttons.add(bottoneDeiParametri, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
+					GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+		}
 		
 //		panel.add(buttons);
 //		panel.setVisible(true);

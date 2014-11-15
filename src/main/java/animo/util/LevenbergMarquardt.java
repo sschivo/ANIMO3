@@ -504,7 +504,7 @@ public class LevenbergMarquardt {
     		DenseMatrix64F scass = null;
     		try {
     			//c:\Users\stefano\Desktop\FOS 2014
-				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/FOS/2014/Data_Wnt_0-240_erk-frzld.csv", Arrays.asList("ERK data", "Frizzled data"), 240);
+				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv", Arrays.asList("ERK data", "Frizzled data"), 240);
 				//printMatrix(scass);
 			} catch (IOException e) {
 				e.printStackTrace();

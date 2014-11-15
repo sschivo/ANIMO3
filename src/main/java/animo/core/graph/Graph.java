@@ -49,10 +49,9 @@ import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
-import animo.core.AnimoBackend;
 import animo.core.analyser.LevelResult;
+import animo.cytoscape.Animo;
 import animo.util.HeatChart;
-import animo.util.XmlConfiguration;
 
 public class Graph extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ActionListener,
 		ComponentListener {
@@ -253,12 +252,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	private int oldWidth = -1, oldHeight = -1;
 
 	public Graph() {
-		XmlConfiguration configuration = AnimoBackend.get().configuration();
-		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
-		boolean areWeTheDeveloper = false;
-		if (areWeTheDeveloperStr != null) {
-			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
-		}
+		boolean areWeTheDeveloper = Animo.areWeTheDeveloper();
 		data = new Vector<Series>();
 		selectedColumns = new Vector<String>();
 		scale = new Scale();

@@ -374,6 +374,9 @@ public class NodeDialog extends JDialog {
 							//System.err.println("Ho atteso abbastanza: aggiorno");
 							visualStyle.apply(networkView); //TODO: problem, this can raise a concurrent modification exception because we may be updating the view concurrently with cytoscape (who I truly wish would mind its own business..)
 							networkView.updateView();
+							//This one below is even less useful: it makes a dialog appear to ask for which visual style you want to apply...
+//							TaskIterator ti = Animo.getCyServiceRegistrar().getService(ApplyVisualStyleTaskFactory.class).createTaskIterator(Arrays.asList(networkView));
+//							Animo.getCytoscapeApp().getTaskManager().execute(ti);
 						}
 						synchronized (this) {
 							try {

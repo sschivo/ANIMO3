@@ -41,6 +41,7 @@ import animo.cytoscape.contextmenu.EnableDisableNodeMenu;
 import animo.cytoscape.contextmenu.NodeDoubleClickTaskFactory;
 import animo.cytoscape.contextmenu.PlotHideNodeMenu;
 import animo.exceptions.AnimoException;
+import animo.util.XmlConfiguration;
 
 public class Animo extends AbstractCyActivator {
 	private static CySwingApplication cytoscape;
@@ -62,6 +63,16 @@ public class Animo extends AbstractCyActivator {
 //		return controlPanel;
 //	}
 
+	public static boolean areWeTheDeveloper() {
+		final XmlConfiguration configuration = AnimoBackend.get().configuration();
+		String areWeTheDeveloperStr = configuration.get(XmlConfiguration.DEVELOPER_KEY);
+		boolean areWeTheDeveloper = false;
+		if (areWeTheDeveloperStr != null) {
+			areWeTheDeveloper = Boolean.parseBoolean(areWeTheDeveloperStr);
+		}
+		return areWeTheDeveloper;
+	}
+	
 	public static CySwingApplication getCytoscape() {
 		return cytoscape;
 	}

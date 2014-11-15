@@ -33,6 +33,7 @@ import javax.imageio.ImageIO;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JFileChooser;
 import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
@@ -43,6 +44,7 @@ import javax.swing.JTabbedPane;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
+import javax.swing.filechooser.FileFilter;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.transform.OutputKeys;
@@ -66,11 +68,14 @@ import org.cytoscape.model.CyTable;
 import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.model.subnetwork.CySubNetwork;
+import org.cytoscape.task.write.ExportNetworkViewTaskFactory;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.CyNetworkViewFactory;
 import org.cytoscape.view.model.CyNetworkViewManager;
 import org.cytoscape.view.model.View;
 import org.cytoscape.view.presentation.property.BasicVisualLexicon;
+import org.cytoscape.work.SynchronousTaskManager;
+import org.cytoscape.work.TaskIterator;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Node;
@@ -481,6 +486,87 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			}
 		});
 		sliderPanel.add(setParameters, BorderLayout.WEST);
+		
+		if (Animo.areWeTheDeveloper()) {
+			JButton animate;
+			animate = new JButton("Animation");
+			animate.setToolTipText("Make an animation of this time series");
+			animate.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					int nSteps = 10;
+					int percentage = 100;
+					String nStepsString = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(), "Number of frames", nSteps);
+					if (nStepsString == null) return;
+					try {
+						nSteps = Integer.parseInt(nStepsString);
+					} catch (NumberFormatException ex) {
+						nSteps = 10;
+					}
+					String percentageString = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(), "Percentage dimension of image", percentage);
+					if (percentageString == null) return;
+					try {
+						percentage = Integer.parseInt(percentageString);
+					} catch (NumberFormatException ex) {
+						percentage = 100;
+					}
+					
+					String directory = ".";
+					File currentDirectory = new File(directory);
+					String currentSessionFileName = Animo.getCytoscapeApp().getCySessionManager().getCurrentSessionFileName();
+					if (currentSessionFileName != null) {
+						File curSession = new File(currentSessionFileName);
+						if (curSession != null && curSession.exists()) {
+							currentDirectory = curSession.getParentFile();
+						}
+					}
+					JFileChooser chooser = new JFileChooser(currentDirectory);
+					chooser.setFileFilter(new FileFilter() {
+						public boolean accept(File pathName) {
+							if (pathName.isDirectory()) {
+								return true;
+							}
+							return false;
+						}
+	
+						public String getDescription() {
+							return "Directory";
+						}
+					});
+					chooser.setFileSelectionMode(JFileChooser.DIRECTORIES_ONLY);
+					int result = chooser.showSaveDialog(Animo.getCytoscape().getJFrame());
+					if (result == JFileChooser.APPROVE_OPTION) {
+						currentDirectory = chooser.getCurrentDirectory();
+						String fileName = chooser.getSelectedFile().getAbsolutePath();
+						directory = fileName;
+					}
+					
+					slider.setValue(slider.getMinimum());
+					int delta = (int)Math.round(1.0 * (slider.getMaximum() - slider.getMinimum() + 1) / nSteps);
+					int idx = 0;
+					CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
+	//				BitmapExporter be = new BitmapExporter("png", percentage / 100.0);
+					ExportNetworkViewTaskFactory taskFactory = Animo.getCyServiceRegistrar().getService(ExportNetworkViewTaskFactory.class);
+					@SuppressWarnings("rawtypes")
+					SynchronousTaskManager tm = Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class);
+					for (int i = slider.getMinimum(); i <= slider.getMaximum(); i += delta, idx++) {
+						slider.setValue(i);
+	//					CyAttributes edgeAttrs = Cytoscape.getEdgeAttributes();
+	//					edgeAttrs.deleteAttribute(Model.Properties.SHOWN_LEVEL);
+						currentNetworkView.updateView();
+						try {
+							//be.export(currentNetworkView, new FileOutputStream(directory + File.separator + "Frame" + String.format("%03d", idx) + ".png"));
+							TaskIterator ti = taskFactory.createTaskIterator(currentNetworkView, new File(directory + File.separator + "Frame" + String.format("%03d", idx) + ".png"));
+							tm.execute(ti);
+						} catch (Exception ex) {
+							ex.printStackTrace();
+						}
+					}
+				}
+			});
+			sliderPanel.add(animate, BorderLayout.EAST);
+		}
+
 
 		sliderPanel.add(this.slider, BorderLayout.CENTER);
 
