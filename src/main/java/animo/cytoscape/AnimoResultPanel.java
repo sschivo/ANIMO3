@@ -1208,14 +1208,14 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 							}
 							break;
 						case 2:
-							Long e1 = edgeRow.get(Model.Properties.REACTANT_ID + "E1", Long.class),
-								 e2 = edgeRow.get(Model.Properties.REACTANT_ID + "E2", Long.class);
-							//System.err.println("Scenario 2, E1 = " + e1 + ", isActive? " + edgeAttributes.getBooleanAttribute(edge.getIdentifier(), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1") + ", level = " + nodeAttributes.getDoubleAttribute(e1, Model.Properties.SHOWN_LEVEL));
-							if (((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
-								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))
+							Long e1 = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class),
+								 e2 = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
+							//System.err.println("Scenario 2, E1 = " + e1 + ", isActive? " + edgeAttributes.getBooleanAttribute(edge.getIdentifier(), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1) + ", level = " + nodeAttributes.getDoubleAttribute(e1, Model.Properties.SHOWN_LEVEL));
+							if (((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
+								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))
 								||
-								((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
-								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))) {
+								((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
+								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))) {
 								//concentration = 0;
 								candidate = true;
 							}

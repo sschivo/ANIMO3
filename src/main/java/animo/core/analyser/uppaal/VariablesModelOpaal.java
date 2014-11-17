@@ -891,8 +891,8 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 							activeR2 = true;
 						}
 					} else if (scenario == 2) {
-						activeR1 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1").as(Boolean.class);
-						activeR2 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2").as(Boolean.class);
+						activeR1 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1).as(Boolean.class);
+						activeR2 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2).as(Boolean.class);
 					} else {
 						//TODO: this should never happen, because we have already made these checks
 						activeR1 = activeR2 = true;

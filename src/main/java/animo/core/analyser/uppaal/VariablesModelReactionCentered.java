@@ -819,8 +819,8 @@ public class VariablesModelReactionCentered extends VariablesModel {
 					boolean activeR1 = true,
 							activeR2 = true;
 					if (r.get(SCENARIO).as(Integer.class) == 2) {
-						activeR1 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1").as(Boolean.class);
-						activeR2 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2").as(Boolean.class);
+						activeR1 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1).as(Boolean.class);
+						activeR2 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2).as(Boolean.class);
 					} else {
 						if (r.get(INCREMENT).as(Integer.class) >= 0) {
 							activeR2 = false;

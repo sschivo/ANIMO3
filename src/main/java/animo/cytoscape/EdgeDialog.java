@@ -301,29 +301,29 @@ public class EdgeDialog extends JDialog {
 								.getComponent(2)), listE2act = (JComboBox<String>) (e2Box.getComponent(1)), listE2 = (JComboBox<String>) (e2Box
 								.getComponent(2));
 
-						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID + "E1", reactantIdentifiers[listE1.getSelectedIndex()]);
-						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class,
+						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID_E1, reactantIdentifiers[listE1.getSelectedIndex()]);
+						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class,
 								reactantIdentifiers[listE1.getSelectedIndex()]);
 
 						if (listE1act.getSelectedIndex() == 0) {
-							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", true);
-							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
+							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, true);
+							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
 									Boolean.class, true);
 						} else {
-							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", false);
-							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
+							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, false);
+							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
 									Boolean.class, false);
 						}
-						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID + "E2", reactantIdentifiers[listE2.getSelectedIndex()]);
-						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class,
+						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID_E2, reactantIdentifiers[listE2.getSelectedIndex()]);
+						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class,
 								reactantIdentifiers[listE2.getSelectedIndex()]);
 						if (listE2act.getSelectedIndex() == 0) {
-							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", true);
-							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
+							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, true);
+							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
 									Boolean.class, true);
 						} else {
-							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", false);
-							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
+							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, false);
+							Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
 									Boolean.class, false);
 						}
 					}
@@ -447,9 +447,9 @@ public class EdgeDialog extends JDialog {
 					reactantAliases), listE1act = new JComboBox<String>(activeInactive), listE2act = new JComboBox<String>(
 					activeInactive);
 			int selectedReactant = -1;
-			String id = n.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class);
+			String id = n.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class);
 			if (id != null) {
-				Boolean active = n.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
+				Boolean active = n.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class);
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
 					if (reactantIdentifiers[i].equals(id)) {
 						selectedReactant = i;
@@ -479,9 +479,9 @@ public class EdgeDialog extends JDialog {
 			}
 
 			selectedReactant = -1;
-			id = n.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
+			id = n.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class);
 			if (id != null) {
-				Boolean active = n.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
+				Boolean active = n.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class);
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
 					if (reactantIdentifiers[i].equals(id)) {
 						selectedReactant = i;

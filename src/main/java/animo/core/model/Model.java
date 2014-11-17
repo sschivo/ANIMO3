@@ -137,11 +137,15 @@ public class Model implements Serializable {
 		 * _REACTANT_E2
 		 */
 		public static final String REACTANT_ID = "_REACTANT_";
+		public static final String REACTANT_ID_E1 = REACTANT_ID + "E1",
+								   REACTANT_ID_E2 = REACTANT_ID + "E2";
 		/**
 		 * (prefix for a parameter of a reaction) tells whether the input for a reaction considers the active or inactive part of the given reactant. The actual name of this
 		 * property is for example _REACTANT_ACT_S, _REACTANT_ACT_E, _REACTANT_ACT_E1, _REACTANT_ACT_E2
 		 */
 		public static final String REACTANT_IS_ACTIVE_INPUT = "_REACTANT_ACT_";
+		public static final String REACTANT_IS_ACTIVE_INPUT_E1 = REACTANT_IS_ACTIVE_INPUT + "E1",
+								   REACTANT_IS_ACTIVE_INPUT_E2 = REACTANT_IS_ACTIVE_INPUT + "E2";
 		/**
 		 * whether the reactant known as r1 is a downstream reactant (i.e., its activity influences the reaction, but the reaction influences its activity too)
 		 */
@@ -468,12 +472,12 @@ public class Model implements Serializable {
 			}
 
 			if (scenarioIdx == 2) {
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E1")) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_ID + "E1", edge.getSource().getSUID());
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, edge
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E1)) {
+					// network.getRow(edge).set(Model.Properties.REACTANT_ID_E1, edge.getSource().getSUID());
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class, edge
 							.getSource().getSUID().toString());
 				} else { //If it WAS set, we must check that a node with that ID exists. It can be an ANIMO 2.x model, which uses node names for IDs
-					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class);
+					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class);
 					CyNode e1 = null;
 					try {
 						e1 = currentNetwork.getNode(Long.parseLong(presumedID));
@@ -485,26 +489,26 @@ public class Model implements Serializable {
 						if (candidateE1s.size() == 1) {
 							//The only candidate is considered the intended node. We translate it into the new numerical (Long) id
 							String e1ID = candidateE1s.iterator().next().get(CyNode.SUID, Long.class).toString();
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, e1ID);
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class, e1ID);
 						} else { //No node with that name is present: we just choose the upstream node like in the case where it is not set
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, edge
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class, edge
 									.getSource().getSUID().toString());
 						}
 					} else {
 						//The node with that ID exists: we just wanted to check that it is there
 					}
 				}
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1")) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", true);
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1)) {
+					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, true);
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
 							Boolean.class, true);
 				}
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E2")) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_ID + "E2", edge.getTarget().getSUID());
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, edge
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E2)) {
+					// network.getRow(edge).set(Model.Properties.REACTANT_ID_E2, edge.getTarget().getSUID());
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class, edge
 							.getTarget().getSUID().toString());
 				} else { //See the comments for e1: the same applies here
-					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
+					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class);
 					CyNode e2 = null;
 					try {
 						e2 = currentNetwork.getNode(Long.parseLong(presumedID));
@@ -516,18 +520,18 @@ public class Model implements Serializable {
 						if (candidateE2s.size() == 1) {
 							//The only candidate is considered the intended node. We translate it into the new numerical (Long) id
 							String e2ID = candidateE2s.iterator().next().get(CyNode.SUID, Long.class).toString();
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, e2ID);
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class, e2ID);
 						} else { //No node with that name is present: we just choose the upstream node like in the case where it is not set
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, edge
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class, edge
 									.getSource().getSUID().toString());
 						}
 					} else {
 						//The node with that ID exists: we just wanted to check that it is there
 					}
 				}
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2")) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", true);
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2)) {
+					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, true);
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
 							Boolean.class, true);
 				}
 
@@ -538,14 +542,14 @@ public class Model implements Serializable {
 				if (currentNetwork.getRow(e1).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e1).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class));
+					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class));
 				}
 
 				nameBuilder.append(" AND ");
 				if (currentNetwork.getRow(e2).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e2).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class));
+					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class));
 				}
 
 				nameBuilder.append(increment >= 0 ? " --> " : " --| ");
@@ -758,8 +762,8 @@ public class Model implements Serializable {
 					activeR2 = true;
 				}
 			} else if (scenarioIdx == 2) {
-				activeR1 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
-				activeR2 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
+				activeR1 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class);
+				activeR2 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class);
 			}
 
 			String[] parameters = scenario.listVariableParameters();
@@ -1068,11 +1072,10 @@ public class Model implements Serializable {
 							.as(Integer.class);
 					break;
 				case 2:
-					String e1_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class);
-					String e2_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
+					String e1_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class);
+					String e2_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class);
 					String e1 = nodeNameToId.get(e1_id);
 					String e2 = nodeNameToId.get(e2_id);
-					System.err.println("Nella reazione con scenario 2, e1 = " + e1 + ", e2 = " + e2);
 					levelsScaleFactor = 1.0
 							/ model.getReactant(reactant).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class)
 							* model.getReactant(e1).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class)
@@ -1149,8 +1152,8 @@ public class Model implements Serializable {
 
 			if (scenarioIdx == 2) { // actually, they are both catalysts
 				String cata, reac;
-				cata = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class));
-				reac = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class));
+				cata = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class));
+				reac = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class));
 				r.let(Model.Properties.CATALYST).be(cata);
 				r.let(Model.Properties.REACTANT).be(reac);
 				if (!model.getReactant(cata).get(Model.Properties.NUMBER_OF_LEVELS).isNull()) {
@@ -1165,9 +1168,8 @@ public class Model implements Serializable {
 				}
 				String out = nodeNameToId.get(edge.getTarget().getSUID().toString());
 				r.let(Model.Properties.OUTPUT_REACTANT).be(out);
-				// levelsScaleFactor /= 2*nodeAttributes.getDoubleAttribute(network.getRow(edge).get(Model.Properties.REACTANT_ID + "E2",String.class)),
+				// levelsScaleFactor /= 2*nodeAttributes.getDoubleAttribute(network.getRow(edge).get(Model.Properties.REACTANT_ID_E2,String.class)),
 				// Model.Properties.LEVELS_SCALE_FACTOR);
-				System.err.println("Scenario 2. E1 = " + cata + ", E2 = " + reac + ". Output = " + out);
 			} else {
 				r.let(Model.Properties.OUTPUT_REACTANT).be(reactant);
 			}
@@ -1201,10 +1203,10 @@ public class Model implements Serializable {
 					activeR2 = true;
 				}
 			} else if (scenarioIdx == 2) {
-				activeR1 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", Boolean.class);
-				activeR2 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", Boolean.class);
-				r.let(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1").be(activeR1);
-				r.let(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2").be(activeR2);
+				activeR1 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class);
+				activeR2 = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class);
+				r.let(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1).be(activeR1);
+				r.let(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2).be(activeR2);
 				reactant1IsDownstream = r.get(Model.Properties.CATALYST).as(String.class)
 						.equals(r.get(Model.Properties.OUTPUT_REACTANT).as(String.class));
 				reactant2IsDownstream = r.get(Model.Properties.REACTANT).as(String.class)

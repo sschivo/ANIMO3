@@ -501,8 +501,8 @@ public class ParameterFitter extends WindowAdapter {
 					activeR2 = true;
 				}
 			} else if (scenarioIdx == 2) {
-				activeR1 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1").as(Boolean.class);
-				activeR2 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2").as(Boolean.class);
+				activeR1 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1).as(Boolean.class);
+				activeR2 = r.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2).as(Boolean.class);
 				reactant1IsDownstream = r.get(Model.Properties.CATALYST).as(String.class)
 						.equals(r.get(Model.Properties.OUTPUT_REACTANT).as(String.class));
 				reactant2IsDownstream = r.get(Model.Properties.REACTANT).as(String.class)
