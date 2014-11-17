@@ -363,7 +363,7 @@ public class RunAction extends AnimoActionTask {
 
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		RunTask task = new RunTask();
+		final RunTask task = new RunTask();
 
 		// TODO: Nog geen oplossing voor gevonden voor cytoscape 3
 
@@ -375,12 +375,13 @@ public class RunAction extends AnimoActionTask {
 		 * jTaskConfig.setModal(true); //if (nSimulationRuns.isEnabled()) { jTaskConfig.displayTimeRemaining(true); //}
 		 */
 
-		long startTime = System.currentTimeMillis();
+		final long startTime = System.currentTimeMillis();
 		Date now = new Date(startTime);
 		Calendar nowCal = Calendar.getInstance();
 		File logFile = null;
-		PrintStream logStream = null;
-		PrintStream oldErr = System.err;
+		final PrintStream logStream;
+		PrintStream tmpLogStream = null;
+		final PrintStream oldErr = System.err;
 		try {
 			if (UppaalModelAnalyserSMC/* FasterConcrete */.areWeUnderWindows()) {
 				logFile = File.createTempFile(
@@ -391,35 +392,42 @@ public class RunAction extends AnimoActionTask {
 				logFile = File.createTempFile("ANIMO run " + now.toString(), ".log");
 			}
 			logFile.deleteOnExit();
-			logStream = new PrintStream(new FileOutputStream(logFile));
-			System.setErr(logStream);
+			tmpLogStream = new PrintStream(new FileOutputStream(logFile));
+			System.setErr(tmpLogStream);
 		} catch (IOException ex) {
 			// We have no log file, bad luck: we will have to use System.err.
 		}
+		logStream = tmpLogStream; //Just to have it final (from now on, so we can use it in the thread we create below) and still be able to initialize it as null
 
 		// Execute Task in New Thread; pops open JTask Dialog Box.
 		Animo.getCytoscapeApp().getTaskManager().execute(new TaskIterator(task));
 		
 		//Execute task and WAIT FOR IT (!!) otherwise we just close the log file before the task has started..
 		//Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class).execute(new TaskIterator(task)); <-- This does not create a task monitor, but we do want a task monitor, so we must end up waiting until the task finishes...)
-		while (true) {
-			try {
-				Thread.sleep(50);
-			} catch (Exception ex) {
-			}
-			if (task.isComplete()) {
-				break;
-			}
-		}
+		
+		new Thread() {
+			public void run() {
+				while (true) {
+					try {
+						Thread.sleep(200);
+					} catch (Exception ex) {
+					}
+					if (task.isComplete()) {
+						break;
+					}
+				}
 
-		long endTime = System.currentTimeMillis();
+				long endTime = System.currentTimeMillis();
 
-		System.err.println("Time taken: " + timeDifferenceFormat(startTime, endTime));
-		System.err.flush();
-		System.setErr(oldErr);
-		if (logStream != null) {
-			logStream.close();
-		}
+				System.err.println("Time taken: " + timeDifferenceFormat(startTime, endTime));
+				System.err.flush();
+				System.setErr(oldErr);
+				if (logStream != null) {
+					logStream.close();
+				}
+			}
+		}.start();
+		
 
 	}
 

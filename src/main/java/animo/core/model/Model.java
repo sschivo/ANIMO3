@@ -468,22 +468,64 @@ public class Model implements Serializable {
 			}
 
 			if (scenarioIdx == 2) {
-				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E1")) {
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E1")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_ID + "E1", edge.getSource().getSUID());
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, edge
 							.getSource().getSUID().toString());
+				} else { //If it WAS set, we must check that a node with that ID exists. It can be an ANIMO 2.x model, which uses node names for IDs
+					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E1", String.class);
+					CyNode e1 = null;
+					try {
+						e1 = currentNetwork.getNode(Long.parseLong(presumedID));
+					} catch (Exception ex) { //If the presumedID is not a Long number, or no node with that ID exists, we get e1 = null
+						e1 = null;
+					}
+					if (e1 == null) {
+						Collection<CyRow> candidateE1s = currentNetwork.getDefaultNodeTable().getMatchingRows(CyNetwork.NAME, presumedID);
+						if (candidateE1s.size() == 1) {
+							//The only candidate is considered the intended node. We translate it into the new numerical (Long) id
+							String e1ID = candidateE1s.iterator().next().get(CyNode.SUID, Long.class).toString();
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, e1ID);
+						} else { //No node with that name is present: we just choose the upstream node like in the case where it is not set
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E1", String.class, edge
+									.getSource().getSUID().toString());
+						}
+					} else {
+						//The node with that ID exists: we just wanted to check that it is there
+					}
 				}
-				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1")) {
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1", true);
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1",
 							Boolean.class, true);
 				}
-				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E2")) {
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID + "E2")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_ID + "E2", edge.getTarget().getSUID());
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, edge
 							.getTarget().getSUID().toString());
+				} else { //See the comments for e1: the same applies here
+					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
+					CyNode e2 = null;
+					try {
+						e2 = currentNetwork.getNode(Long.parseLong(presumedID));
+					} catch (Exception ex) { //If the presumedID is not a Long number, or no node with that ID exists, we get e1 = null
+						e2 = null;
+					}
+					if (e2 == null) {
+						Collection<CyRow> candidateE2s = currentNetwork.getDefaultNodeTable().getMatchingRows(CyNetwork.NAME, presumedID);
+						if (candidateE2s.size() == 1) {
+							//The only candidate is considered the intended node. We translate it into the new numerical (Long) id
+							String e2ID = candidateE2s.iterator().next().get(CyNode.SUID, Long.class).toString();
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, e2ID);
+						} else { //No node with that name is present: we just choose the upstream node like in the case where it is not set
+							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID + "E2", String.class, edge
+									.getSource().getSUID().toString());
+						}
+					} else {
+						//The node with that ID exists: we just wanted to check that it is there
+					}
 				}
-				if (currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2")) {
+				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2")) {
 					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2", true);
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2",
 							Boolean.class, true);
@@ -984,7 +1026,6 @@ public class Model implements Serializable {
 			Reaction r = new Reaction(reactionId);
 			edgeNameToId.put(edge.getSUID().toString(), reactionId);
 
-			currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
 			r.let(Model.Properties.ENABLED).be(currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class));
 			r.let(Model.Properties.INCREMENT).be(currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class));
 			r.let(Model.Properties.CYTOSCAPE_ID).be("E" + edge.getSUID());
@@ -1031,6 +1072,7 @@ public class Model implements Serializable {
 					String e2_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID + "E2", String.class);
 					String e1 = nodeNameToId.get(e1_id);
 					String e2 = nodeNameToId.get(e2_id);
+					System.err.println("Nella reazione con scenario 2, e1 = " + e1 + ", e2 = " + e2);
 					levelsScaleFactor = 1.0
 							/ model.getReactant(reactant).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class)
 							* model.getReactant(e1).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class)
@@ -1125,6 +1167,7 @@ public class Model implements Serializable {
 				r.let(Model.Properties.OUTPUT_REACTANT).be(out);
 				// levelsScaleFactor /= 2*nodeAttributes.getDoubleAttribute(network.getRow(edge).get(Model.Properties.REACTANT_ID + "E2",String.class)),
 				// Model.Properties.LEVELS_SCALE_FACTOR);
+				System.err.println("Scenario 2. E1 = " + cata + ", E2 = " + reac + ". Output = " + out);
 			} else {
 				r.let(Model.Properties.OUTPUT_REACTANT).be(reactant);
 			}

@@ -31,9 +31,12 @@ public class UppaalModelAnalyser implements ModelAnalyser<LevelResult> {
 	 * @param resultInterpreter
 	 *            the analyzer to use when interpreting the UPPAAL output
 	 * @param transformer
-	 *            the model transformer to use when transforming the {@link Model} to an UPPAAL model
+	 *            the model transformer to use when transforming the
+	 *            {@link Model} to an UPPAAL model
 	 */
-	public UppaalModelAnalyser(ResultInterpreter<LevelResult> resultInterpreter, ModelTransformer transformer) {
+	public UppaalModelAnalyser(
+			ResultInterpreter<LevelResult> resultInterpreter,
+			ModelTransformer transformer) {
 		super();
 		this.resultInterpreter = resultInterpreter;
 		this.transformer = transformer;
@@ -53,16 +56,23 @@ public class UppaalModelAnalyser implements ModelAnalyser<LevelResult> {
 		try {
 			output = new UppaalInvoker().trace(uppaalModel, uppaalQuery);
 		} catch (IOException e) {
-			throw new AnalysisException("The analysis failed due to an I/O exception while invoking UPPAAL.", e);
+			throw new AnalysisException(
+					"The analysis failed due to an I/O exception while invoking UPPAAL.",
+					e);
 		} catch (InterruptedException e) {
 			throw new AnalysisException(
-					"The analysis failed due to the analysis being interrupted while waiting for UPPAAL.", e);
+					"The analysis failed due to the analysis being interrupted while waiting for UPPAAL.",
+					e);
+		} catch (Exception e) {
+			throw new AnalysisException(
+					"The analysis failed due to a network error.", e);
 		}
 
 		// if the ouput is null, we have no trace
 		if (output != null) {
 			if (output.startsWith("Catched exception:")) {
-				throw new AnalysisException("Tracer did not produce parseable output.");
+				throw new AnalysisException(
+						"Tracer did not produce parseable output.");
 			}
 
 			// interpret the resulting trace

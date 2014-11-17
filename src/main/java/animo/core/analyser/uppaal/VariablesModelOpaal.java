@@ -22,21 +22,23 @@ import animo.core.model.Reaction;
 import animo.util.XmlConfiguration;
 
 /**
- * This is the same as the reactant-centered model, but without using structs or typedefs, as they are currently unsupported by opaal
+ * This is the same as the reactant-centered model, but without using
+ * structs or typedefs, as they are currently unsupported by opaal
  */
 public class VariablesModelOpaal extends VariablesModelReactantCentered {
 
-	private static final String REACTANT_INDEX = Model.Properties.REACTANT_INDEX,
-			OUTPUT_REACTANT = Model.Properties.OUTPUT_REACTANT, SCENARIO = Model.Properties.SCENARIO,
-			HAS_INFLUENCING_REACTIONS = "has influencing reactions";
-
-	//private boolean normalModelChecking = false;
-	private int uncertainty = 0;
-
 	public VariablesModelOpaal() {
-
+		
 	}
 
+
+	private static final String REACTANT_INDEX = Model.Properties.REACTANT_INDEX,
+								OUTPUT_REACTANT = Model.Properties.OUTPUT_REACTANT,
+								SCENARIO = Model.Properties.SCENARIO,
+								HAS_INFLUENCING_REACTIONS = "has influencing reactions";
+//	private boolean normalModelChecking = false;
+	private int uncertainty = 0;
+	
 	@Override
 	protected void appendModel(StringBuilder out, Model m) {
 		out.append("<?xml version='1.0' encoding='utf-8'?>");
@@ -47,7 +49,7 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		out.append(newLine);
 		out.append("<declaration>");
 		out.append(newLine);
-
+		
 		// output global declarations
 		out.append("// Place global declarations here.");
 		out.append(newLine);
@@ -56,7 +58,7 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		out.append("const int INFINITE_TIME = " + INFINITE_TIME + ";");
 		out.append(newLine);
 		int countReactants = 0;
-		for (Reactant r : m.getReactantCollection()) {
+		for (Reactant r : m.getSortedReactantList()) {
 			if (r.get(ENABLED).as(Boolean.class)) {
 				countReactants++;
 			}
@@ -65,49 +67,48 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		out.append(newLine);
 		out.append("broadcast chan reacting[N_REACTANTS];");
 		out.append(newLine);
-//		if (m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE) != null
-//				&& m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE).as(Integer.class) == Model.Properties.NORMAL_MODEL_CHECKING) {
+//		if (m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE) != null && m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE).as(Integer.class) == Model.Properties.NORMAL_MODEL_CHECKING) {
 //			normalModelChecking = true;
 //			out.append("broadcast chan sequencer[N_REACTANTS];");
 //			out.append(newLine);
 //			if (countReactants > 1) {
 //				out.append("chan priority ");
-//				for (int i = 0; i < countReactants - 1; i++) {
+//				for (int i=0;i<countReactants-1;i++) {
 //					out.append("reacting[" + i + "] &lt; ");
 //				}
-//				out.append("reacting[" + (countReactants - 1) + "];");
+//				out.append("reacting[" + (countReactants-1) + "];");
 //				out.append(newLine);
 //				out.append("chan priority ");
-//				for (int i = 0; i < countReactants - 1; i++) {
+//				for (int i=0;i<countReactants-1;i++) {
 //					out.append("sequencer[" + i + "] &lt; ");
 //				}
-//				out.append("sequencer[" + (countReactants - 1) + "];");
+//				out.append("sequencer[" + (countReactants-1) + "];");
 //				out.append(newLine);
 //			}
 //		} else {
 //			normalModelChecking = false;
 //		}
 		out.append(newLine);
-
+		
 		int reactantIndex = 0;
 		for (Reactant r : m.getSortedReactantList()) {
-			if (!r.get(ENABLED).as(Boolean.class))
-				continue;
+			if (!r.get(ENABLED).as(Boolean.class)) continue;
 			r.let(REACTANT_INDEX).be(reactantIndex);
-			reactantIndex++;
+			reactantIndex++; 
 			this.appendReactantVariables(out, r);
 		}
-
-		// The encoding of double numbers with integer variables (exponential notation with 3 significant figures)
+		
+		
+		//The encoding of double numbers with integer variables (exponential notation with 3 significant figures)
 		out.append(newLine);
-		// out.append("typedef struct {");
-		// out.append(newLine);
-		// out.append("\tint[-99980001, 99980001] b;"); //99980001 = 9999 * 9999, i.e. the maximum result of a multiplication between two .b of double numbers
-		// out.append(newLine);
-		// out.append("\tint e;");
-		// out.append(newLine);
-		// out.append("} double;");
-		// out.append(newLine);
+//		out.append("typedef struct {");
+//		out.append(newLine);
+//		out.append("\tint[-99980001, 99980001] b;"); //99980001 = 9999 * 9999, i.e. the maximum result of a multiplication between two .b of double numbers
+//		out.append(newLine);
+//		out.append("\tint e;");
+//		out.append(newLine);
+//		out.append("} double;");
+//		out.append(newLine);
 		out.append(newLine);
 		out.append("const int[-99980001, 99980001] zero_b = 0;");
 		out.append(newLine);
@@ -123,35 +124,35 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		if (uncertaintyStr != null) {
 			try {
 				uncertainty = Integer.parseInt(uncertaintyStr);
-			} catch (NumberFormatException ex) {
+			} catch (Exception ex) {
 				uncertainty = 0;
 			}
 		} else {
 			uncertainty = 0;
 		}
 		if (uncertainty != 0) {
-			double lowerUnc = (100.0 - uncertainty) / 100.0, upperUnc = (100.0 + uncertainty) / 100.0;
+			double lowerUnc = (100.0 - uncertainty) / 100.0,
+				   upperUnc = (100.0 + uncertainty) / 100.0;
 			out.append("//Lower and upper scale factors to apply uncertainty. E.g. for +/- 5% uncertainty, we have lower uncertainty = 0.95, upper uncertainty = 1.05");
 			out.append(newLine);
 			formatDoubleDeclaration("const ", out, "LOWER_UNC", lowerUnc);
 			formatDoubleDeclaration("const ", out, "UPPER_UNC", upperUnc);
 		}
 		out.append(newLine);
-		// out.append("typedef int[-1, 1073741822] time_t;"); //The type for time values
-		// out.append(newLine);
-		// out.append(newLine);
-		// //In order to still show the reaction activity ratio we use the original time bounds
-		// out.append("typedef struct {");
-		// out.append(newLine);
-		// out.append("\ttime_t T;");
-		// out.append(newLine);
-		// out.append("} timeActivity;");
-		// out.append(newLine);
-		// out.append(newLine);
-
-		for (Reaction r : m.getReactionCollection()) { // The time tables (filled by the rates, not times)
-			if (!r.get(ENABLED).as(Boolean.class))
-				continue;
+//		out.append("typedef int[-1, 1073741822] time_t;"); //The type for time values
+//		out.append(newLine);
+//		out.append(newLine);
+//		//In order to still show the reaction activity ratio we use the original time bounds
+//		out.append("typedef struct {");
+//		out.append(newLine);
+//		out.append("\ttime_t T;");
+//		out.append(newLine);
+//		out.append("} timeActivity;");
+//		out.append(newLine);
+//		out.append(newLine);
+		
+		for (Reaction r : m.getReactionCollection()) { //The time tables (filled by the rates, not times)
+			if (!r.get(ENABLED).as(Boolean.class)) continue;
 			this.appendReactionTables(out, m, r);
 		}
 		out.append(newLine);
@@ -782,35 +783,34 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		out.append(newLine);
 		out.append("}");
 		out.append(newLine);
-
+		
 		out.append("</declaration>");
-
+		
 		out.append(newLine);
 		out.append(newLine);
 		// output templates
 		this.appendTemplates(out, m);
-
+		
 		out.append(newLine);
 		out.append("<system>");
 		out.append(newLine);
-
-		// for (Reactant r : m.getSortedReactantList()) {
-		// if (!r.get(ENABLED).as(Boolean.class) || !r.get(HAS_INFLUENCING_REACTIONS).as(Boolean.class)) continue;
-		// this.appendReactionProcess(out, m, r, reactantIndex);
-		// }
-		//
-		// out.append(newLine);
-		// out.append(newLine);
+		
+//		for (Reactant r : m.getReactantCollection()) {
+//			if (!r.get(ENABLED).as(Boolean.class) || !r.get(HAS_INFLUENCING_REACTIONS).as(Boolean.class)) continue;
+//			this.appendReactionProcess(out, m, r, reactantIndex);
+//		}
+//		
+//		out.append(newLine);
+//		out.append(newLine);
 		out.append(newLine);
-
+		
 		// compose the system
 		out.append("system ");
 		Iterator<Reactant> iter = m.getSortedReactantList().iterator();
 		boolean first = true;
 		while (iter.hasNext()) {
 			Reactant r = iter.next();
-			if (!r.get(ENABLED).as(Boolean.class) || !r.get(HAS_INFLUENCING_REACTIONS).as(Boolean.class))
-				continue;
+			if (!r.get(ENABLED).as(Boolean.class) || !r.get(HAS_INFLUENCING_REACTIONS).as(Boolean.class)) continue;
 			if (!first) {
 				out.append(", ");
 			}
@@ -818,59 +818,35 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 			first = false;
 		}
 		out.append(";");
-
+		
 		out.append(newLine);
 		out.append(newLine);
 		out.append("</system>");
 		out.append(newLine);
 		out.append("</nta>");
 	}
-
-	// private void appendReactionProcess(StringBuilder out, Model m, Reactant r, int index) {
-	// out.append(r.getId() + "_ = _" + r.getId() + "(" + r.getId() + ", " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ");");
-	// out.append(newLine);
-	// }
-
-	@Override
-	protected void appendReactantVariables(StringBuilder out, Reactant r) {
-		// outputs the global variables necessary for the given reactant
-		out.append("//" + r.getId() + " = " + r.getName());
-		out.append(newLine);
-		out.append("int " + r.getId() + " := " + r.get(INITIAL_LEVEL).as(Integer.class) + ";");
-		out.append(newLine);
-		formatDoubleDeclaration(out, r.getId() + "Levels", r.get(NUMBER_OF_LEVELS).as(Integer.class));
-		out.append(newLine);
-	}
-
+	
+//	private void appendReactionProcess(StringBuilder out, Model m, Reactant r, int index) {
+//		out.append(r.getId() + "_ = _" + r.getId() + "(" + r.getId() + ", " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ");");
+//		out.append(newLine);
+//	}
+	
 	private void appendReactionTables(StringBuilder out, Model m, Reaction r) {
 		String r1Id = r.get(CATALYST).as(String.class);
 		String r2Id = r.get(REACTANT).as(String.class);
 		String rOutput = r.get(Model.Properties.OUTPUT_REACTANT).as(String.class);
-		out.append("//Reaction "
-				+ r1Id
-				+ " ("
-				+ m.getReactant(r1Id).getName()
-				+ ") "
-				+ (!r2Id.equals(rOutput) ? ("AND " + r2Id + " (" + m.getReactant(r2Id).getName() + ") ") : "")
-				+ (r.get(INCREMENT).as(Integer.class) > 0 ? "-->" : "--|")
-				+ " "
-				+ (r2Id.equals(rOutput) ? (r2Id + " (" + m.getReactant(r2Id).getName() + ")") : (rOutput + " ("
-						+ m.getReactant(rOutput).getName() + ")")));
+		out.append("//Reaction " + r1Id + " (" + m.getReactant(r1Id).get(ALIAS).as(String.class) + ") " + (!r2Id.equals(rOutput)?("AND " + r2Id + " (" + m.getReactant(r2Id).get(ALIAS).as(String.class) + ") "):"") + (r.get(INCREMENT).as(Integer.class)>0?"-->":"--|") + " " + (r2Id.equals(rOutput)?(r2Id + " (" + m.getReactant(r2Id).get(ALIAS).as(String.class) + ")"):(rOutput + " (" + m.getReactant(rOutput).get(ALIAS).as(String.class) + ")")));
 		out.append(newLine);
-
+		
 		out.append("int[-1, 1073741822] " + r.getId() + "_T;");
 		out.append(newLine);
-		// out.append("const double k_" + r.getId() + " = " + ";");
-		formatDoubleDeclaration(
-				out,
-				"k_" + r.getId(),
-				r.get(Model.Properties.SCENARIO_PARAMETER_K).as(Double.class)
-						/ (m.getProperties().get(Model.Properties.SECS_POINT_SCALE_FACTOR).as(Double.class) * r.get(
-								Model.Properties.LEVELS_SCALE_FACTOR + "_reaction").as(Double.class)));
+//		out.append("const double k_" + r.getId() + " = " + ";");
+		formatDoubleDeclaration(out, "k_" + r.getId(), r.get(Model.Properties.SCENARIO_PARAMETER_K).as(Double.class) / (m.getProperties().get(Model.Properties.SECS_POINT_SCALE_FACTOR).as(Double.class) * r.get(Model.Properties.LEVELS_SCALE_FACTOR + "_reaction").as(Double.class)));
 		out.append(newLine);
 		out.append(newLine);
-
+		
 	}
+
 
 	@Override
 	protected void appendTemplates(StringBuilder out, Model m) {
@@ -882,26 +858,25 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 			tra.setOutputProperty(OutputKeys.INDENT, "yes");
 			tra.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
 			tra.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
-
+			
 			for (Reactant r : m.getSortedReactantList()) {
-				if (!r.get(ENABLED).as(Boolean.class))
-					continue;
+				if (!r.get(ENABLED).as(Boolean.class)) continue;
 				outString = new StringWriter();
 				Vector<Reaction> influencingReactions = new Vector<Reaction>();
 				for (Reaction re : m.getReactionCollection()) {
-					if (re.get(OUTPUT_REACTANT).as(String.class).equals(r.getId())) { // If the reactant is downstream of a reaction, count that reaction
+					if (re.get(OUTPUT_REACTANT).as(String.class).equals(r.getId()))  { //If the reactant is downstream of a reaction, count that reaction
 						influencingReactions.add(re);
 					}
 				}
-
-				if (influencingReactions.isEmpty()) {
+				
+				if (influencingReactions.size() < 1) {
 					r.let(HAS_INFLUENCING_REACTIONS).be(false);
 					continue;
 				}
 				r.let(HAS_INFLUENCING_REACTIONS).be(true);
-
+				
 				StringBuilder template = new StringBuilder("<template><name>_" + r.getId() + "</name><declaration>int[-1, 1] delta;\nint[-1, 1073741822] tL, tU;\nclock c;\nint[-99980001, 99980001] totalRate_b;\nint totalRate_e;\n\n\nvoid update() {\n");
- 				for (int i = 0; i < influencingReactions.size(); i++) {
+				for (int i=0; i<influencingReactions.size(); i++) {
 					formatDoubleDeclaration("\t", template, "ret" + i, 0);
 				}
 				int countReaction = 0;
@@ -919,7 +894,7 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 						activeR1 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E1").as(Boolean.class);
 						activeR2 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT + "E2").as(Boolean.class);
 					} else {
-						// TODO: this should never happen, because we have already made these checks
+						//TODO: this should never happen, because we have already made these checks
 						activeR1 = activeR2 = true;
 					}
 					template.append("\tk_b = k_" + re.getId() + "_b;");
@@ -927,62 +902,46 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 					template.append("\tk_e = k_" + re.getId() + "_e;");
 					template.append(newLine);
 					switch (scenario) {
-					case 0:
-						template.append("\tint_to_double("
-								+ m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + ");");
-						template.append(newLine);
-						template.append("\tr1_b = retval_b;");
-						template.append(newLine);
-						template.append("\tr1_e = retval_e;");
-						template.append(newLine);
-						template.append("\tr1Levels_b = "
-								+ m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId()
-								+ "Levels_b;");
-						template.append(newLine);
-						template.append("\tr1Levels_e = "
-								+ m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId()
-								+ "Levels_e;");
-						template.append(newLine);
-						template.append("\tscenario1(" + activeR1 + ");");
-						template.append(newLine);
-						break;
-					case 1:
-					case 2:
-						template.append("\tint_to_double("
-								+ m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId() + ");");
-						template.append(newLine);
-						template.append("\tr2_b = retval_b;");
-						template.append(newLine);
-						template.append("\tr2_e = retval_e;");
-						template.append(newLine);
-						template.append("\tr2Levels_b = "
-								+ m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId()
-								+ "Levels_b;");
-						template.append(newLine);
-						template.append("\tr2Levels_e = "
-								+ m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId()
-								+ "Levels_e;");
-						template.append(newLine);
-						template.append("\tint_to_double("
-								+ m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + ");");
-						template.append(newLine);
-						template.append("\tr1_b = retval_b;");
-						template.append(newLine);
-						template.append("\tr1_e = retval_e;");
-						template.append(newLine);
-						template.append("\tr1Levels_b = "
-								+ m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId()
-								+ "Levels_b;");
-						template.append(newLine);
-						template.append("\tr1Levels_e = "
-								+ m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId()
-								+ "Levels_e;");
-						template.append(newLine);
-						template.append("\tscenario2_3(" + activeR2 + ", " + activeR1 + ");");
-						template.append(newLine);
-						break;
-					default:
-						break;
+						case 0:
+							template.append("\tint_to_double(" + m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + ");");
+							template.append(newLine);
+							template.append("\tr1_b = retval_b;");
+							template.append(newLine);
+							template.append("\tr1_e = retval_e;");
+							template.append(newLine);
+							template.append("\tr1Levels_b = " + m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + "Levels_b;");
+							template.append(newLine);
+							template.append("\tr1Levels_e = " + m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + "Levels_e;");
+							template.append(newLine);
+							template.append("\tscenario1(" + activeR1 + ");");
+							template.append(newLine);
+							break;
+						case 1: case 2:
+							template.append("\tint_to_double(" + m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId() + ");");
+							template.append(newLine);
+							template.append("\tr2_b = retval_b;");
+							template.append(newLine);
+							template.append("\tr2_e = retval_e;");
+							template.append(newLine);
+							template.append("\tr2Levels_b = " + m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId() + "Levels_b;");
+							template.append(newLine);
+							template.append("\tr2Levels_e = " + m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId() + "Levels_e;");
+							template.append(newLine);
+							template.append("\tint_to_double(" + m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + ");");
+							template.append(newLine);
+							template.append("\tr1_b = retval_b;");
+							template.append(newLine);
+							template.append("\tr1_e = retval_e;");
+							template.append(newLine);
+							template.append("\tr1Levels_b = " + m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + "Levels_b;");
+							template.append(newLine);
+							template.append("\tr1Levels_e = " + m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId() + "Levels_e;");
+							template.append(newLine);
+							template.append("\tscenario2_3(" + activeR2 + ", " + activeR1 + ");");
+							template.append(newLine);
+							break;
+						default:
+							break;
 					}
 					template.append("\tret" + countReaction + "_b = retval_b;");
 					template.append(newLine);
@@ -1036,11 +995,11 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 					template.append(newLine);
 					countReaction++;
 				}
-				template.append("\ttotalRate_b = ret" + (countReaction - 1) + "_b;");
+				template.append("\ttotalRate_b = ret" + (countReaction-1) + "_b;");
 				template.append(newLine);
-				template.append("\ttotalRate_e = ret" + (countReaction - 1) + "_e;");
+				template.append("\ttotalRate_e = ret" + (countReaction-1) + "_e;");
 				template.append(newLine);
-
+				
 				template.append("\tif (totalRate_b &lt; 0) {\n\t\tdelta = -1;\n\t\ttotalRate_b = -totalRate_b;\n\t} else {\n\t\tdelta = 1;\n\t}\n\tif (totalRate_b != 0) {\n");
 				template.append("\t\ta_b = totalRate_b;\n\t\ta_e = totalRate_e;\n\t\tinverse();\n");
 				if (uncertainty != 0) {
@@ -1053,141 +1012,78 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 				template.append("\t\ta_b = retval_b;\n\t\ta_e = retval_e;\n\t\ttU = round();\n");
 				template.append("\t} else {\n\t\ttL = INFINITE_TIME;\n\t\ttU = INFINITE_TIME;\n\t}\n\tif (tL != INFINITE_TIME &amp;&amp; tL &gt; tU) { //We use rounded things: maybe the difference between tL and tU was not so great, and with some rounding problems we could have this case\n\t\ttL = tU;\n\t}\n}\n\nvoid react() {\n\tif (0 &lt;= " + r.getId() + " + delta &amp;&amp; " + r.getId() + " + delta &lt;= " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ") {\n\t\t" + r.getId() + " = " + r.getId() + " + delta;\n\t}\n\tupdate();\n}\n\nbool can_react() {\n\treturn tL != INFINITE_TIME &amp;&amp; tL != 0 &amp;&amp; tU != 0 &amp;&amp; ((delta &gt; 0 &amp;&amp; " + r.getId() + " &lt; " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ") || (delta &lt; 0 &amp;&amp; " + r.getId() + " &gt; 0));\n}\n\nbool cant_react() {\n\treturn tL == INFINITE_TIME || tL == 0 || tU == 0 || (delta &gt; 0 &amp;&amp; " + r.getId() + " == " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ") || (delta &lt; 0 &amp;&amp; " + r.getId() + " == 0);\n}</declaration>");
 				template.append("<location id=\"id0\" x=\"-1896\" y=\"-728\"><name x=\"-1960\" y=\"-752\">stubborn</name><committed/></location><location id=\"id6\" x=\"-1256\" y=\"-728\"><name x=\"-1248\" y=\"-752\">start</name><committed/></location><location id=\"id7\" x=\"-1552\" y=\"-856\"><name x=\"-1656\" y=\"-872\">not_reacting</name></location><location id=\"id8\" x=\"-1416\" y=\"-728\"><name x=\"-1400\" y=\"-752\">updating</name><committed/></location><location id=\"id9\" x=\"-1664\" y=\"-728\"><name x=\"-1728\" y=\"-744\">waiting</name><label kind=\"invariant\" x=\"-1728\" y=\"-720\">c &lt;= tU\n|| tU ==\nINFINITE_TIME</label></location><init ref=\"id6\"/><transition><source ref=\"id8\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1640\" y=\"-760\">(tU == INFINITE_TIME\n|| c &lt;= tU) &amp;&amp; can_react()</label></transition><transition><source ref=\"id8\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-712\">(tU != INFINITE_TIME\n&amp;&amp; c &gt; tU) &amp;&amp; can_react()</label><label kind=\"assignment\" x=\"-1608\" y=\"-680\">c := tU</label><nail x=\"-1528\" y=\"-680\"/><nail x=\"-1608\" y=\"-680\"/></transition><transition><source ref=\"id0\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1816\" y=\"-632\">c &lt; tL</label><label kind=\"assignment\" x=\"-1816\" y=\"-616\">update()</label><nail x=\"-1848\" y=\"-616\"/><nail x=\"-1464\" y=\"-616\"/></transition><transition><source ref=\"id0\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1816\" y=\"-680\">c &gt;= tL</label><nail x=\"-1840\" y=\"-664\"/><nail x=\"-1744\" y=\"-664\"/></transition><transition><source ref=\"id6\"/><target ref=\"id8\"/><label kind=\"assignment\" x=\"-1344\" y=\"-728\">update()</label></transition>");
-				int y1 = -904, y2 = -888, y3 = -848, incrY = -40;
-				Vector<Reactant> alreadyOutputReactants = new Vector<Reactant>(); // Keep track of reactants that already have a transition to avoid input nondeterminism
-				for (Reaction re : influencingReactions) { // Transitions from not_reacting to updating
+				int y1 = -904,
+					y2 = -888,
+					y3 = -848,
+					incrY = -40;
+				Vector<Reactant> alreadyOutputReactants = new Vector<Reactant>(); //Keep track of reactants that already have a transition to avoid input nondeterminism
+				for (Reaction re : influencingReactions) { //Transitions from not_reacting to updating
 					int scenario = re.get(SCENARIO).as(Integer.class);
-					Reactant catalyst = m.getReactant(re.get(CATALYST).as(String.class)), reactant = m.getReactant(re
-							.get(REACTANT).as(String.class)); // This is not null only when scenario != 0
+					Reactant catalyst = m.getReactant(re.get(CATALYST).as(String.class)),
+							 reactant = m.getReactant(re.get(REACTANT).as(String.class)); //This is not null only when scenario != 0
 					switch (scenario) {
-					case 0:
-						if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)
-								&& !alreadyOutputReactants.contains(catalyst)) {
-							alreadyOutputReactants.add(catalyst);
-							template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\""
-									+ y1
-									+ "\">reacting["
-									+ m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX)
-											.as(Integer.class)
-									+ "]?</label><label kind=\"assignment\" x=\"-1528\" y=\""
-									+ y2
-									+ "\">update(), c:= 0</label><nail x=\"-1552\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1376\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1376\" y=\""
-									+ y3
-									+ "\"/></transition>");
-							y1 += incrY;
-							y2 += incrY;
-						}
-						break;
-					case 1:
-					case 2: // In this case, CATALYST = E1, REACTANT = E2 (the two upstream reactants)
-						if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)
-								&& !alreadyOutputReactants.contains(catalyst)) {
-							alreadyOutputReactants.add(catalyst);
-							template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\""
-									+ y1
-									+ "\">reacting["
-									+ m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX)
-											.as(Integer.class)
-									+ "]?</label><label kind=\"assignment\" x=\"-1528\" y=\""
-									+ y2
-									+ "\">update(), c:= 0</label><nail x=\"-1552\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1376\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1376\" y=\""
-									+ y3
-									+ "\"/></transition>");
-							y1 += incrY;
-							y2 += incrY;
-						}
-						if (reactant.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)
-								&& !alreadyOutputReactants.contains(reactant)) {
-							alreadyOutputReactants.add(reactant);
-							template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\""
-									+ y1
-									+ "\">reacting["
-									+ m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX)
-											.as(Integer.class)
-									+ "]?</label><label kind=\"assignment\" x=\"-1528\" y=\""
-									+ y2
-									+ "\">update(), c:= 0</label><nail x=\"-1552\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1376\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1376\" y=\""
-									+ y3
-									+ "\"/></transition>");
-							y1 += incrY;
-							y2 += incrY;
-						}
-						break;
-					default:
-						break;
+						case 0:
+							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(catalyst)) {
+								alreadyOutputReactants.add(catalyst);
+								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update(), c:= 0</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
+								y1 += incrY;
+								y2 += incrY;
+							}
+							break;
+						case 1:
+						case 2: //In this case, CATALYST = E1, REACTANT = E2 (the two upstream reactants)
+							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(catalyst)) {
+								alreadyOutputReactants.add(catalyst);
+								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update(), c:= 0</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
+								y1 += incrY;
+								y2 += incrY;
+							}
+							if (reactant.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(reactant)) {
+								alreadyOutputReactants.add(reactant);
+								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update(), c:= 0</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
+								y1 += incrY;
+								y2 += incrY;
+							}
+							break;
+						default:
+							break;
 					}
 				}
 				template.append("<transition><source ref=\"id8\"/><target ref=\"id7\"/><label kind=\"guard\" x=\"-1512\" y=\"-840\">cant_react()</label><nail x=\"-1416\" y=\"-824\"/><nail x=\"-1552\" y=\"-824\"/></transition><transition><source ref=\"id9\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1576\" y=\"-816\">c &gt;= tL</label><label kind=\"synchronisation\" x=\"-1584\" y=\"-800\">reacting[" + r.get(REACTANT_INDEX).as(Integer.class) + "]!</label><label kind=\"assignment\" x=\"-1568\" y=\"-784\">react(), c := 0</label><nail x=\"-1632\" y=\"-784\"/><nail x=\"-1464\" y=\"-784\"/></transition>");
- 				y1 = -744;
+				y1 = -744;
 				y2 = -728;
 				incrY = -48;
-				alreadyOutputReactants = new Vector<Reactant>(); // Keep trace of which reactants already have a transition for them, because otherwise we get input nondeterminism
-				for (Reaction re : influencingReactions) { // Transitions from waiting to stubborn
+				alreadyOutputReactants = new Vector<Reactant>(); //Keep trace of which reactants already have a transition for them, because otherwise we get input nondeterminism
+				for (Reaction re : influencingReactions) { //Transitions from waiting to stubborn
 					int scenario = re.get(SCENARIO).as(Integer.class);
-					Reactant catalyst = m.getReactant(re.get(CATALYST).as(String.class)), reactant = m.getReactant(re
-							.get(REACTANT).as(String.class)); // This is not null only when scenario != 0
+					Reactant catalyst = m.getReactant(re.get(CATALYST).as(String.class)),
+							 reactant = m.getReactant(re.get(REACTANT).as(String.class)); //This is not null only when scenario != 0
 					switch (scenario) {
-					case 0:
-						if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)
-								&& !alreadyOutputReactants.contains(catalyst)) {
-							alreadyOutputReactants.add(catalyst);
-							template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"synchronisation\" x=\"-1832\" y=\""
-									+ y1
-									+ "\">reacting["
-									+ m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX)
-											.as(Integer.class)
-									+ "]?</label><nail x=\"-1752\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1840\" y=\"" + y2 + "\"/></transition>");
-							y1 += incrY;
-							y2 += incrY;
-						}
-						break;
-					case 1:
-					case 2: // In this case, CATALYST = E1, REACTANT = E2 (the two upstream reactants)
-						if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)
-								&& !alreadyOutputReactants.contains(catalyst)) {
-							alreadyOutputReactants.add(catalyst);
-							template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"synchronisation\" x=\"-1832\" y=\""
-									+ y1
-									+ "\">reacting["
-									+ m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX)
-											.as(Integer.class)
-									+ "]?</label><nail x=\"-1752\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1840\" y=\"" + y2 + "\"/></transition>");
-							y1 += incrY;
-							y2 += incrY;
-						}
-						if (reactant.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)
-								&& !alreadyOutputReactants.contains(reactant)) {
-							alreadyOutputReactants.add(reactant);
-							template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"synchronisation\" x=\"-1832\" y=\""
-									+ y1
-									+ "\">reacting["
-									+ m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX)
-											.as(Integer.class)
-									+ "]?</label><nail x=\"-1752\" y=\""
-									+ y2
-									+ "\"/><nail x=\"-1840\" y=\"" + y2 + "\"/></transition>");
-							y1 += incrY;
-							y2 += incrY;
-						}
-						break;
-					default:
-						break;
+						case 0:
+							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(catalyst)) {
+								alreadyOutputReactants.add(catalyst);
+								template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"synchronisation\" x=\"-1832\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><nail x=\"-1752\" y=\"" + y2 + "\"/><nail x=\"-1840\" y=\"" + y2 + "\"/></transition>");
+								y1 += incrY;
+								y2 += incrY;
+							}
+							break;
+						case 1:
+						case 2: //In this case, CATALYST = E1, REACTANT = E2 (the two upstream reactants)
+							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(catalyst)) {
+								alreadyOutputReactants.add(catalyst);
+								template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"synchronisation\" x=\"-1832\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><nail x=\"-1752\" y=\"" + y2 + "\"/><nail x=\"-1840\" y=\"" + y2 + "\"/></transition>");
+								y1 += incrY;
+								y2 += incrY;
+							}
+							if (reactant.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(reactant)) {
+								alreadyOutputReactants.add(reactant);
+								template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"synchronisation\" x=\"-1832\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><nail x=\"-1752\" y=\"" + y2 + "\"/><nail x=\"-1840\" y=\"" + y2 + "\"/></transition>");
+								y1 += incrY;
+								y2 += incrY;
+							}
+							break;
+						default:
+							break;
 					}
 				}
 				template.append("</template>");
@@ -1202,12 +1098,36 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 			e.printStackTrace();
 		}
 	}
-
+	
+	protected String getReactionName(Reaction r) {
+		return r.getId(); //The (UPPAAL) ID of the reaction is already set when we create it in the model
+	}
+	
+	@Override
+	protected void appendReactantVariables(StringBuilder out, Reactant r) {
+		// outputs the global variables necessary for the given reactant
+		out.append("//" + r.getId() + " = " + r.get(ALIAS).as(String.class));
+		out.append(newLine);
+		out.append("int " + r.getId() + " := " + r.get(INITIAL_LEVEL).as(Integer.class) + ";");
+		out.append(newLine);
+		formatDoubleDeclaration(out, r.getId() + "Levels", r.get(NUMBER_OF_LEVELS).as(Integer.class));
+		out.append(newLine);
+	}
+	
+	@Override
+	protected String formatTime(int time) {
+		if (time == INFINITE_TIME) {
+			return "{0, 0}";
+		} else {
+			return formatDouble(1.0 / time); //time is guaranteed not to be 0, because we use 0 as a signal that rounding is not good enough, and increase time scale
+		}
+	}
+	
 	private String formatDouble(double d) {
-		int b, e;
-		e = (int) Math.round(Math.log10(d)) - 3;
-		b = (int) Math.round(d * Math.pow(10, -e));
-		if (b < 10) { // We always want 4 figures
+		int b, e; 
+		e = (int)Math.round(Math.log10(d)) - 3;
+		b = (int)Math.round(d * Math.pow(10, -e));
+		if (b < 10) { //We always want 4 figures
 			b = b * 1000;
 			e = e - 3;
 		} else if (b < 100) {
@@ -1219,12 +1139,16 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		}
 		return "{" + b + ", " + e + "}";
 	}
-
+	
+	private void formatDoubleDeclaration(StringBuilder out, String varName, double d) {
+		formatDoubleDeclaration("", out, varName, d);
+	}
+	
 	private void formatDoubleDeclaration(String prefix, StringBuilder out, String varName, double d) {
-		int b, e;
-		e = (int) Math.round(Math.log10(d)) - 3;
-		b = (int) Math.round(d * Math.pow(10, -e));
-		if (b < 10) { // We always want 4 figures
+		int b, e; 
+		e = (int)Math.round(Math.log10(d)) - 3;
+		b = (int)Math.round(d * Math.pow(10, -e));
+		if (b < 10) { //We always want 4 figures
 			b = b * 1000;
 			e = e - 3;
 		} else if (b < 100) {
@@ -1240,22 +1164,5 @@ public class VariablesModelOpaal extends VariablesModelReactantCentered {
 		out.append(newLine);
 	}
 
-	private void formatDoubleDeclaration(StringBuilder out, String varName, double d) {
-		formatDoubleDeclaration("", out, varName, d);
-	}
-
-	@Override
-	protected String formatTime(int time) {
-		if (time == INFINITE_TIME) {
-			return "{0, 0}";
-		} else {
-			return formatDouble(1.0 / time); // time is guaranteed not to be 0, because we use 0 as a signal that rounding is not good enough, and increase time scale
-		}
-	}
-
-	@Override
-	protected String getReactionName(Reaction r) {
-		return r.getId(); // The (UPPAAL) ID of the reaction is already set when we create it in the model
-	}
-
+	
 }
