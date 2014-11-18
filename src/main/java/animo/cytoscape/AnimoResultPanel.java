@@ -88,6 +88,7 @@ import animo.core.graph.Graph;
 import animo.core.graph.GraphScaleListener;
 import animo.core.graph.Scale;
 import animo.core.model.Model;
+import animo.core.model.Reaction;
 import animo.util.Heptuple;
 import animo.util.Pair;
 
@@ -475,12 +476,12 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				for (String r : result.getReactantIds()) {
 					if (model.getReactant(r) == null)
 						continue;
-					final String id = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
-					final double level = result.getConcentration(r, t) / nLevels * network.getRow(network.getNode(Long.parseLong(id))).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class); // model.getReactant(r).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
+					final Long id = model.getReactant(r).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+					final double level = result.getConcentration(r, t) / nLevels * network.getRow(network.getNode(id)).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class); // model.getReactant(r).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
 																						//We also
 																						// rescale the value to the correct number of levels of each node. Attention: we need to use
 																						// the CURRENT number of levels of the node, or we will get inconsistent results!
-					Animo.setRowValue(network.getRow(network.getNode(Long.parseLong(id))),
+					Animo.setRowValue(network.getRow(network.getNode(id)),
 							Model.Properties.INITIAL_LEVEL, Integer.class, (int)Math.round(level));
 				}
 			}
@@ -584,9 +585,9 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			String name = null;
 			String stdDevReactantName = null;
 			if (model.getReactant(r) != null) { // we can also refer to a name not present in the reactant collection
-				name = model.getReactant(r).getName(); // if an alias is set, we prefer it
+				name = model.getReactant(r).getName(); // if an alias (canonical name) is set, we prefer it
 				if (name == null) {
-					name = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
+					name = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class); //Otherwise we use the name field in Cytoscape, which could also make sense
 				}
 			} else if (r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase())) {
 				stdDevReactantName = r.substring(0, r.lastIndexOf(ResultAverager.STD_DEV));
@@ -1136,9 +1137,9 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			
 			for (String r : this.result.getReactantIds()) {
 				if (this.model.getReactant(r) == null) continue;
-				final String id = this.model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
-				List<CyEdge> incomingEdges = net.getAdjacentEdgeList(net.getNode(Long.valueOf(id)), CyEdge.Type.UNDIRECTED);
-				incomingEdges.addAll(net.getAdjacentEdgeList(net.getNode(Long.valueOf(id)), CyEdge.Type.INCOMING));
+				final Long id = this.model.getReactant(r).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+				List<CyEdge> incomingEdges = net.getAdjacentEdgeList(net.getNode(id), CyEdge.Type.UNDIRECTED);
+				incomingEdges.addAll(net.getAdjacentEdgeList(net.getNode(id), CyEdge.Type.INCOMING));
 				if (incomingEdges.size() > 1) {
 					Pair<Boolean, List<Long>> edgesGroup = new Pair<Boolean, List<Long>>(true, new Vector<Long>());
 					for (CyEdge edge : incomingEdges) {
@@ -1158,11 +1159,26 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		final int levels = this.model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class); // at this point, all levels have already been rescaled to the
 																												// maximum (= the number of levels of the model), so we use it as a
 																												// reference for the number of levels to show on the network nodes
+		//The reactantIds in the result are R0, R1 like in the UPPAAL model for the reactants, and Exxx for reactions where xxx is the ID of the reaction in the UPPAAL model (so R0_R1, R3_R4_R0 etc)
+		//The reactant IDs in the model are the IDs we use in the UPPAAL model, like R0, R1, R2, ...
+		//The CYTOSCAPE_IDs are the SUIDs used by Cytoscape
 		for (String r : this.result.getReactantIds()) {
 			if (this.model.getReactant(r) == null)
 				continue;
-			final String id = this.model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
-			CyNode node = net.getNode(Long.valueOf(id));
+			Long id = -1L;
+			try {  //There is first the chance that we have an ANIMO 2.x simulation: let's check if that "cytoscape id" isn't what we now call node name
+				id = this.model.getReactant(r).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+			} catch (Exception ex) {
+				id = -1L;
+			}
+			CyNode node = net.getNode(id);
+			if (node == null) {
+				Collection<CyRow> possibleNodes = net.getDefaultNodeTable().getMatchingRows(CyNetwork.NAME, this.model.getReactant(r).get(Model.Properties.CYTOSCAPE_ID).as(String.class));
+				if (possibleNodes.size() != 1) {
+					continue;
+				}
+				node = net.getNode(possibleNodes.iterator().next().get(CyNode.SUID, Long.class));
+			}
 			if (node == null) continue; //The node may be null if we are looking at a network where the node does not exist and playing a simulation from another network (where the node existed)
 			final double level = this.result.getConcentration(r, t);
 			CyRow nodeRow = net.getRow(node);
@@ -1171,14 +1187,21 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		
 		try {
 			for (String r : this.result.getReactantIds()) {
-				if (!(r.charAt(0) == 'E')) continue;
-				//if (!edgeAttributes.hasAttribute(r, Model.Properties.ENABLED)) continue; //Just to check if that is a valid Cytoscape id for a reaction
-				//int edgeId = Integer.parseInt(r.substring(1));
-				Long edgeId = Long.valueOf(r.substring(1));
-				CyEdge edge = null;// = Cytoscape.getCurrentNetwork().getEdge(edgeId); //Let's thank again Cytoscape for not keeping the rootGraphIndices constant...
-				edge = net.getEdge(Long.valueOf((edgeId)));
+				if (!(r.charAt(0) == 'E')) continue; //We added an "E" in front of the reaction IDs to make them easily distinguished
+				CyEdge edge = null;
+				Reaction reaction = this.model.getReaction(r.substring(1));
+				if (reaction == null) { //This means that we have an ANIMO 2.x simulation: the reaction id there is "E" + what here is called the reaction "name"
+					Collection<CyRow> possibleEdges = net.getDefaultEdgeTable().getMatchingRows(CyNetwork.NAME, r.substring(1));
+					if (possibleEdges.size() != 1) {
+						continue;
+					}
+					edge = net.getEdge(possibleEdges.iterator().next().get(CyEdge.SUID, Long.class));
+				} else {
+					Long edgeId = reaction.get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+					edge = net.getEdge(edgeId);
+				}
 				if (edge == null) continue;
-				CyRow edgeRow = net.getRow(net.getEdge(edgeId)),
+				CyRow edgeRow = net.getRow(edge),
 					  sourceRow = net.getRow(edge.getSource()),
 					  targetRow = net.getRow(edge.getTarget());
 				if (t == 0) {
@@ -1208,8 +1231,9 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 							}
 							break;
 						case 2:
-							Long e1 = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class),
-								 e2 = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
+							//We have saved the E1 and E2 with their cytoscape names (CyNetwork.NAME for Cytoscape 3), so we recover them by looking in the proper table saved by the model
+							Long e1 = model.getReactantByCytoscapeName(edgeRow.get(Model.Properties.REACTANT_ID_E1, String.class)).get(Model.Properties.CYTOSCAPE_ID).as(Long.class),
+								 e2 = model.getReactantByCytoscapeName(edgeRow.get(Model.Properties.REACTANT_ID_E2, String.class)).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
 							//System.err.println("Scenario 2, E1 = " + e1 + ", isActive? " + edgeAttributes.getBooleanAttribute(edge.getIdentifier(), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1) + ", level = " + nodeAttributes.getDoubleAttribute(e1, Model.Properties.SHOWN_LEVEL));
 							if (((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
 								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))
@@ -1246,10 +1270,10 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			ex.printStackTrace();
 		}
 		
-		//Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
+		Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView().updateView();
 		if (!this.slider.getValueIsAdjusting()) {
 			//System.err.println("Non stai slidando, quindi provo ad aggiornare");
-			NodeDialog.tryNetworkViewUpdate();
+		//	NodeDialog.tryNetworkViewUpdate();
 		}
 	}
 	

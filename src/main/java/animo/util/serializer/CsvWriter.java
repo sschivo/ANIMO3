@@ -19,8 +19,7 @@ import animo.core.model.Model;
  * @author Stefano Schivo
  */
 public class CsvWriter {
-	private static final String REACTANT_NAME = Model.Properties.REACTANT_NAME;
-
+	
 	/**
 	 * Outputs the given {@link LevelResult} to a CSV formatted file.
 	 * 
@@ -47,9 +46,9 @@ public class CsvWriter {
 		bw.write("Time (min)");
 		for (String rid : rids) {
 			// determine official name and output it
-			String name = m.getReactant(rid).getName(); // if an alias is set, we prefer it
+			String name = m.getReactant(rid).getName(); // if an alias (canonical name) is set, we prefer it
 			if (name == null) {
-				name = m.getReactant(rid).get(REACTANT_NAME).as(String.class);
+				name = m.getReactant(rid).get(Model.Properties.REACTANT_NAME).as(String.class); //Otherwise, also the cytoscape name may make sense
 			}
 			bw.write(", " + name);
 		}

@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -34,12 +35,16 @@ import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
+import org.cytoscape.model.CyRow;
 import org.cytoscape.model.events.AddedEdgesEvent;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesEvent;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedEvent;
 import org.cytoscape.model.events.NetworkAddedListener;
+import org.cytoscape.model.events.RowSetRecord;
+import org.cytoscape.model.events.RowsSetEvent;
+import org.cytoscape.model.events.RowsSetListener;
 import org.cytoscape.session.events.SessionAboutToBeSavedEvent;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedEvent;
@@ -56,7 +61,7 @@ import org.w3c.dom.Element;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
 		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
-		VisualStyleSetListener, CytoPanelComponentSelectedListener {
+		VisualStyleSetListener, CytoPanelComponentSelectedListener, RowsSetListener {
 
 	public static final String APPNAME = "AppSession";
 	private static boolean listenerStatus = true; //The switch to activate/deactivate the methods to deal with node/edge added events
@@ -171,6 +176,27 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		Animo.selectAnimoControlPanel();
 		//and apply our default visual style
 		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE);
+	}
+	
+	//Only look at nodes/edges names (field CyNetwork.NAME). If the new value already exists, ask to change it.
+	//Unfortunately, we cannot undo the change ourself.
+	public void handleEvent(RowsSetEvent ev) {
+		if (!ev.containsColumn(CyNetwork.NAME)
+				//We also need to check that we are looking only at the default node/edge tables, otherwise we get the same event also for the shared tables, duplicating our reaction
+			|| (ev.getSource() != Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getDefaultNodeTable()
+				&& ev.getSource() != Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getDefaultEdgeTable())) {
+			return;
+		}
+		for (RowSetRecord rec : ev.getPayloadCollection()) {
+			if (!rec.getColumn().equals(CyNetwork.NAME)) {
+				continue;
+			}
+			String newName = (String)rec.getValue();
+			Collection<CyRow> otherWithTheSameName = rec.getRow().getTable().getMatchingRows(CyNetwork.NAME, newName);
+			if (otherWithTheSameName.size() > 1) { //The '1' is the one that just got this name
+				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Please change the name of one of the nodes/edges called \"" + newName + "\",\notherwise ANIMO could not work properly.\nIf you want to rename a node/edge, please use ANIMO's interface:\ndouble click on the node/edge to open the Edit window.", "Duplicate Node/Edge name!", JOptionPane.WARNING_MESSAGE);
+			}
+		}
 	}
 
 	/**

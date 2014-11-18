@@ -17,6 +17,7 @@ import org.cytoscape.model.CyRow;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedListener;
+import org.cytoscape.model.events.RowsSetListener;
 import org.cytoscape.service.util.AbstractCyActivator;
 import org.cytoscape.service.util.CyServiceRegistrar;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
@@ -145,32 +146,39 @@ public class Animo extends AbstractCyActivator {
 		registerService(bc, eventListener, VisualStyleSetListener.class, new Properties());
 		//Make sure that the Results Panel always has the proper width
 		registerService(bc, eventListener, CytoPanelComponentSelectedListener.class, new Properties());
+		//Listen to changes to the CyNetwork.NAME field for nodes and edges, to make sure that no duplicate names exist in the network. In case there are, reset to the old name and inform the user about the issue
+		registerService(bc, eventListener, RowsSetListener.class, new Properties());
 
 		registerService(bc, controlPanel, CytoPanelComponent.class, new Properties());
 
 		EditReactantNodeMenu reactantmenu = new EditReactantNodeMenu();
 		Properties props = new Properties();
 		props.put(ServiceProperties.PREFERRED_MENU, "ANIMO"); //"preferredMenu"
+		props.put(ServiceProperties.MENU_GRAVITY, "3");
 		registerAllServices(bc, reactantmenu, props);
 
 		EnableDisableNodeMenu enabledisablenodemenu = new EnableDisableNodeMenu();
 		Properties enabledisablenodeprops = new Properties();
 		enabledisablenodeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		props.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, enabledisablenodemenu, enabledisablenodeprops);
 
 		PlotHideNodeMenu plothidemenu = new PlotHideNodeMenu();
 		Properties plothideprops = new Properties();
 		plothideprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		props.put(ServiceProperties.MENU_GRAVITY, "1");
 		registerAllServices(bc, plothidemenu, plothideprops);
 
 		EditReactionEdgeViewContextMenu editreactionedge = new EditReactionEdgeViewContextMenu();
 		Properties editreactionedgeprops = new Properties();
 		editreactionedgeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		props.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, editreactionedge, editreactionedgeprops);
 
 		EnableDisableEdgeViewContextMenu enabledisableedge = new EnableDisableEdgeViewContextMenu();
 		Properties enabledisableedgeprops = new Properties();
 		enabledisableedgeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		props.put(ServiceProperties.MENU_GRAVITY, "1");
 		registerAllServices(bc, enabledisableedge, enabledisableedgeprops);
 		
 		//Register node and edge double click listeners to open the edit dialogs

@@ -763,8 +763,9 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				} else {
 					reactionId = reactantId.substring(0, reactantId.lastIndexOf(dot));
 					reaction = m.getReaction(reactionId);
+					reactionId = "E" + reactionId; //We want to distinguish them in the result, so that we can highlight arrows according to their activity
 					if (reaction != null) {
-						levels.put(reaction.get(Model.Properties.CYTOSCAPE_ID).as(String.class), new TreeMap<Double, Double>());
+						levels.put(reactionId, new TreeMap<Double, Double>());
 					}
 				}
 				
@@ -784,7 +785,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 						reactionId = reactantId.substring(0, reactantId.lastIndexOf(dot)); //It is in the form R6_R4.T, so we remove the ".T" and keep the rest, which is used as reaction ID in the Model object
 						reaction = m.getReaction(reactionId);
 						if (reaction != null) {
-							chosenMap = reaction.get(Model.Properties.CYTOSCAPE_ID).as(String.class);
+							chosenMap = "E" + reactionId; //reaction.get(Model.Properties.CYTOSCAPE_ID).as(String.class);
 							//int minTime = reaction.get(Model.Properties.MINIMUM_DURATION).as(Integer.class); //We use global instead of local minimum: see definition of minTime
 							if (level == 0 || level == VariablesModelReactionCentered.INFINITE_TIME || minTime == VariablesModelReactionCentered.INFINITE_TIME) { //I put also level == 0 because otherwise we go in the "else" and we divide by 0 =)
 								level = 0;

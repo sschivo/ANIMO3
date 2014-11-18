@@ -138,17 +138,17 @@ public class VisualStyleAnimo {
 		// NODE_BORDER_TRANSPARENCY
 		dm = (DiscreteMapping<Boolean, Integer>) vmFactoryDiscrete.createVisualMappingFunction(
 				Model.Properties.ENABLED, Boolean.class, BasicVisualLexicon.NODE_BORDER_TRANSPARENCY);
-		dm.putMapValue(false, 60);
+		dm.putMapValue(false, 0);
 		dm.putMapValue(true, 255);
 		currentVisualStyle.addVisualMappingFunction(dm);
 
-		// NODE_BORDER_WIDTH
-		DiscreteMapping<Boolean, Double> dmd = 
-				(DiscreteMapping<Boolean, Double>)vmFactoryDiscrete.createVisualMappingFunction(Model.Properties.ENABLED, Boolean.class,
-																								BasicVisualLexicon.NODE_BORDER_WIDTH);
-		dmd.putMapValue(false, 3.0);
-		dmd.putMapValue(true, 6.0);
-		currentVisualStyle.addVisualMappingFunction(dmd);
+//		// NODE_BORDER_WIDTH //<<--- Apparently, having both this and node color causes problems. Whatever.
+//		DiscreteMapping<Boolean, Double> dmd = 
+//				(DiscreteMapping<Boolean, Double>)vmFactoryDiscrete.createVisualMappingFunction(Model.Properties.ENABLED, Boolean.class,
+//																								BasicVisualLexicon.NODE_BORDER_WIDTH);
+//		dmd.putMapValue(false, 3.0);
+//		dmd.putMapValue(true, 6.0);
+//		currentVisualStyle.addVisualMappingFunction(dmd);
 	}
 
 	@SuppressWarnings("unchecked")

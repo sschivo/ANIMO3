@@ -975,9 +975,9 @@ public class ParameterFitter extends WindowAdapter {
 						String name = null;
 						if (model.getReactant(r) != null) {
 							// we can also refer to a name not present in the reactant collection
-							name = model.getReactant(r).getName(); // if an alias is set, we prefer it
+							name = model.getReactant(r).getName(); // if an alias (canonical name) is set, we prefer it
 							if (name == null) {
-								name = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class);
+								name = model.getReactant(r).get(Model.Properties.REACTANT_NAME).as(String.class); //Otherwise, also the cytoscape name may make sense
 							}
 						}
 						seriesNameMapping.put(r, name);

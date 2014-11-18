@@ -66,7 +66,11 @@ public class NodeDialog extends JDialog {
 	@SuppressWarnings("unchecked")
 	public NodeDialog(final Window owner, final CyNetwork network, final CyNode node) {
 
-		super(owner, "Reactant '" + node.getSUID() + "'", Dialog.ModalityType.APPLICATION_MODAL);
+		super(owner, 
+				(network.getRow(node).isSet(Model.Properties.CANONICAL_NAME) ?
+						"Reactant " + network.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class) :
+						"New reactant"),
+				Dialog.ModalityType.APPLICATION_MODAL);
 
 		CyRow networkAttributesRow = network.getRow(network);
 		// CyTable nodeAttributes = network.getDefaultNodeTable();

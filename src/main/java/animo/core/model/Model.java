@@ -243,6 +243,9 @@ public class Model implements Serializable {
 		//We specifically use the local table for the current network, because we want to keep those attributes separate from the other (sub)networks
 		CyTable currentNetworkLocalTable = currentNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS);
 		
+		
+		/*
+		This check has been shifted to the end, after we have checked the number of levels for all reactants, because the default number of levels of the network (in case we don't find it) is the MAXIMUM of the number of levels of all reactants, and should not be set to another number like 15 here 
 		Integer nLvl = 15;
 		if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null
 			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.NUMBER_OF_LEVELS)
@@ -250,32 +253,14 @@ public class Model implements Serializable {
 			if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null) {
 				currentNetworkLocalTable.createColumn(Model.Properties.NUMBER_OF_LEVELS, Integer.class, false);
 			}
-			//TODO: THIS IS WRONG! We must set the number of levels for a network to the maximum number of levels among the nodes, not 15!
 			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
 		} else { 
 			nLvl = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 		}
-//		if (nLvl == null) {
-//			// throw new InatException("Network attribute '" + NUMBER_OF_LEVELS + "' is missing.");
-//			nLvl = 15;
-////			int defaultNLevels = 15;
-////			String inputLevels = JOptionPane.showInputDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-////					"Missing number of levels for the network. Please insert the max number of levels",
-////					Integer.valueOf(defaultNLevels));
-////			if (inputLevels != null) {
-////				try {
-////					nLvl = Integer.valueOf(inputLevels);
-////				} catch (NumberFormatException ex) {
-////					nLvl = defaultNLevels;
-////				}
-////			} else {
-////				nLvl = defaultNLevels;
-////			}
-////			// network.getRow(network).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
-//
-//			Animo.setRowValue(network.getRow(network), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
-//
-//		}
+		*/
+
+		//It was useless to ask the user for a desired value for something that is very much not clear. Let's just assume that it is 1.0 and possibly change it automatically
+		//If the user really knows what he is doing, he can set this parameter by hand without any problem
 		Double nSecPerPoint = 1.0;
 		if (currentNetworkLocalTable.getColumn(Model.Properties.SECONDS_PER_POINT) == null
 			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECONDS_PER_POINT)
@@ -287,27 +272,6 @@ public class Model implements Serializable {
 		} else {
 			nSecPerPoint = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 		}
-//		if (nSecPerPoint == null) {
-//			// throw new InatException("Network attribute '" + SECONDS_PER_POINT + "' is missing.");
-//			nSecPerPoint = 1.0;
-////			double defaultSecondsPerPoint = 1;
-////			String inputSecs = JOptionPane
-////					.showInputDialog(
-////							Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-////							"Missing number of seconds per point for the network.\nPlease insert the number of real-life seconds a simulation point will represent",
-////							defaultSecondsPerPoint);
-////			if (inputSecs != null) {
-////				try {
-////					nSecPerPoint = new Double(inputSecs);
-////				} catch (NumberFormatException ex) {
-////					nSecPerPoint = defaultSecondsPerPoint;
-////				}
-////			} else {
-////				nSecPerPoint = defaultSecondsPerPoint;
-////			}
-////			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, nSecPerPoint);
-//			Animo.setRowValue(network.getRow(network), Model.Properties.SECONDS_PER_POINT, Double.class, nSecPerPoint);
-//		}
 
 		Double secStepFactor = 1.0;
 		if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
@@ -320,25 +284,16 @@ public class Model implements Serializable {
 		} else {
 			secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
 		}
-//		Double secStepFactor = network.getRow(network).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
-//		if (secStepFactor == null) {
-//			secStepFactor = 1.0;
-//			// network.getRow(network).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
-//			Animo.setRowValue(network.getRow(network), Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class,
-//					secStepFactor);
-//		}
+
 
 		boolean noReactantsPlotted = true;
-		// Iterator<CyNode> nodes = (Iterator<CyNode>) network.getNodeList().iterator();
+		int maxNumberOfLevels = 0;
+		final int defaultNumberOfLevels = 15; //This is where it makes sense to have a default value for the number of levels: a node, not the network 
 		for (CyNode node : currentNetwork.getNodeList()) {
 
-			// }
-			// for (CyNode node = nodes.next(); nodes.hasNext(); node = nodes.next())
-			// {
 			Boolean enabled = currentNetwork.getRow(node).get(Model.Properties.ENABLED, Boolean.class);
 			if (enabled == null) {
 				enabled = true;
-				// network.getRow(node).set(Model.Properties.ENABLED, enabled);
 				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.ENABLED, Boolean.class, enabled);
 			}
 
@@ -347,7 +302,6 @@ public class Model implements Serializable {
 
 			Boolean plotted = currentNetwork.getRow(node).get(Model.Properties.PLOTTED, Boolean.class);
 			if (plotted == null) {
-				// network.getRow(node).set(Model.Properties.PLOTTED, true);
 				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.PLOTTED, Boolean.class, true);
 				plotted = true;
 				if (enabled) {
@@ -359,20 +313,30 @@ public class Model implements Serializable {
 
 			Integer nodeLvl = currentNetwork.getRow(node).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			if (nodeLvl == null) {
-				// network.getRow(node).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
-				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.NUMBER_OF_LEVELS, Integer.class, nLvl);
+				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.NUMBER_OF_LEVELS, Integer.class, defaultNumberOfLevels);
+			}
+			if (nodeLvl > maxNumberOfLevels) {
+				maxNumberOfLevels = nodeLvl;
 			}
 
 			Integer initialLevel = currentNetwork.getRow(node).get(Model.Properties.INITIAL_LEVEL, Integer.class);
 			if (initialLevel == null) {
-				// throw new InatException("CyNode attribute 'initialConcentration' is missing on '" + node.getIdentifier() + "'");
-				// network.getRow(node).set(Model.Properties.INITIAL_LEVEL, 0);
 				Animo.setRowValue(currentNetwork.getRow(node), Model.Properties.INITIAL_LEVEL, Integer.class, 0);
 			}
 
-			// if (!nodeAttributes.hasAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR)) {
-			// nodeAttributes.setAttribute(node.getIdentifier(), LEVELS_SCALE_FACTOR, nodeAttributes.getDoubleAttribute(node.getIdentifier(), NUMBER_OF_LEVELS) / 15.0);
-			// }
+		}
+		
+		//Now we know the max number of levels, so we can have a default value for the network.
+		Integer nLvl = maxNumberOfLevels;
+		if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null
+			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.NUMBER_OF_LEVELS)
+			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class) == null) {
+			if (currentNetworkLocalTable.getColumn(Model.Properties.NUMBER_OF_LEVELS) == null) {
+				currentNetworkLocalTable.createColumn(Model.Properties.NUMBER_OF_LEVELS, Integer.class, false);
+			}
+			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.NUMBER_OF_LEVELS, nLvl);
+		} else { 
+			nLvl = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 		}
 
 		/*
@@ -392,7 +356,6 @@ public class Model implements Serializable {
 		for (CyEdge edge : currentNetwork.getEdgeList()) {
 			Boolean enabled = currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
 			if (enabled == null) {
-				// network.getRow(edge).set(Model.Properties.ENABLED, true);
 				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.ENABLED, Boolean.class, true);
 				enabled = true;
 			}
@@ -435,7 +398,6 @@ public class Model implements Serializable {
 			Integer scenarioIdx = currentNetwork.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
 			if (scenarioIdx == null) {
 				scenarioIdx = 0;
-				// network.getRow(edge).set(Model.Properties.SCENARIO, scenarioIdx);
 				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
 			}
 			// Check that the edge has the definition of all parameters requested by the selected scenario
@@ -444,9 +406,7 @@ public class Model implements Serializable {
 			if (scenarioIdx >= 0 && scenarioIdx < Scenario.THREE_SCENARIOS.length) {
 				scenario = Scenario.THREE_SCENARIOS[scenarioIdx];
 			} else {
-				// scenario = Scenario.sixScenarios[0];
 				scenarioIdx = 0;
-				// network.getRow(edge).set(Model.Properties.SCENARIO, scenarioIdx);
 				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
 				throw new AnimoException("The reaction " + edgeName + " has an invalid scenario setting ("
 						+ scenarioIdx + "). Now I set it to the first available: please set the correct parameters.");
@@ -455,82 +415,33 @@ public class Model implements Serializable {
 			for (String param : paramNames) {
 				Double d = currentNetwork.getRow(edge).get(param, Double.class);
 				if (d == null) {
-					// network.getRow(edge).set(param, scenario.getDefaultParameterValue(param));
 					Animo.setRowValue(currentNetwork.getRow(edge), param, Double.class,
 							scenario.getDefaultParameterValue(param));
 				}
 			}
 
 			if (currentNetwork.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class) == null) {
-				// network.getRow(edge).set(Model.Properties.UNCERTAINTY, 0);
 				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.UNCERTAINTY, Integer.class, 0);
 			}
 
 			if (currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) == null) {
-				// network.getRow(edge).set(Model.Properties.INCREMENT, 1);
 				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.INCREMENT, Integer.class, 1);
 			}
 
 			if (scenarioIdx == 2) {
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E1)) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_ID_E1, edge.getSource().getSUID());
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class, edge
-							.getSource().getSUID().toString());
-				} else { //If it WAS set, we must check that a node with that ID exists. It can be an ANIMO 2.x model, which uses node names for IDs
-					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class);
-					CyNode e1 = null;
-					try {
-						e1 = currentNetwork.getNode(Long.parseLong(presumedID));
-					} catch (Exception ex) { //If the presumedID is not a Long number, or no node with that ID exists, we get e1 = null
-						e1 = null;
-					}
-					if (e1 == null) {
-						Collection<CyRow> candidateE1s = currentNetwork.getDefaultNodeTable().getMatchingRows(CyNetwork.NAME, presumedID);
-						if (candidateE1s.size() == 1) {
-							//The only candidate is considered the intended node. We translate it into the new numerical (Long) id
-							String e1ID = candidateE1s.iterator().next().get(CyNode.SUID, Long.class).toString();
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class, e1ID);
-						} else { //No node with that name is present: we just choose the upstream node like in the case where it is not set
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class, edge
-									.getSource().getSUID().toString());
-						}
-					} else {
-						//The node with that ID exists: we just wanted to check that it is there
-					}
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class,
+							currentNetwork.getRow(edge.getSource()).get(CyNetwork.NAME, String.class)); //To keep compatibility with ANIMO 2.x models, we use node NAMEs instead of SUIDs to refer to them
 				}
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1)) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, true);
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
 							Boolean.class, true);
 				}
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E2)) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_ID_E2, edge.getTarget().getSUID());
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class, edge
-							.getTarget().getSUID().toString());
-				} else { //See the comments for e1: the same applies here
-					String presumedID = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class);
-					CyNode e2 = null;
-					try {
-						e2 = currentNetwork.getNode(Long.parseLong(presumedID));
-					} catch (Exception ex) { //If the presumedID is not a Long number, or no node with that ID exists, we get e1 = null
-						e2 = null;
-					}
-					if (e2 == null) {
-						Collection<CyRow> candidateE2s = currentNetwork.getDefaultNodeTable().getMatchingRows(CyNetwork.NAME, presumedID);
-						if (candidateE2s.size() == 1) {
-							//The only candidate is considered the intended node. We translate it into the new numerical (Long) id
-							String e2ID = candidateE2s.iterator().next().get(CyNode.SUID, Long.class).toString();
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class, e2ID);
-						} else { //No node with that name is present: we just choose the upstream node like in the case where it is not set
-							Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class, edge
-									.getSource().getSUID().toString());
-						}
-					} else {
-						//The node with that ID exists: we just wanted to check that it is there
-					}
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class,
+							currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
 				}
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2)) {
-					// network.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, true);
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
 							Boolean.class, true);
 				}
@@ -644,13 +555,10 @@ public class Model implements Serializable {
 				Double scaleUpstream = tempScaleUpstream.doubleValue();
 				scaleUpstream /= 15.0;
 				// Double scaleDownstream = network.getRow(edge.getTarget()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class).doubleValue() / 15;
-				// network.getRow(edge.getSource()).set(Model.Properties.LEVELS_SCALE_FACTOR, scaleUpstream);
 				Animo.setRowValue(currentNetwork.getRow(edge.getSource()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
 						scaleUpstream);
-				// network.getRow(edge.getTarget()).set(Model.Properties.LEVELS_SCALE_FACTOR, scaleUpstream);
 				Animo.setRowValue(currentNetwork.getRow(edge.getTarget()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
 						scaleUpstream);
-				// network.getRow(edge).set(Model.Properties.LEVELS_SCALE_FACTOR, null);
 				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.LEVELS_SCALE_FACTOR, Double.class, null);
 			}
 		}
@@ -887,7 +795,6 @@ public class Model implements Serializable {
 			System.err.println("\tThe current setting is over the top: " + secPerStep + " > " + maxSecStep
 					+ ", so take " + maxSecStep);
 			secPerStep = maxSecStep;
-			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, secPerStep);
 			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
 		} else {
 			// System.err.println("\tNon vado sopra il massimo: " + secPerStep + " <= " + maxSecStep);
@@ -898,7 +805,6 @@ public class Model implements Serializable {
 			System.err.println("\tThe current seetting is under the bottom: " + secPerStep + " < " + minSecStep
 					+ ", so take " + minSecStep);
 			secPerStep = minSecStep;
-			// network.getRow(network).set(Model.Properties.SECONDS_PER_POINT, secPerStep);
 			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
 		}
 	}
@@ -961,7 +867,6 @@ public class Model implements Serializable {
 
 		// do nodes first
 
-		//final Iterator<CyNode> nodes = currentNetwork.getNodeList().iterator(); //Properties are read from the base network, but nodes/edges lists are read from the current network
 		List<CyNode> nodesList = currentNetwork.getNodeList();
 		Collections.sort(nodesList, new Comparator<CyNode>() {
 			@Override
@@ -987,10 +892,10 @@ public class Model implements Serializable {
 
 			final String reactantId = "R" + i;
 			Reactant r = new Reactant(reactantId);
-			nodeNameToId.put(node.getSUID().toString(), reactantId);
+			nodeNameToId.put(currentNetwork.getRow(node).get(CyNetwork.NAME, String.class), reactantId);
 			// TODO: types zijn nogal gegokt
-			r.let(Model.Properties.CYTOSCAPE_ID).be(node.getSUID().toString());
-			r.let(Model.Properties.REACTANT_NAME).be(node.getSUID().toString());
+			r.let(Model.Properties.CYTOSCAPE_ID).be(node.getSUID());
+			r.let(Model.Properties.REACTANT_NAME).be(currentNetwork.getRow(node).get(CyNetwork.NAME, String.class));
 			r.setName(currentNetwork.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class));
 			r.let(Model.Properties.NUMBER_OF_LEVELS).be(
 					currentNetwork.getRow(node).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
@@ -1032,14 +937,14 @@ public class Model implements Serializable {
 
 			r.let(Model.Properties.ENABLED).be(currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class));
 			r.let(Model.Properties.INCREMENT).be(currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class));
-			r.let(Model.Properties.CYTOSCAPE_ID).be("E" + edge.getSUID());
+			r.let(Model.Properties.CYTOSCAPE_ID).be(edge.getSUID());
 
 			r.let(Model.Properties.REACTION_TYPE).be(Model.Properties.BI_REACTION);
 
-			final String reactant = nodeNameToId.get(edge.getTarget().getSUID().toString());
+			final String reactant = nodeNameToId.get(currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
 			r.let(Model.Properties.REACTANT).be(reactant);
 
-			final String catalyst = nodeNameToId.get(edge.getSource().getSUID().toString());
+			final String catalyst = nodeNameToId.get(currentNetwork.getRow(edge.getSource()).get(CyNetwork.NAME, String.class));
 			r.let(Model.Properties.CATALYST).be(catalyst);
 
 			int nLevelsR1, nLevelsR2;
@@ -1166,7 +1071,7 @@ public class Model implements Serializable {
 				} else {
 					nLevelsR2 = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
 				}
-				String out = nodeNameToId.get(edge.getTarget().getSUID().toString());
+				String out = nodeNameToId.get(currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
 				r.let(Model.Properties.OUTPUT_REACTANT).be(out);
 				// levelsScaleFactor /= 2*nodeAttributes.getDoubleAttribute(network.getRow(edge).get(Model.Properties.REACTANT_ID_E2,String.class)),
 				// Model.Properties.LEVELS_SCALE_FACTOR);
@@ -1483,7 +1388,7 @@ public class Model implements Serializable {
 	 *            The Cytoscape node identificator (e.g. node102 etc)
 	 * @return The Reactant as constructed in the current model
 	 */
-	public Reactant getReactantByCytoscapeID(String id) {
+	public Reactant getReactantByCytoscapeName(String id) {
 		return this.reactants.get(this.mapCytoscapeIDtoReactantID.get(id));
 	}
 

@@ -82,11 +82,15 @@ public class EdgeDialog extends JDialog {
 	 */
 	@SuppressWarnings("unchecked")
 	public EdgeDialog(final Window owner, final CyNetwork network, final CyEdge edge) {
-		super(owner, "Reaction '" + edge.getSUID() + "'", Dialog.ModalityType.APPLICATION_MODAL);
+		super(owner,
+				(network.getRow(edge).isSet(Model.Properties.INCREMENT) && network.getRow(edge.getSource()).isSet(Model.Properties.CANONICAL_NAME) && network.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)?
+					"Interaction " + (network.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class) + 
+					(network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) >= 0 ? " --> " : " --| ") + 
+					network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class))
+					: "New interaction"), 
+				Dialog.ModalityType.APPLICATION_MODAL);
 		this.network = network;
-		// super("Reaction " + Cytoscape.getNodeAttributes().getAttribute(edge.getSource().getSUID(), "canonicalName") +
-		// ((Integer.parseInt(Cytoscape.getEdgeAttributes().getAttribute(edge.getSUID(), "increment").toString()) >= 0)?" --> ":" --| ") +
-		// Cytoscape.getNodeAttributes().getAttribute(edge.getTarget().getSUID(), "canonicalName"));
+
 		StringBuilder title = new StringBuilder();
 		title.append("Reaction ");
 		CyRow sourceNodeRow = network.getRow(edge.getSource());
@@ -127,7 +131,7 @@ public class EdgeDialog extends JDialog {
 		Iterator<CyNode> nodes = network.getNodeList().iterator();
 		for (int i = 0; nodes.hasNext(); i++) {
 			CyNode node = nodes.next();
-			reactantIdentifiers[i] = node.getSUID().toString();
+			reactantIdentifiers[i] = network.getRow(node).get(CyNetwork.NAME, String.class);
 
 			String canonical = network.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class);
 			if (canonical != null) {
@@ -135,10 +139,13 @@ public class EdgeDialog extends JDialog {
 			} else {
 				reactantAliases[i] = reactantIdentifiers[i];
 			}
-			/*
-			 * if (edge.getSource().getSUID().equals(reactantIdentifiers[i])) { //Highlight the nodes involved in the current reaction reactantAliases[i] +=
-			 * " (the Upstream reactant)"; } else if (edge.getTarget().getSUID().equals(reactantIdentifiers[i])) { reactantAliases[i] += " (the Downstream reactant)"; }
-			 */
+			
+			if (network.getRow(edge.getSource()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[i])) { //Highlight the nodes involved in the current reaction
+				reactantAliases[i] += " (the Upstream reactant)";
+			} else if (network.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[i])) {
+				reactantAliases[i] += " (the Downstream reactant)";
+			}
+			
 		}
 
 		this.setLayout(new BorderLayout(2, 2));
@@ -467,7 +474,7 @@ public class EdgeDialog extends JDialog {
 			}
 			if (selectedReactant == -1) {
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
-					if (reactantIdentifiers[i].equals(edge.getSource().getSUID())) {
+					if (reactantIdentifiers[i].equals(network.getRow(edge.getSource()).get(CyNetwork.NAME, String.class))) {
 						selectedReactant = i;
 						break;
 					}
@@ -499,7 +506,7 @@ public class EdgeDialog extends JDialog {
 			}
 			if (selectedReactant == -1) {
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
-					if (reactantIdentifiers[i].equals(edge.getTarget().getSUID())) {
+					if (reactantIdentifiers[i].equals(network.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class))) {
 						selectedReactant = i;
 						break;
 					}
@@ -514,11 +521,9 @@ public class EdgeDialog extends JDialog {
 				public void actionPerformed(ActionEvent e) { // Show the selected node in the network, so that the user can be sure of which it is.
 					for (View<CyNode> v : nodeViews) {
 						// CyTable networkAttr = network.getDefaultNetworkTable();
-						if (v.getModel().getSUID().equals(reactantIdentifiers[listE1.getSelectedIndex()])) {
-							// network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, true);
+						if (network.getRow(v.getModel()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[listE1.getSelectedIndex()])) {
 							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, true);
 						} else {
-							// network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, false);
 							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, false);
 						}
 					}
@@ -529,12 +534,14 @@ public class EdgeDialog extends JDialog {
 				@Override
 				public void actionPerformed(ActionEvent e) { // Show the selected node in the network, so that the user can be sure of which it is.
 					for (View<CyNode> v : nodeViews) {
-						/*
-						 * if (v.getModel().getSUID().equals(reactantIdentifiers[listE2.getSelectedIndex()])) {
-						 * network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, true); } else {
-						 * network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, false); }
-						 */
-						boolean selected = v.getModel().getSUID()
+						if (network.getRow(v.getModel()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[listE2.getSelectedIndex()])) {
+							//network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, true);
+							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, true);
+						} else {
+							//network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, false);
+							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, false);
+						}
+						boolean selected = network.getRow(v.getModel()).get(CyNetwork.NAME, String.class)
 								.equals(reactantIdentifiers[listE2.getSelectedIndex()]);
 						Animo.setRowValue(n.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, selected);
 					}
