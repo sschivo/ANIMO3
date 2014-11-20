@@ -226,7 +226,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 			public void actionPerformed(ActionEvent e) {
 				CyNetwork net = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
 				if (net != null) {
-					String inputFileName = FileUtils.open(".sim", "ANIMO simulation", Animo.getCytoscape().getJFrame());
+					String inputFileName = FileUtils.open(".sim", Animo.APP_NAME + " simulation", Animo.getCytoscape().getJFrame());
 					if (inputFileName == null)
 						return;
 					final AnimoResultPanel resultPanel = new AnimoResultPanel(new File(inputFileName));
@@ -310,7 +310,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		options.addActionListener(new ActionListener() {
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				final JDialog optionsDialog = new JDialog(Animo.getCytoscape().getJFrame(), "ANIMO Options",
+				final JDialog optionsDialog = new JDialog(Animo.getCytoscape().getJFrame(), Animo.APP_NAME + " Options",
 						Dialog.ModalityType.APPLICATION_MODAL);
 				optionsDialog.getContentPane().setLayout(new BorderLayout());
 				JPanel content = new JPanel(new GridBagLayout());
@@ -660,7 +660,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 
 	@Override
 	public String getTitle() {
-		return "ANIMO";
+		return Animo.APP_NAME;
 	}
 
 }

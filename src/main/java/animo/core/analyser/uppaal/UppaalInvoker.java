@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.io.InputStreamReader;
 
 import animo.core.AnimoBackend;
+import animo.cytoscape.Animo;
 import animo.util.XmlConfiguration;
 
 /**
@@ -111,7 +112,7 @@ public class UppaalInvoker {
 	 *             if the trace process is interrupted for some reason
 	 */
 	public String trace(String model, String query) throws IOException, InterruptedException {
-		File modelFile = File.createTempFile("ANIMO", ".xml", this.temporaryLocation);
+		File modelFile = File.createTempFile(Animo.APP_NAME, ".xml", this.temporaryLocation);
 		final String prefix = modelFile.getName().replace(".xml", "");
 		File queryFile = new File(this.temporaryLocation, prefix + ".q");
 

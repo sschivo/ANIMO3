@@ -35,7 +35,7 @@ public class ControlPanelContainer extends JPanel implements CytoPanelComponent 
 
 	@Override
 	public String getTitle() {
-		return "ANIMO";
+		return Animo.APP_NAME;
 	}
 
 	public void setChangePerSeconds(double d) {

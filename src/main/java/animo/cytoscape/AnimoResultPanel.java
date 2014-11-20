@@ -3,7 +3,6 @@ package animo.cytoscape;
 import java.awt.BorderLayout;
 import java.awt.Component;
 import java.awt.Container;
-import java.awt.FlowLayout;
 import java.awt.Graphics2D;
 import java.awt.Rectangle;
 import java.awt.RenderingHints;
@@ -18,7 +17,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.ObjectInputStream;
 import java.io.ObjectOutputStream;
-import java.io.PrintStream;
 import java.net.URL;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
@@ -38,9 +36,11 @@ import javax.swing.JInternalFrame;
 import javax.swing.JLabel;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JSlider;
 import javax.swing.JSplitPane;
 import javax.swing.JTabbedPane;
+import javax.swing.JToolBar;
 import javax.swing.SwingConstants;
 import javax.swing.event.ChangeEvent;
 import javax.swing.event.ChangeListener;
@@ -58,6 +58,7 @@ import org.cytoscape.application.swing.CyNetworkViewDesktopMgr;
 import org.cytoscape.application.swing.CytoPanel;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.application.swing.CytoPanelState;
+import org.cytoscape.command.CommandExecutorTaskFactory;
 import org.cytoscape.event.CyEventHelper;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
@@ -68,7 +69,6 @@ import org.cytoscape.model.CyTable;
 import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.model.subnetwork.CySubNetwork;
-import org.cytoscape.task.write.ExportNetworkViewTaskFactory;
 import org.cytoscape.view.model.CyNetworkView;
 import org.cytoscape.view.model.CyNetworkViewFactory;
 import org.cytoscape.view.model.CyNetworkViewManager;
@@ -114,7 +114,12 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	private static Object decodeObjectFromBase64(String encodedObject) throws Exception {
 		byte[] decodedModel = DatatypeConverter.parseBase64Binary(encodedObject);
 		ObjectInputStream ois = new ObjectInputStream(new ByteArrayInputStream(decodedModel));
-		Object o = ois.readObject();
+		Object o;
+		try {
+			o = ois.readObject();
+		} catch (Exception ex) { //We may be reading an ANIMO 2.x file: we don't have some of those classes anymore
+			o = null;
+		}
 		ois.close();
 		return o;
 	}
@@ -178,7 +183,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	private HashMap<CyEdge, Map<String, Object>> savedEdgeAttributes;
 	private static final String PROP_POSITION_X = "Position.X";
 	private static final String PROP_POSITION_Y = "Position.Y";
-	private static final String DEFAULT_TITLE = "ANIMO Results";
+	private static final String DEFAULT_TITLE = Animo.APP_NAME + " Results";
 	/**
 	 * The three strings here are for one button. Everybody normally shows START_DIFFERENCE. When the user presses on the button (differenceWith takes the value of this for the
 	 * InatResultPanel where the button was pressed),
@@ -198,8 +203,11 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	private HashMap<Long, Pair<Boolean, List<Long>>> convergingEdges = null;
 
 	public static AnimoResultPanel loadFromSessionSimFile(File simulationDataFile) {
-		Heptuple<Model, SimpleLevelResult, Double, String, String, HashMap<CyNode, Map<String, Object>>, HashMap<CyEdge, Map<String, Object>>> simulationData = loadSimulationData(
-				simulationDataFile, false);
+		Heptuple<Model, SimpleLevelResult, Double, String, String, HashMap<CyNode, Map<String, Object>>, HashMap<CyEdge, Map<String, Object>>> simulationData
+				= loadSimulationData(simulationDataFile, false);
+		if (simulationData == null) { //TODO: big problem: we have some constructors that simply do this(whatever is in the data like it is always not null)!!
+			return null;
+		}
 		AnimoResultPanel panel = new AnimoResultPanel(simulationData.first, simulationData.second,
 				simulationData.third, simulationData.fourth, null);
 		panel.savedNetwork = Animo.getCytoscapeApp().getCyNetworkManager()
@@ -263,8 +271,8 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	 * @return
 	 */
 	@SuppressWarnings("unchecked")
-	public static Heptuple<Model, SimpleLevelResult, Double, String, String, HashMap<CyNode, Map<String, Object>>, HashMap<CyEdge, Map<String, Object>>> loadSimulationData(
-			File inputFile, boolean normalFile) {
+	public static Heptuple<Model, SimpleLevelResult, Double, String, String, HashMap<CyNode, Map<String, Object>>, HashMap<CyEdge, Map<String, Object>>>
+			loadSimulationData(File inputFile, boolean normalFile) {
 		try {
 			Model model = null;
 			SimpleLevelResult result = null;
@@ -305,15 +313,34 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 								.getFirstChild().getTextContent());
 					}
 				}
+				if (model == null && networkId != null) { //If the file version is wrong, we simply ignore these data: too little can be salvaged to make something out of it
+					//System.err.println("Sono intenzionato a distruggere la rete legata al modello che ho trovato essere nullo nel file " + inputFile + ". La rete si chiama " + networkId);
+					CyNetwork network = Animo.getCytoscapeApp().getCySessionManager().getCurrentSession().getObject(networkId, CyNetwork.class);
+					CyNetworkManager netManager = Animo.getCytoscapeApp().getCyNetworkManager();
+					if (network == null) { //Very likely, but I don't know why: it should find it with the 2.x name...
+						for (CyNetwork net : Animo.getCytoscapeApp().getCySessionManager().getCurrentSession().getNetworks()) {
+							if (net.getRow(net).get(CyNetwork.NAME, String.class).equals(networkId)) {
+								//System.err.println("L'ho sgamata in un altro modo: ecco a voi la rete " + networkId);
+								netManager.destroyNetwork(net);
+							}
+						}
+					}
+					//System.err.println("Ahime', ho il forte sospetto che la rete non venga trovata: " + network);
+					if (network != null) {
+						netManager.destroyNetwork(network);
+					}
+					return null;
+				}
 			}
 			return new Heptuple<Model, SimpleLevelResult, Double, String, String, HashMap<CyNode, Map<String, Object>>, HashMap<CyEdge, Map<String, Object>>>(
 					model, result, scale, title, networkId, nodeProperties, edgeProperties);
 		} catch (Exception ex) {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			PrintStream ps = new PrintStream(baos);
-			ex.printStackTrace(ps);
-			JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), baos.toString(), "Error: " + ex,
-					JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace(System.err);
+//			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//			PrintStream ps = new PrintStream(baos);
+//			ex.printStackTrace(ps);
+//			JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), baos.toString(), "Error: " + ex,
+//					JOptionPane.ERROR_MESSAGE); Cannot use this method: there is already an annoying window from Cytopscape that is already on top, so we cannot click the ok button on this one
 		}
 		return null;
 	}
@@ -385,8 +412,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						.getCurrentNetworkView();
 
 				try {
-					Component componentToBeSaved = findInnerCanvas(Animo.getCytoscape().getJFrame()); // Animo.getCytoscape().getJFrame();// TODO: Vies lelijk enzo, ipv netwerk saved ie nu volledige window, moet eleganter kunnen, was:
-																					// currentNetworkView.getComponent();
+					Component componentToBeSaved = findInnerCanvas(Animo.getCytoscape().getJFrame());
 					savedNetworkImage = new BufferedImage(currentNetworkView.getVisualProperty(
 							BasicVisualLexicon.NETWORK_WIDTH).intValue() / 2, currentNetworkView.getVisualProperty(
 							BasicVisualLexicon.NETWORK_HEIGHT).intValue() / 2, BufferedImage.TYPE_INT_ARGB);
@@ -412,8 +438,6 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					n.setVisualProperty(BasicVisualLexicon.NODE_VISIBLE, false);
 				}
 				
-				// TODO make focus
-				// Animo.getCytoscape().getJFrame().getFrame(originalView).setSelected(true);
 				((JInternalFrame)findComponentByName(Animo.getCytoscape().getJFrame(), "JInternalFrame")).setSelected(true);
 			} catch (Exception ex) {
 				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Error while saving fall-back network:\n" + ex.getMessage(), "Error", JOptionPane.ERROR_MESSAGE);
@@ -490,7 +514,12 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		
 		if (Animo.areWeTheDeveloper()) {
 			JButton animate;
-			animate = new JButton("Animation");
+			try {
+				URL url = getClass().getResource("/movie20x20.png");
+				animate = new JButton(new ImageIcon(url));
+			} catch (Exception ex) {
+				animate = new JButton("Animate");
+			}
 			animate.setToolTipText("Make an animation of this time series");
 			animate.addActionListener(new ActionListener() {
 				@Override
@@ -540,29 +569,40 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						currentDirectory = chooser.getCurrentDirectory();
 						String fileName = chooser.getSelectedFile().getAbsolutePath();
 						directory = fileName;
+						if (!chooser.getSelectedFile().exists()) {
+							chooser.getSelectedFile().mkdirs();
+						}
 					}
 					
 					slider.setValue(slider.getMinimum());
-					int delta = (int)Math.round(1.0 * (slider.getMaximum() - slider.getMinimum() + 1) / nSteps);
+					int delta;
+					if (nSteps > 1) {
+						delta = (int)Math.round(1.0 * (slider.getMaximum() - slider.getMinimum() + 1) / (nSteps - 1)); //The first step is already "frame 0", with the initial conditions
+					} else {
+						delta = slider.getMaximum() - slider.getMinimum() + 1; //To avoid division by 0 if only one frame is asked. Also, we avoid having to deal with 0 or less frames: we just assume its was a stupid request and make the first frame only
+					}
 					int idx = 0;
 					CyNetworkView currentNetworkView = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetworkView();
-	//				BitmapExporter be = new BitmapExporter("png", percentage / 100.0);
-					ExportNetworkViewTaskFactory taskFactory = Animo.getCyServiceRegistrar().getService(ExportNetworkViewTaskFactory.class);
-					@SuppressWarnings("rawtypes")
-					SynchronousTaskManager tm = Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class);
+					//BitmapExporter be = new BitmapExporter("png", percentage / 100.0);
+					CommandExecutorTaskFactory taskFactory = Animo.getCyServiceRegistrar().getService(CommandExecutorTaskFactory.class);
+					//TaskManager<?> tm = Animo.getCytoscapeApp().getTaskManager();
+					//Better to do the tasks synchronously, so we don't accidentally start with the next step before the file has been saved 
+					SynchronousTaskManager<?> tm = Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class);
+					Map<String, Object> params = new HashMap<String, Object>();
+					params.put("options", "Portable Network Graphics (PNG) File (*.png)");
 					for (int i = slider.getMinimum(); i <= slider.getMaximum(); i += delta, idx++) {
 						slider.setValue(i);
-	//					CyAttributes edgeAttrs = Cytoscape.getEdgeAttributes();
-	//					edgeAttrs.deleteAttribute(Model.Properties.SHOWN_LEVEL);
 						currentNetworkView.updateView();
 						try {
 							//be.export(currentNetworkView, new FileOutputStream(directory + File.separator + "Frame" + String.format("%03d", idx) + ".png"));
-							TaskIterator ti = taskFactory.createTaskIterator(currentNetworkView, new File(directory + File.separator + "Frame" + String.format("%03d", idx) + ".png"));
-							tm.execute(ti);
+							params.put("OutputFile", directory + File.separator + "Frame" + String.format("%03d", idx) + ".png");
+							TaskIterator ti = taskFactory.createTaskIterator("view", "export", params, null);
+							tm.execute(ti); //I cannot accumulate the tasks one after the other and execute them all in sequence, because I am also changing the network view in the meantime
 						} catch (Exception ex) {
 							ex.printStackTrace();
 						}
 					}
+					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done saving the frames.\nTo create an animation:\n- open the folder \"" + directory + "\"\n- open GIMP\n- File -> Open as Layers...\n- select all the FrameXX.png files\n- File -> Export\n- make sure that the file type is .gif, choose a name and click Export\n- select \"As animation\" and chose the options as you want\n- click Export"); 
 				}
 			});
 			sliderPanel.add(animate, BorderLayout.EAST);
@@ -647,8 +687,11 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		container = new ResultPanelContainer(this);
 		container.setLayout(new BorderLayout(2, 2));
 		container.add(this, BorderLayout.CENTER);
-		JPanel buttons = new JPanel(new FlowLayout()); // new GridLayout(2, 2, 2, 2));
-
+		//JPanel buttons = new JPanel(new FlowLayout()); // new GridLayout(2, 2, 2, 2));
+		JToolBar buttons = new JToolBar(JToolBar.HORIZONTAL);
+		buttons.setFloatable(false);
+		buttons.setRollover(true);
+		
 		resetToThisNetwork = null;
 		if (savedNetwork != null) {
 			resetToThisNetwork = new JButton(new AbstractAction("Reset to here") {
@@ -741,7 +784,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			});
 			try {
 				if (savedNetworkImage != null) {
-					File tmpFile = File.createTempFile("ANIMOimg", ".png");
+					File tmpFile = File.createTempFile(Animo.APP_NAME + "img", ".png");
 					tmpFile.deleteOnExit();
 					ImageIO.write(savedNetworkImage, "png", tmpFile);
 					resetToThisNetwork
@@ -770,7 +813,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 
 			@Override
 			public void actionPerformed(ActionEvent e) {
-				String fileName = FileUtils.save(".sim", "ANIMO simulation data", Animo.getCytoscape().getJFrame());
+				String fileName = FileUtils.save(".sim", Animo.APP_NAME + " simulation data", Animo.getCytoscape().getJFrame());
 				if (fileName != null)
 					saveSimulationData(new File(fileName), true);
 			}
@@ -798,16 +841,18 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			}
 		});
 
-		buttons.add(changeTitle);
+		buttons.addSeparator();
+		buttons.add(changeTitle); buttons.addSeparator();
 		if (resetToThisNetwork != null) {
-			buttons.add(resetToThisNetwork);
+			buttons.add(resetToThisNetwork); buttons.addSeparator();
 		}
-		buttons.add(differenceButton);
+		buttons.add(differenceButton); buttons.addSeparator();
 		if (!isDifference) { // The differences are not saved (for the moment)
-			buttons.add(save);
+			buttons.add(save); buttons.addSeparator();
 		}
-		buttons.add(close);
-		container.add(buttons, BorderLayout.NORTH);
+		buttons.add(close); buttons.addSeparator();
+		JScrollPane buttonsScroll = new JScrollPane(buttons, JScrollPane.VERTICAL_SCROLLBAR_NEVER, JScrollPane.HORIZONTAL_SCROLLBAR_ALWAYS);
+		container.add(buttonsScroll, BorderLayout.NORTH);
 
 		if (cytoPanel.getState().equals(CytoPanelState.HIDE)) {
 			cytoPanel.setState(CytoPanelState.DOCK); // We show the Results panel if it was hidden.
@@ -1024,8 +1069,9 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	 *            True if the file is user-chosen. Otherwise, we need to save also all saved network-related data (network id, image, properties)
 	 */
 	public void saveSimulationData(File outputFile, boolean normalFile) {
-		if (isDifference)
+		if (isDifference) {
 			return; // We don't save the differences!
+		}
 		try {
 			if (normalFile) {
 				FileOutputStream fOut = new FileOutputStream(outputFile);
@@ -1070,11 +1116,12 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				fos.close();
 			}
 		} catch (Exception ex) {
-			ByteArrayOutputStream baos = new ByteArrayOutputStream();
-			PrintStream ps = new PrintStream(baos);
-			ex.printStackTrace(ps);
-			JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), baos.toString(), "Error: " + ex,
-					JOptionPane.ERROR_MESSAGE);
+			ex.printStackTrace(System.err);
+//			ByteArrayOutputStream baos = new ByteArrayOutputStream();
+//			PrintStream ps = new PrintStream(baos);
+//			ex.printStackTrace(ps);
+//			JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), baos.toString(), "Error: " + ex,
+//					JOptionPane.ERROR_MESSAGE); See comment for similar situation elsewhere in this file
 		}
 	}
 
@@ -1256,7 +1303,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					Animo.setRowValue(edgeRow, Model.Properties.SHOWN_LEVEL, Double.class, concentration);
 				}
 			}
-			if (t != 0) { //At the initial time we have already done what was needed, i.e. remove the attribute (TODO: adesso non lo rimuovo mica!)
+			if (t != 0) { //At the initial time we have already done what was needed, i.e. set the attribute to 0.25, which on the current scale translates to the default setting of edge width
 				for (Pair<Boolean, List<Long>> edgeGroup : convergingEdges.values()) {
 					if (edgeGroup.first) { //All the edges of this group were still candidates at the end of the first cycle, so we will set all their activityRatios to 0
 						for (Long i : edgeGroup.second) {

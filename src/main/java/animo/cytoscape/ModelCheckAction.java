@@ -134,11 +134,11 @@ public class ModelCheckAction extends AnimoActionTask {
 		try {
 			if (UppaalModelAnalyserSMC.areWeUnderWindows()) {
 				logFile = File.createTempFile(
-						"ANIMO_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
+						Animo.APP_NAME + "_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
 								+ nowCal.get(Calendar.DAY_OF_MONTH) + "_" + nowCal.get(Calendar.HOUR_OF_DAY) + "-"
 								+ nowCal.get(Calendar.MINUTE) + "-" + nowCal.get(Calendar.SECOND), ".log"); // windows doesn't like long file names..
 			} else {
-				logFile = File.createTempFile("ANIMO run " + now.toString(), ".log");
+				logFile = File.createTempFile(Animo.APP_NAME + " run " + now.toString(), ".log");
 			}
 			logFile.deleteOnExit();
 			logStream = new PrintStream(new FileOutputStream(logFile));

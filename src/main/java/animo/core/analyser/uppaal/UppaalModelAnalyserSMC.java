@@ -96,7 +96,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			}
 			final String uppaalModel = variablesModel.transform(m);
 			
-			File modelFile = File.createTempFile("ANIMO", ".xml");
+			File modelFile = File.createTempFile(Animo.APP_NAME, ".xml");
 			final String prefix = modelFile.getAbsolutePath().replace(".xml", "");
 			File queryFile = new File(prefix + ".q");
 			
@@ -332,7 +332,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			
 			uppaalQuery = build.toString();
 			
-			File modelFile = File.createTempFile("ANIMO", ".xml");
+			File modelFile = File.createTempFile(Animo.APP_NAME, ".xml");
 			final String prefix = modelFile.getAbsolutePath().replace(".xml", "");
 			File queryFile = new File(prefix + ".q");
 	

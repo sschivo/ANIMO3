@@ -38,8 +38,8 @@ public class VisualStyleAnimo {
 	private ShapesLegend shapesLegend;
 	private VisualStyle currentVisualStyle;
 	private CyNetworkView currentNetworkView;
-	public static final String ANIMO_NORMAL_VISUAL_STYLE = "ANIMO_VisualStyle",
-			ANIMO_DIFF_VISUAL_STYLE = "ANIMO_difference_Visual_Style";
+	public static final String ANIMO_NORMAL_VISUAL_STYLE = Animo.APP_NAME + "_VisualStyle",
+			ANIMO_DIFF_VISUAL_STYLE = Animo.APP_NAME + "_difference_Visual_Style";
 
 	VisualStyleAnimo(VisualMappingManager vmmServiceRef, VisualStyleFactory visualStyleFactoryServiceRef,
 			VisualMappingFunctionFactory vmfFactoryC, VisualMappingFunctionFactory vmfFactoryD,

@@ -63,7 +63,6 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
 		VisualStyleSetListener, CytoPanelComponentSelectedListener, RowsSetListener {
 
-	public static final String APPNAME = "AppSession";
 	private static boolean listenerStatus = true; //The switch to activate/deactivate the methods to deal with node/edge added events
 
 	public static void setListenerStatus(boolean newStatus) {
@@ -161,7 +160,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 */
 	@Override
 	public void handleEvent(SessionAboutToBeSavedEvent sessionEvent) {
-		List<File> files = sessionEvent.getAppFileListMap().get(APPNAME);
+		List<File> files = sessionEvent.getAppFileListMap().get(Animo.APP_NAME);
 		this.saveSessionStateFiles(files);
 	}
 
@@ -170,7 +169,10 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 */
 	@Override
 	public void handleEvent(SessionLoadedEvent sessionEvent) {
-		List<File> files = sessionEvent.getLoadedSession().getAppFileListMap().get(APPNAME);
+		List<File> files = sessionEvent.getLoadedSession().getAppFileListMap().get(Animo.APP_NAME);
+		if (files == null) {
+			files = sessionEvent.getLoadedSession().getAppFileListMap().get("InatPlugin"); //Try the old name before abandoning all hope
+		}
 		this.restoreSessionState(files);
 		//Once we loaded a session, we show the ANIMO control panel
 		Animo.selectAnimoControlPanel();
@@ -203,6 +205,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 * Retrieve the relevant information for ANIMO in the saved files.
 	 */
 	private void restoreSessionState(List<File> myFiles) {
+		System.err.println("Ristoro la sessione dai file " + myFiles);
 		CytoPanel results = Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST);
 		if (results != null) {
 			List<Component> panelsToBeRemoved = new ArrayList<Component>();
@@ -248,6 +251,11 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 				continue;
 			AnimoResultPanel panel = AnimoResultPanel.loadFromSessionSimFile(f);
 			BufferedImage image = mapIdToImage.get(name.substring(0, name.lastIndexOf(".sim")));
+			if (panel == null) { //The panel may be null if some of the classes for the data saved in the .sim file are not available anymore (i.e., we have an ANIMO 2.x simulation)
+				f.delete();
+				new File(name.substring(0, name.lastIndexOf(".sim")) + ".png").delete(); //Clean up also the useless saved image
+				continue;
+			}
 			// System.err.println("Retrievo immagine di id " + name.substring(0,
 			// name.lastIndexOf(".sim")) + ": " + image);
 			panel.setSavedNetworkImage(image);

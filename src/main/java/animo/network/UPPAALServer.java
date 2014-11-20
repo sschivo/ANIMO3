@@ -20,6 +20,7 @@ import animo.core.analyser.uppaal.ResultAverager;
 import animo.core.analyser.uppaal.SimpleLevelResult;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.model.Model;
+import animo.cytoscape.Animo;
 import animo.exceptions.AnimoException;
 
 /**
@@ -49,7 +50,7 @@ public class UPPAALServer extends UnicastRemoteObject implements iUPPAALServer {
 			}
 			System.err
 					.println("!! PLEASE NOTICE !! The two ports above NEED to be opened in the firewall/router/whateverits");
-			AnimoBackend.initialise(new File("ANIMO-configuration.xml"));
+			AnimoBackend.initialise(new File(Animo.APP_NAME + "-configuration.xml"));
 
 			URL whatismyip = new URL("http://automation.whatismyip.com/n09230945.asp");
 			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));

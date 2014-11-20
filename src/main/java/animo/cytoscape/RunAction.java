@@ -20,8 +20,11 @@ import javax.swing.SwingUtilities;
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.work.AbstractTask;
+import org.cytoscape.work.FinishStatus;
+import org.cytoscape.work.ObservableTask;
 import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.TaskMonitor;
+import org.cytoscape.work.TaskObserver;
 
 import animo.core.AnimoBackend;
 import animo.core.analyser.AnalysisException;
@@ -42,27 +45,14 @@ import animo.util.XmlConfiguration;
  * 
  */
 public class RunAction extends AnimoActionTask {
-	private class RunTask extends AbstractTask {
+	private class RunTask extends AbstractTask implements ObservableTask {
 
 		private Model model;
-		private boolean complete = false;
-
+		
 		public RunTask() {
 			
 		}
 		
-
-		public boolean isComplete() {
-			return complete;
-		}
-
-
-
-		@SuppressWarnings("unused")
-		public void setComplete(boolean complete) {
-			this.complete = complete;
-		}
-
 		
 
 		// private TaskMonitor monitor;
@@ -91,7 +81,7 @@ public class RunAction extends AnimoActionTask {
 			 * "Up to which time (in real-life MINUTES)?", nMinutesToSimulate); if (inputTime != null) { try { nMinutesToSimulate = Integer.parseInt(inputTime); } catch (Exception
 			 * ex) { //the default value is still there, so nothing to change } } else { return; }
 			 */
-			monitor.setTitle("ANIMO - UPPAAL model analysis");
+			monitor.setTitle(Animo.APP_NAME + " - UPPAAL model analysis");
 
 			timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(SECONDS_PER_POINT).as(Double.class));
 			scale = (double) nMinutesToSimulate / timeTo;
@@ -276,7 +266,6 @@ public class RunAction extends AnimoActionTask {
 				}
 			} catch (Exception ex) {
 				ex.printStackTrace(System.err);
-				this.complete = true;
 				return;
 			}
 			this.model = model;
@@ -313,7 +302,15 @@ public class RunAction extends AnimoActionTask {
 				performNormalAnalysis(monitor);
 			}
 
-			this.complete = true;
+		}
+
+
+		//TODO: this is not used at the moment: we are just content that the task finishes.
+		//In case we change our mind and want to get some results from the task, here is the function
+		//to go to
+		@Override
+		public <R> R getResults(Class<? extends R> arg0) {
+			return null;
 		}
 
 
@@ -385,11 +382,11 @@ public class RunAction extends AnimoActionTask {
 		try {
 			if (UppaalModelAnalyserSMC/* FasterConcrete */.areWeUnderWindows()) {
 				logFile = File.createTempFile(
-						"ANIMO_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
+						Animo.APP_NAME + "_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
 								+ nowCal.get(Calendar.DAY_OF_MONTH) + "_" + nowCal.get(Calendar.HOUR_OF_DAY) + "-"
 								+ nowCal.get(Calendar.MINUTE) + "-" + nowCal.get(Calendar.SECOND), ".log"); // windows doesn't like long file names..
 			} else {
-				logFile = File.createTempFile("ANIMO run " + now.toString(), ".log");
+				logFile = File.createTempFile(Animo.APP_NAME + " run " + now.toString(), ".log");
 			}
 			logFile.deleteOnExit();
 			tmpLogStream = new PrintStream(new FileOutputStream(logFile));
@@ -399,24 +396,9 @@ public class RunAction extends AnimoActionTask {
 		}
 		logStream = tmpLogStream; //Just to have it final (from now on, so we can use it in the thread we create below) and still be able to initialize it as null
 
-		// Execute Task in New Thread; pops open JTask Dialog Box.
-		Animo.getCytoscapeApp().getTaskManager().execute(new TaskIterator(task));
-		
-		//Execute task and WAIT FOR IT (!!) otherwise we just close the log file before the task has started..
-		//Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class).execute(new TaskIterator(task)); <-- This does not create a task monitor, but we do want a task monitor, so we must end up waiting until the task finishes...)
-		
-		new Thread() {
-			public void run() {
-				while (true) {
-					try {
-						Thread.sleep(200);
-					} catch (Exception ex) {
-					}
-					if (task.isComplete()) {
-						break;
-					}
-				}
-
+		TaskObserver finalizer = new TaskObserver() {
+			@Override
+			public void allFinished(FinishStatus status) {
 				long endTime = System.currentTimeMillis();
 
 				System.err.println("Time taken: " + timeDifferenceFormat(startTime, endTime));
@@ -426,9 +408,20 @@ public class RunAction extends AnimoActionTask {
 					logStream.close();
 				}
 			}
-		}.start();
-		
 
+			@Override
+			public void taskFinished(ObservableTask t) {
+				//We just use allFinished, even if the TaskIterator contains only one task
+			}
+		};
+		
+		// Execute Task in New Thread; pops open JTask Dialog Box.
+		Animo.getCytoscapeApp().getTaskManager().execute(new TaskIterator(task), finalizer);
+		
+		//Execute task and WAIT FOR IT (!!) otherwise we just close the log file before the task has started..
+		//Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class).execute(new TaskIterator(task)); <-- This does not create a task monitor, but we do want a task monitor, so we must end up waiting until the task finishes...)
+		//So in order to wait for the task to finish, we give it the TaskObserver object that gets called when the task is done.
+		
 	}
 
 	@Override

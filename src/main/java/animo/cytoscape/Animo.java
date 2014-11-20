@@ -45,6 +45,7 @@ import animo.exceptions.AnimoException;
 import animo.util.XmlConfiguration;
 
 public class Animo extends AbstractCyActivator {
+	public static final String APP_NAME = "ANIMO"; //We should absolutely AVOID to change this constant!
 	private static CySwingApplication cytoscape;
 	private static CyAppAdapter cytoscapeapp;
 	private static CyServiceRegistrar cyServiceRegistrar;
@@ -153,31 +154,31 @@ public class Animo extends AbstractCyActivator {
 
 		EditReactantNodeMenu reactantmenu = new EditReactantNodeMenu();
 		Properties props = new Properties();
-		props.put(ServiceProperties.PREFERRED_MENU, "ANIMO"); //"preferredMenu"
+		props.put(ServiceProperties.PREFERRED_MENU, APP_NAME); //"preferredMenu"
 		props.put(ServiceProperties.MENU_GRAVITY, "3");
 		registerAllServices(bc, reactantmenu, props);
 
 		EnableDisableNodeMenu enabledisablenodemenu = new EnableDisableNodeMenu();
 		Properties enabledisablenodeprops = new Properties();
-		enabledisablenodeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		enabledisablenodeprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
 		props.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, enabledisablenodemenu, enabledisablenodeprops);
 
 		PlotHideNodeMenu plothidemenu = new PlotHideNodeMenu();
 		Properties plothideprops = new Properties();
-		plothideprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		plothideprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
 		props.put(ServiceProperties.MENU_GRAVITY, "1");
 		registerAllServices(bc, plothidemenu, plothideprops);
 
 		EditReactionEdgeViewContextMenu editreactionedge = new EditReactionEdgeViewContextMenu();
 		Properties editreactionedgeprops = new Properties();
-		editreactionedgeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		editreactionedgeprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
 		props.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, editreactionedge, editreactionedgeprops);
 
 		EnableDisableEdgeViewContextMenu enabledisableedge = new EnableDisableEdgeViewContextMenu();
 		Properties enabledisableedgeprops = new Properties();
-		enabledisableedgeprops.put(ServiceProperties.PREFERRED_MENU, "ANIMO");
+		enabledisableedgeprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
 		props.put(ServiceProperties.MENU_GRAVITY, "1");
 		registerAllServices(bc, enabledisableedge, enabledisableedgeprops);
 		

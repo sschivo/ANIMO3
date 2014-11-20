@@ -17,6 +17,7 @@ import animo.core.model.Property;
 import animo.core.model.PropertyBag;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
+import animo.cytoscape.Animo;
 import animo.exceptions.SerializationException;
 import animo.util.AXPathExpression;
 import animo.util.Table;
@@ -143,7 +144,7 @@ public class XMLSerializer {
 		Document doc = XmlEnvironment.getDocumentBuilder().newDocument();
 
 		// create root and serialize properties to it
-		Element root = doc.createElement("ANIMO-model");
+		Element root = doc.createElement(Animo.APP_NAME + "-model");
 		Element properties = this.serializeProperties(doc, m.getProperties());
 		root.appendChild(properties);
 
