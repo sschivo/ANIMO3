@@ -802,7 +802,7 @@ public class Model implements Serializable {
 		if (!Double.isInfinite(minSecStep) && secPerStep < minSecStep) { // Notice that this check is made last because it is the most important: if we set seconds/point to a value
 																			// less than the computed minimum, the time values will be so large that UPPAAL will not be able to
 																			// understand them, thus producing no result
-			System.err.println("\tThe current seetting is under the bottom: " + secPerStep + " < " + minSecStep
+			System.err.println("\tThe current setting is under the bottom: " + secPerStep + " < " + minSecStep
 					+ ", so take " + minSecStep);
 			secPerStep = minSecStep;
 			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);

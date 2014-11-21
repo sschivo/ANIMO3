@@ -15,7 +15,6 @@ import java.io.File;
 import java.text.DecimalFormat;
 
 import javax.swing.AbstractAction;
-import javax.swing.BorderFactory;
 import javax.swing.Box;
 import javax.swing.BoxLayout;
 import javax.swing.ButtonGroup;
@@ -88,7 +87,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 									// buttons JPanel, and to use it as index for the y position
 
 		// This part allows the user to choose whether to perform the computations on the local machine or on a remote machine.
-		Box uppaalBox = new Box(BoxLayout.Y_AXIS);
+//		Box uppaalBox = new Box(BoxLayout.Y_AXIS);
 		final JCheckBox remoteUppaal = new JCheckBox("Remote");
 		final Box serverBox = new Box(BoxLayout.Y_AXIS);
 		final JTextField serverName = new JTextField("my.server.com"), serverPort = new JFormattedTextField("1234");
@@ -118,13 +117,17 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		serverBox.add(Box.createVerticalStrut(10));
 
 		remoteUppaal.setOpaque(true);
-		final ComponentTitledBorder border = new ComponentTitledBorder(remoteUppaal, serverBox,
-				BorderFactory.createEtchedBorder());
-		serverBox.setBorder(border);
-		uppaalBox.add(serverBox);
+		
+//		final ComponentTitledBorder border = new ComponentTitledBorder(remoteUppaal, serverBox,
+//				BorderFactory.createEtchedBorder());
+//		serverBox.setBorder(border);
+		CollapsiblePanel serverCollapsible = new CollapsiblePanel(remoteUppaal);
+		serverCollapsible.getContentPane().add(serverBox);
+		
+//		uppaalBox.add(serverBox);
 		// buttons.add(uppaalBox);
 		if (areWeTheDeveloper) {
-			buttons.add(serverBox, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
+			buttons.add(serverCollapsible, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 					GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		}
 
