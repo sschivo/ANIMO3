@@ -12,8 +12,10 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.FileImageOutputStream;
 import javax.swing.JFileChooser;
+import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
+import javax.swing.filechooser.FileSystemView;
 
 import org.cytoscape.app.CyAppAdapter;
 import org.cytoscape.session.CySessionManager;
@@ -39,6 +41,7 @@ public class FileUtils {
 	 * @return The complete (absoluite) path of the file selected by the user, or null if the user has selected no file/closed the dialog
 	 */
 	public static String open(final String fileType, final String description, Component parent) {
+		//System.err.println("Inizio dell'open (parent = " + parent + ")");
 		CyAppAdapter app = Animo.getCytoscapeApp();
 		CySessionManager manager = app.getCySessionManager();
 		if (currentDirectory == null && manager.getCurrentSessionFileName() != null) {
@@ -47,6 +50,16 @@ public class FileUtils {
 				currentDirectory = curSession.getParentFile();
 			}
 		}
+		if (currentDirectory == null || !currentDirectory.exists()) {
+			currentDirectory = new File(System.getProperty("user.home"));
+		}
+		if (currentDirectory == null || !currentDirectory.exists()) {
+			currentDirectory = new File(System.getProperty("user.dir"));
+		}
+		if (currentDirectory == null || !currentDirectory.exists()) { //Last resort: just put it "here" if we found no current session
+			currentDirectory = new File(".");
+		}
+		//System.err.println("Siamo adesso nella directory " + currentDirectory.getAbsolutePath());
 		JFileChooser chooser = new JFileChooser(currentDirectory);
 		if (fileType != null) {
 			chooser.setFileFilter(new FileFilter() {
@@ -63,6 +76,7 @@ public class FileUtils {
 					return description;
 				}
 			});
+			//System.err.println("Impostato il file filter " + chooser.getFileFilter());
 		} else {
 			chooser.setFileFilter(new FileFilter() {
 				@Override
@@ -77,12 +91,79 @@ public class FileUtils {
 			});
 		}
 		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-		int result = chooser.showOpenDialog(parent);
+		JFrame fintoFrame = null;
+		if (parent == null) {
+			//Basically, it seems that passing the Animo.getCytoscape().getJFrame() as parent here is not a good idea: for some reason, the open dialog is not displayed and Cytoscape hangs
+			fintoFrame = new JFrame("Trying to solve a problem if Cytoscape has just started..");
+			fintoFrame.setBounds(0, 0, 1, 1);
+			fintoFrame.setVisible(true);
+			parent = fintoFrame;
+		}
+		//System.err.println("Ora apro il dialog, eh");
+		int result = JFileChooser.CANCEL_OPTION;
+		try {
+			result = chooser.showOpenDialog(parent);
+		} catch (Exception ex) {
+			ex.printStackTrace(System.err);
+		}
+		if (fintoFrame != null) {
+			fintoFrame.dispose();
+		}
+		//System.err.println("Ecco il risultato: " + result);
 		if (result == JFileChooser.APPROVE_OPTION) {
 			currentDirectory = chooser.getCurrentDirectory();
 			return chooser.getSelectedFile().getAbsolutePath();
 		}
 		return null;
+	}
+	
+	//Look for a file. First tries user's home, then / (actually, all roots it finds)
+	public static File findFile(String fileName) {
+		File result = null;
+		String initDir = System.getProperty("user.home");
+		File initialDirectory;
+		if (initDir != null) {
+			initialDirectory = new File(initDir);
+		} else {
+			initialDirectory = new File(".");
+		}
+		if (initialDirectory.exists()) {
+			result = findFile(fileName, initialDirectory);
+		}
+		if (result == null || !result.exists()) {
+			File[] roots = FileSystemView.getFileSystemView().getRoots();
+			for (File dir : roots) {
+				result = findFile(fileName, dir);
+				if (result != null) {
+					return result;
+				}
+			}
+		}
+		return result;
+	}
+	
+	//Recursively look for a file starting from the given directory
+	public static File findFile(String fileName, File initialDirectory) {
+		if (initialDirectory == null || !initialDirectory.exists()
+				|| !initialDirectory.isDirectory() || !initialDirectory.canRead()) {
+			return null;
+		}
+		File result = null;
+		File[] contents = initialDirectory.listFiles();
+		for (File f : contents) {
+			if (f.isFile() && f.getName().equals(fileName)) {
+				return f;
+			}
+		}
+		for (File f : contents) {
+			if (f.isDirectory() && !f.getName().endsWith(".") && !f.getName().endsWith("..")) {
+				result = findFile(fileName, f);
+				if (result != null) {
+					return result;
+				}
+			}
+		}
+		return result;
 	}
 
 	/**

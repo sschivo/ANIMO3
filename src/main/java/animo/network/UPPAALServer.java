@@ -50,7 +50,7 @@ public class UPPAALServer extends UnicastRemoteObject implements iUPPAALServer {
 			}
 			System.err
 					.println("!! PLEASE NOTICE !! The two ports above NEED to be opened in the firewall/router/whateverits");
-			AnimoBackend.initialise(new File(Animo.APP_NAME + "-configuration.xml"));
+			AnimoBackend.initialise(new File(Animo.APP_NAME + "_configuration.xml"));
 
 			URL whatismyip = new URL("http://automation.whatismyip.com/n09230945.asp");
 			BufferedReader in = new BufferedReader(new InputStreamReader(whatismyip.openStream()));

@@ -21,6 +21,12 @@ import javax.xml.transform.stream.StreamResult;
 import javax.xml.xpath.XPathConstants;
 import javax.xml.xpath.XPathExpressionException;
 
+import org.cytoscape.work.FinishStatus;
+import org.cytoscape.work.ObservableTask;
+import org.cytoscape.work.TaskIterator;
+import org.cytoscape.work.TaskManager;
+import org.cytoscape.work.TaskMonitor;
+import org.cytoscape.work.TaskObserver;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 import org.w3c.dom.Node;
@@ -131,43 +137,120 @@ public class XmlConfiguration {
 		}
 	}
 
+	private boolean done = false;
 	/**
 	 * Create the default configuration file.
 	 * 
 	 * @throws ParserConfigurationException
 	 * @throws TransformerException
 	 */
-	public XmlConfiguration(File configuration) throws ParserConfigurationException, TransformerException, IOException {
-		JOptionPane
-				.showMessageDialog(
-						Animo.getCytoscape().getJFrame(),
-						"Please, find and select the \"verifyta\" tool.\nIt is usually located in the \"bin\" directory of UPPAAL.",
-						"Verifyta", JOptionPane.QUESTION_MESSAGE);
+	public XmlConfiguration(final File configuration) throws ParserConfigurationException, TransformerException, IOException {
 		String verifytaFileName = "verifyta";
 		if (UppaalModelAnalyserSMC.areWeUnderWindows()) {
 			verifytaFileName += ".exe";
 		}
-		String verifytaLocationStr = FileUtils.open(verifytaFileName, "Verifyta Executable", Animo.getCytoscape()
-				.getJFrame());
-		if (verifytaLocationStr != null) {
-			sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
-			sourceConfig.put(VERIFY_SMC_KEY, verifytaLocationStr);
-		} else {
-			sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
-			sourceConfig.put(VERIFY_SMC_KEY, DEFAULT_VERIFY_SMC);
+		//System.err.println("Provo prima a cercare il file da solo...");
+		final String verifytaFileName_ = verifytaFileName;
+		final ObservableTask findFileTask = new ObservableTask() {
+			private File verifytaFile = null;
+			
+			@Override
+			public void cancel() {
+				//cannot cancel this task?
+				done = true;
+			}
+
+			@Override
+			public void run(TaskMonitor monitor) throws Exception {
+				monitor.setTitle("ANIMO initial configuration");
+				monitor.setProgress(0);
+				monitor.setStatusMessage("Looking for UPPAAL verifyta program");
+				verifytaFile = FileUtils.findFile(verifytaFileName_);
+				if (verifytaFile != null && verifytaFile.exists()) {
+					monitor.setStatusMessage("verifyta found at " + verifytaFile.getAbsolutePath());
+				} else {
+					monitor.setStatusMessage("verifyta not found");
+				}
+			}
+
+			@SuppressWarnings("unchecked")
+			@Override
+			public <R> R getResults(Class<? extends R> i) {
+				return (R)verifytaFile;
+			}
+		};
+		TaskObserver observer = new TaskObserver() {
+			@Override
+			public void allFinished(FinishStatus s) {
+				//System.err.println("Tutti i task sono finiti!");
+				//System.err.println("Risultati " + findFileTask.getResults(null) + " (di tipo " + findFileTask.getResults(null).getClass() + ")");
+				File verifytaFile = null;
+				String verifytaLocationStr = null;
+				if (s.getType().equals(FinishStatus.Type.SUCCEEDED)
+						&& findFileTask.getResults(null) != null && ((File)findFileTask.getResults(null)).exists()) {
+					verifytaFile = (File)findFileTask.getResults(null);
+					//System.err.println("Trovato verifyta al posto \"" + verifytaFile.getAbsolutePath() + "\"!!");
+					JOptionPane.showMessageDialog(null, "ANIMO was correctly installed.\nUPPAAL verifyta program was found at\n" + verifytaFile.getAbsolutePath() + ".\nIf you want to change this, press the \"Options...\" button\nat the bottom of the ANIMO panel.");
+					verifytaLocationStr = verifytaFile.getAbsolutePath();
+				} else {
+					//System.err.println("Non trovato il verifyta");
+					JOptionPane.showMessageDialog(
+							Animo.getCytoscape().getJFrame(),
+							"Please, find and select the \"verifyta\" tool.\nIt is usually located in the \"bin\" directory of UPPAAL.",
+							"Verifyta", JOptionPane.QUESTION_MESSAGE);
+					//System.err.println("Apro il dialogo per verifyta");
+					//For some reason, if I pass Animo.getCytoscape().getJFrame() in this case (when Cytoscape has just started), the dialog is NOT shown and Cytoscape does not respond anymore.. o_O
+					//Using null as a parent has the same effect.
+					//So I changed the open function: if it gets a null parent, it creates a 1x1 pixel window for a parent, then destroys it when the dialog has been used 
+					verifytaLocationStr = FileUtils.open(verifytaFileName_, "Verifyta Executable", null); //Animo.getCytoscape().getJFrame());
+					//System.err.println("Acquisita la stringa: " + verifytaLocationStr);
+				}
+				if (verifytaLocationStr != null) {
+					sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
+					sourceConfig.put(VERIFY_SMC_KEY, verifytaLocationStr);
+				} else {
+					sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
+					sourceConfig.put(VERIFY_SMC_KEY, DEFAULT_VERIFY_SMC);
+					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
+				}
+				/*
+				 * JOptionPane.showMessageDialog(Cytoscape.getDesktop(), "Please, find and select the \"tracer\" tool.", "Tracer", JOptionPane.QUESTION_MESSAGE); String tracerLocation =
+				 * FileUtils.open(null, "Tracer Executable", Cytoscape.getDesktop()); if (tracerLocation != null) { sourceConfig.put(TRACER_KEY, tracerLocation); } else {
+				 * sourceConfig.put(TRACER_KEY, "\\uppaal-4.1.4\\bin-Win32\\tracer.exe"); }
+				 */
+				sourceConfig.put(DEVELOPER_KEY, DEFAULT_DEVELOPER);
+
+				sourceConfig.put(UNCERTAINTY_KEY, DEFAULT_UNCERTAINTY);
+
+				sourceConfig.put(MODEL_TYPE_KEY, DEFAULT_MODEL_TYPE);
+
+				try {
+					writeConfigFile(configuration);
+				} catch (ParserConfigurationException e) {
+					e.printStackTrace(System.err);
+				} catch (TransformerException e) {
+					e.printStackTrace(System.err);
+				} catch (IOException e) {
+					e.printStackTrace(System.err);
+				}
+				done = true;
+			}
+
+			@Override
+			public void taskFinished(ObservableTask s) {
+				//just look at allFinished
+			}
+		};
+		TaskManager<?, ?> tm = Animo.getCyServiceRegistrar().getService(TaskManager.class);
+		done = false;
+		tm.execute(new TaskIterator(findFileTask), observer);
+		while (!done) {
+			try {
+				Thread.sleep(100);
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
+			}
 		}
-		/*
-		 * JOptionPane.showMessageDialog(Cytoscape.getDesktop(), "Please, find and select the \"tracer\" tool.", "Tracer", JOptionPane.QUESTION_MESSAGE); String tracerLocation =
-		 * FileUtils.open(null, "Tracer Executable", Cytoscape.getDesktop()); if (tracerLocation != null) { sourceConfig.put(TRACER_KEY, tracerLocation); } else {
-		 * sourceConfig.put(TRACER_KEY, "\\uppaal-4.1.4\\bin-Win32\\tracer.exe"); }
-		 */
-		sourceConfig.put(DEVELOPER_KEY, DEFAULT_DEVELOPER);
-
-		sourceConfig.put(UNCERTAINTY_KEY, DEFAULT_UNCERTAINTY);
-
-		sourceConfig.put(MODEL_TYPE_KEY, DEFAULT_MODEL_TYPE);
-
-		writeConfigFile(configuration);
 	}
 
 	/**

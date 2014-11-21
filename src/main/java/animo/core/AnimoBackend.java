@@ -80,7 +80,7 @@ public class AnimoBackend {
 	 * @throws AnimoException
 	 *             if the ANIMO backend could not be initialised
 	 */
-	private AnimoBackend(File configuration) throws AnimoException {
+	private AnimoBackend(final File configuration) throws AnimoException {
 
 		// read configuration file
 		try {
@@ -89,9 +89,12 @@ public class AnimoBackend {
 
 			try {
 				// read config from file
+				//System.err.println("Provo a leggere il file di configurazione " + configuration);
 				this.configuration = new XmlConfiguration(XmlEnvironment.parse(configuration), configuration);
+				//System.err.println("Ho letto correttamente la configurazione dal file esistente " + configuration);
 			} catch (SAXException ex) {
 				// create default configuration
+				//System.err.println("Niente file di configurazione (errore " + ex + "), ne creo uno nuovo");
 				this.configuration = new XmlConfiguration(configuration);
 			}
 			// } catch (SAXException e) {

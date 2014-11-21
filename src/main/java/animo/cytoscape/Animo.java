@@ -214,14 +214,21 @@ public class Animo extends AbstractCyActivator {
 		cytoscape = getService(bc, CySwingApplication.class);
 		cytoscapeapp = getService(bc, CyAppAdapter.class);
 		cyServiceRegistrar = getService(bc, CyServiceRegistrar.class);
-		String folder = System.getProperty("user.home") + File.separatorChar + ".animo" + File.separatorChar;
-		String file = "animo_configuration.xml";
-		File configuration = new File(folder + file);
-
+		//String folder = System.getProperty("user.home") + File.separatorChar + ".animo" + File.separatorChar;
+		File animoConfigFolder = Animo.getCytoscapeApp().getCyApplicationConfiguration().getAppConfigurationDirectoryLocation(Animo.class);
+		String file = Animo.APP_NAME + "_configuration.xml"; //"animo_configuration.xml";
+		File configuration = new File(animoConfigFolder, file); //new File(folder + file);
+		
+		try {
+			if (!animoConfigFolder.exists()) {
+				animoConfigFolder.mkdirs();
+			}
+		} catch (Exception e) {
+			JOptionPane.showMessageDialog(getCytoscape().getJFrame(), "Couldn't create the configuration directory " + animoConfigFolder.getAbsolutePath(), "Cannot create directory", JOptionPane.ERROR_MESSAGE);
+			e.printStackTrace(System.err);
+		}
 		try {
 			if (!configuration.exists()) {
-				new File(folder).mkdirs();
-
 				configuration.createNewFile();
 			}
 		} catch (IOException e) {
