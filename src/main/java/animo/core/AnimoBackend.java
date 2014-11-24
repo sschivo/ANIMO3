@@ -87,14 +87,18 @@ public class AnimoBackend {
 			// initialise the XML environment
 			XmlEnvironment.getInstance();
 
-			try {
-				// read config from file
-				//System.err.println("Provo a leggere il file di configurazione " + configuration);
-				this.configuration = new XmlConfiguration(XmlEnvironment.parse(configuration), configuration);
-				//System.err.println("Ho letto correttamente la configurazione dal file esistente " + configuration);
-			} catch (SAXException ex) {
-				// create default configuration
-				//System.err.println("Niente file di configurazione (errore " + ex + "), ne creo uno nuovo");
+			if (configuration.exists()) {
+				try {
+					// read config from file
+					//System.err.println("Provo a leggere il file di configurazione " + configuration);
+					this.configuration = new XmlConfiguration(XmlEnvironment.parse(configuration), configuration);
+					//System.err.println("Ho letto correttamente la configurazione dal file esistente " + configuration);
+				} catch (SAXException ex) {
+					// create default configuration
+					//System.err.println("Niente file di configurazione (errore " + ex + "), ne creo uno nuovo");
+					this.configuration = new XmlConfiguration(configuration);
+				}
+			} else {
 				this.configuration = new XmlConfiguration(configuration);
 			}
 			// } catch (SAXException e) {

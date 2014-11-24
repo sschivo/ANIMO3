@@ -444,7 +444,6 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					public void actionPerformed(ActionEvent ev) {
 						String verifyta = verifytaLocation.getText();
 						configuration.set(XmlConfiguration.VERIFY_KEY, verifyta);
-						configuration.set(XmlConfiguration.VERIFY_SMC_KEY, verifyta);
 						String uncertaintyValue = "5";
 						if (useUncertainty.isSelected()) {
 							uncertaintyValue = uncertainty.getText();

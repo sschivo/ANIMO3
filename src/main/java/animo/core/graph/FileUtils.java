@@ -118,7 +118,9 @@ public class FileUtils {
 	}
 	
 	//Look for a file. First tries user's home, then / (actually, all roots it finds)
-	public static File findFile(String fileName) {
+	//if isFile = false, we look for a directory instead
+	//if strictlyEquals = false, instead of using equals() we use contains and both strings are lower-case
+	public static File findFile(String fileName, boolean isFile, boolean strictlyEquals) {
 		File result = null;
 		String initDir = System.getProperty("user.home");
 		File initialDirectory;
@@ -127,13 +129,17 @@ public class FileUtils {
 		} else {
 			initialDirectory = new File(".");
 		}
+		if (!strictlyEquals) { //We do it once and for all, so we don't need to keep doing it for each comparison
+			fileName = fileName.toLowerCase();
+		}
 		if (initialDirectory.exists()) {
-			result = findFile(fileName, initialDirectory);
+			//System.err.println("First looking for " + fileName + " starting in " + initialDirectory.getAbsolutePath());
+			result = findFile(fileName, initialDirectory, isFile, strictlyEquals);
 		}
 		if (result == null || !result.exists()) {
 			File[] roots = FileSystemView.getFileSystemView().getRoots();
 			for (File dir : roots) {
-				result = findFile(fileName, dir);
+				result = findFile(fileName, dir, isFile, strictlyEquals);
 				if (result != null) {
 					return result;
 				}
@@ -143,21 +149,25 @@ public class FileUtils {
 	}
 	
 	//Recursively look for a file starting from the given directory
-	public static File findFile(String fileName, File initialDirectory) {
+	//For isFile and strictlyEquals, see the other function
+	public static File findFile(String fileName, File initialDirectory, boolean isFile, boolean strictlyEquals) {
 		if (initialDirectory == null || !initialDirectory.exists()
 				|| !initialDirectory.isDirectory() || !initialDirectory.canRead()) {
 			return null;
 		}
 		File result = null;
+		//System.err.println(initialDirectory.getAbsolutePath());
 		File[] contents = initialDirectory.listFiles();
 		for (File f : contents) {
-			if (f.isFile() && f.getName().equals(fileName)) {
+			if ((isFile && f.isFile() || !isFile && f.isDirectory())
+					&&
+				(strictlyEquals && f.getName().equals(fileName) || !strictlyEquals && f.getName().toLowerCase().contains(fileName))) {
 				return f;
 			}
 		}
 		for (File f : contents) {
 			if (f.isDirectory() && !f.getName().endsWith(".") && !f.getName().endsWith("..")) {
-				result = findFile(fileName, f);
+				result = findFile(fileName, f, isFile, strictlyEquals);
 				if (result != null) {
 					return result;
 				}
@@ -165,6 +175,82 @@ public class FileUtils {
 		}
 		return result;
 	}
+	
+	//Find a file which we have a guess of the possible name of a directory containing it
+	//The name of the directory will be checked as f.getName().toLowercase().contains(dirName.toLowercase())
+	//The file name will be checked exactly as f.getName().equals(fileName)
+	//First tries looking in all directories that match the given dirName. That failing, does a bruteforce search for the file
+	public static File findFileInDirectory(String fileName, String dirName) {
+		File result = null;
+		
+		dirName = dirName.toLowerCase();
+		String initDir = System.getProperty("user.home");
+		File initialDirectory;
+		if (initDir != null) {
+			initialDirectory = new File(initDir);
+		} else {
+			initialDirectory = new File(".");
+		}
+		if (initialDirectory.exists()) {
+			//System.err.println("First looking for " + fileName + " starting in " + initialDirectory.getAbsolutePath());
+			result = findFileInDirectory(fileName, dirName, initialDirectory, false);
+		}
+		if (result == null || !result.exists()) {
+			File[] roots = FileSystemView.getFileSystemView().getRoots();
+			//System.err.println("Not found. Looking in the roots");
+			for (File dir : roots) {
+				//System.err.println("Root " + dir);
+				result = findFileInDirectory(fileName, dirName, dir, false);
+				if (result != null) {
+					return result;
+				}
+			}
+		}
+		if (result == null) { //If we didn't find the directory which could contain the file, or we didn't find the file in the directory we found, just do a bruteforce search for the file
+			//System.err.println("Non trovato file o directory, riparto da zero cercando il file " + fileName);
+			result = findFile(fileName, true, true);
+		}
+		//System.err.println("Ecco il risultato di tanta fatica: " + result);
+		return result;
+	}
+	
+	//Look for a file with name fileName, contained somewhere (not necessarily directly) inside a directory
+	//with a name that contains dirName (lower case comparison).
+	//initialDirectory is the directory where the search starts
+	//We use lookingForFile = true when the function is looking for the file, and false to indicate that
+	//we are looking for the directory.
+	//When we find the directory, we continue the search, looking for fileName, thus lookingForFile = true
+	public static File findFileInDirectory(String fileName, String dirName, File initialDirectory, boolean lookingForFile) {
+		if (initialDirectory == null || !initialDirectory.exists()
+				|| !initialDirectory.isDirectory() || !initialDirectory.canRead()) {
+			return null;
+		}
+		File result = null;
+		//System.err.println(initialDirectory.getAbsolutePath());
+		File[] contents = initialDirectory.listFiles();
+		for (File f : contents) {
+			if (lookingForFile && f.isFile() && f.getName().equals(fileName)) {
+				//If we were looking for the file, just return it
+				return f;
+			} else if (!lookingForFile && f.isDirectory() && f.getName().toLowerCase().contains(dirName)) { //If we were looking for the directory, look now for the file
+				//System.err.println("Trying to look in matching directory " + f.getAbsolutePath());
+				result = findFileInDirectory(fileName, dirName, f, true);
+				if (result != null) { //If the file was found in this directory, return it and we are done.
+					return result;
+				} //Otherwise, we just continue to the next matching directory
+			}
+		}
+		for (File f : contents) {
+			if (f.isDirectory() && !f.getName().endsWith(".") && !f.getName().endsWith("..")) {
+				result = findFileInDirectory(fileName, dirName, f, lookingForFile);
+				if (result != null) { //If we have found the file, just return it
+					return result;
+				} //Note that whenever result != null we are sure it is the file we were looking for: we never return the directory, but directly start from the directory looking for the file
+			}
+		}
+		return result;
+	}
+	
 
 	/**
 	 * Save what is currently shown on the given Component to a file that the user will choose via the open dialog. The resulting image will be in JPEG format, and will have a size

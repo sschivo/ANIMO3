@@ -46,7 +46,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 	
 	public static double TIME_SCALE = 0.2; //the factor by which time values are mutiplied before being output on the .csv file (it answers the question "how many real-life minutes does a time unit of the model represent?")
 	
-	private String verifytaPath, verifytaSMCPath;//, tracerPath; //The paths to the tools used in the analysis
+	private String verifytaPath;//, tracerPath; //The path to the tool used in the analysis
 	private TaskMonitor monitor; //The reference to the Monitor in which to show the progress of the task
 	private AnimoActionTask actionTask; //We can ask this one whether the user has asked us to cancel the computation
 	private int taskStatus = 0; //Used to define the current status of the analysis task. 0 = still running, 1 = process completed, 2 = user pressed Cancel
@@ -58,7 +58,6 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 		this.monitor = monitor;
 		this.actionTask = actionTask;
 		this.verifytaPath = configuration.get(XmlConfiguration.VERIFY_KEY);
-		this.verifytaSMCPath = configuration.get(XmlConfiguration.VERIFY_SMC_KEY);
 	}
 	
 	public static boolean areWeUnderWindows() {
@@ -125,19 +124,19 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			String[] cmd = new String[3];
 			
 			if (areWeUnderWindows()) {
-				if (!new File(verifytaSMCPath).exists()) {
-					throw new FileNotFoundException("Cannot locate verifyta executable! (tried in " + verifytaSMCPath + ")");
+				if (!new File(verifytaPath).exists()) {
+					throw new FileNotFoundException("Cannot locate verifyta executable! (tried in " + verifytaPath + ")");
 				}
 				cmd[0] = "cmd";
 				cmd[1] = "/c";
-				cmd[2] = " \"" + verifytaSMCPath + "\"";
+				cmd[2] = " \"" + verifytaPath + "\"";
 			} else {
-				if (!new File(verifytaSMCPath).exists()) {
-					throw new FileNotFoundException("Cannot locate verifyta executable! (tried in " + verifytaSMCPath + ")");
+				if (!new File(verifytaPath).exists()) {
+					throw new FileNotFoundException("Cannot locate verifyta executable! (tried in " + verifytaPath + ")");
 				}
 				cmd[0] = "bash";
 				cmd[1] = "-c";
-				cmd[2] = verifytaSMCPath;				
+				cmd[2] = verifytaPath;				
 			}
 			if (m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE) != null && m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE).as(Integer.class) == Model.Properties.NORMAL_MODEL_CHECKING) {
 				cmd[2] += " -s -y -o2 -t0 \"" + nomeFileModello + "\" \"" + nomeFileQuery + "\"";// > \"" + nomeFileOutput + "\"";//2>&1";
