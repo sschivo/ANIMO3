@@ -273,17 +273,17 @@ public class Model implements Serializable {
 			nSecPerPoint = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 		}
 
-		Double secStepFactor = 1.0;
-		if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
-			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
-			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
-			if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null) {
-				currentNetworkLocalTable.createColumn(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, false);
-			}
-			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
-		} else {
-			secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
-		}
+		Double secStepFactor = 1.0 / nSecPerPoint;
+//		if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
+//			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
+//			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
+//			if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null) {
+//				currentNetworkLocalTable.createColumn(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, false);
+//			}
+//			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
+//		} else {
+//			secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+//		}
 
 
 		boolean noReactantsPlotted = true;
@@ -576,7 +576,7 @@ public class Model implements Serializable {
 		while (edges.hasNext()) {
 			CyEdge edge = edges.next();
 			Boolean enabled = currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
-			if (enabled == null)
+			if (enabled == null || !enabled)
 				continue;
 			double levelsScaleFactor;
 			double scaleFactorR1 = currentNetwork.getRow(edge.getSource())
@@ -648,10 +648,12 @@ public class Model implements Serializable {
 				e2 = currentNetwork.getRow(edge.getTarget());
 			}
 
-			int nLevelsR1 = 0;
+			int nLevelsR1;
 			int nLevelsR2;
 			if (e1.isSet(Model.Properties.NUMBER_OF_LEVELS)) {
-				nLevelsR1 = e2.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+				nLevelsR1 = e1.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+			} else {
+				nLevelsR1 = currentNetwork.getRow(currentNetwork).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			}
 			if (e2.isSet(Model.Properties.NUMBER_OF_LEVELS)) {
 				nLevelsR2 = e2.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
@@ -740,7 +742,7 @@ public class Model implements Serializable {
 				maxValueRate = scenario.computeRate(colMax, nLevelsR1, activeR1, rowMax, nLevelsR2, activeR2);
 				maxValueFormula = scenario.computeFormula(colMax, nLevelsR1, activeR1, rowMax, nLevelsR2, activeR2);
 			}
-
+			
 			if (Double.isInfinite(minValueFormula)) {
 				minValueInTables = VariablesModel.INFINITE_TIME;
 			} else {
@@ -757,7 +759,8 @@ public class Model implements Serializable {
 						(int) Math.round(secStepFactor * levelsScaleFactor * maxValueFormula
 								* (1 + uncertainty / 100.0)));
 			}
-
+			
+			
 			if (minValueInTables == 0) {
 				double proposedSecStep = secPerStep
 						/ (1.1 * minValueRate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0)));
@@ -852,16 +855,16 @@ public class Model implements Serializable {
 			model.getProperties().let("useOldResetting")
 					.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get("useOldResetting", Boolean.class));
 		}
-		model.getProperties().let(Model.Properties.NUMBER_OF_LEVELS)
-				.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
-		model.getProperties().let(Model.Properties.SECONDS_PER_POINT)
-				.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class));
+//		model.getProperties().let(Model.Properties.NUMBER_OF_LEVELS)
+//				.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class));
+//		model.getProperties().let(Model.Properties.SECONDS_PER_POINT)
+//				.be(currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class));
+		
 		double secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
-		model.getProperties().let(Model.Properties.SECS_POINT_SCALE_FACTOR).be(secStepFactor);
-
 		final Integer maxNLevels = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 		final Double nSecondsPerPoint = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECONDS_PER_POINT, Double.class);
 
+		model.getProperties().let(Model.Properties.SECS_POINT_SCALE_FACTOR).be(secStepFactor);
 		model.getProperties().let(Model.Properties.NUMBER_OF_LEVELS).be(maxNLevels);
 		model.getProperties().let(Model.Properties.SECONDS_PER_POINT).be(nSecondsPerPoint);
 
