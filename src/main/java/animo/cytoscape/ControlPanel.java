@@ -265,7 +265,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		changeSecondsPerPointbuttonBox.add(Box.createGlue());
 		changeSecondsPerPointbuttonBox.add(changeSecondsPerPointbutton);
 		changeSecondsPerPointbuttonBox.add(Box.createGlue());
-		buttonsBox.add(changeSecondsPerPointbuttonBox);
+		//buttonsBox.add(changeSecondsPerPointbuttonBox); Don't want the user to mess with a parameter that is all but intuitive
 
 		// The "Parameter Fitter"
 		// if (areWeTheDeveloper) {

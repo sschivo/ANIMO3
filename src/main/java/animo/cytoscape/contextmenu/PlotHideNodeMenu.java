@@ -52,7 +52,7 @@ public class PlotHideNodeMenu implements CyNodeViewContextMenuFactory, ActionLis
 	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyNode> nodeView) {
 		JMenuItem menuItem = new JMenuItem("Plot/hide");
 		menuItem.addActionListener(this);
-		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 1);
 
 		this.network = netView.getModel();
 		this.nodeView = nodeView;

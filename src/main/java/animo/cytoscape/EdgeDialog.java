@@ -74,6 +74,22 @@ public class EdgeDialog extends JDialog {
 		this(Animo.getCytoscape().getJFrame(), network, edge);
 	}
 
+	
+	public static String getEdgeName(CyNetwork network, CyEdge edge) {
+		CyRow edgeRow = network.getRow(edge),
+			  sourceRow = network.getRow(edge.getSource()),
+			  targetRow = network.getRow(edge.getTarget());
+		if (edgeRow.isSet(Model.Properties.INCREMENT) && sourceRow.isSet(Model.Properties.CANONICAL_NAME) && targetRow.isSet(Model.Properties.CANONICAL_NAME)) {
+			return "Interaction " + 
+						sourceRow.get(Model.Properties.CANONICAL_NAME, String.class) + 
+						(edgeRow.get(Model.Properties.INCREMENT, Integer.class) >= 0 ? " --> " : " --| ") + 
+						targetRow.get(Model.Properties.CANONICAL_NAME, String.class);
+		} else {
+			return "New interaction";
+		}
+	}
+	
+	
 	/**
 	 * Constructor.
 	 * 
@@ -82,13 +98,7 @@ public class EdgeDialog extends JDialog {
 	 */
 	@SuppressWarnings("unchecked")
 	public EdgeDialog(final Window owner, final CyNetwork network, final CyEdge edge) {
-		super(owner,
-				(network.getRow(edge).isSet(Model.Properties.INCREMENT) && network.getRow(edge.getSource()).isSet(Model.Properties.CANONICAL_NAME) && network.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)?
-					"Interaction " + (network.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class) + 
-					(network.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) >= 0 ? " --> " : " --| ") + 
-					network.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class))
-					: "New interaction"), 
-				Dialog.ModalityType.APPLICATION_MODAL);
+		super(owner, getEdgeName(network, edge), Dialog.ModalityType.APPLICATION_MODAL);
 		this.network = network;
 
 		StringBuilder title = new StringBuilder();

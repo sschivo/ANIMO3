@@ -33,7 +33,7 @@ public class EditReactantNodeMenu implements CyNodeViewContextMenuFactory, Actio
 	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyNode> nodeView) {
 		JMenuItem menuItem = new JMenuItem("Edit reactant...");
 		menuItem.addActionListener(this);
-		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 3);
 
 		this.netView = netView;
 

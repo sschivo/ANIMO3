@@ -30,7 +30,7 @@ public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFac
 	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyEdge> edgeView) {
 		JMenuItem menuItem = new JMenuItem("Edit reaction...");
 		menuItem.addActionListener(this);
-		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 3);
 		network = netView.getModel();
 		return cyMenuItem;
 

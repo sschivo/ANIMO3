@@ -24,6 +24,7 @@ import org.cytoscape.work.TaskMonitor;
 import animo.core.AnimoBackend;
 import animo.core.analyser.uppaal.VariablesModel;
 import animo.cytoscape.Animo;
+import animo.cytoscape.EdgeDialog;
 import animo.exceptions.AnimoException;
 import animo.fitting.ScenarioCfg;
 import animo.util.Table;
@@ -274,16 +275,16 @@ public class Model implements Serializable {
 		}
 
 		Double secStepFactor = 1.0 / nSecPerPoint;
-//		if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
-//			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
-//			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
-//			if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null) {
-//				currentNetworkLocalTable.createColumn(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, false);
-//			}
-//			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
-//		} else {
-//			secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
-//		}
+		if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null
+			|| !currentNetworkLocalTable.getRow(currentNetwork.getSUID()).isSet(Model.Properties.SECS_POINT_SCALE_FACTOR)
+			|| currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class) == null) {
+			if (currentNetworkLocalTable.getColumn(Model.Properties.SECS_POINT_SCALE_FACTOR) == null) {
+				currentNetworkLocalTable.createColumn(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, false);
+			}
+			currentNetworkLocalTable.getRow(currentNetwork.getSUID()).set(Model.Properties.SECS_POINT_SCALE_FACTOR, secStepFactor);
+		} else {
+			secStepFactor = currentNetworkLocalTable.getRow(currentNetwork.getSUID()).get(Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class);
+		}
 
 
 		boolean noReactantsPlotted = true;
@@ -372,27 +373,28 @@ public class Model implements Serializable {
 				}
 			}
 
-			String res = currentNetwork.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
-			String edgeName;
-			StringBuilder reactionName = new StringBuilder();
-			if (res == null) {
-				reactionName.append(res);
-
-				if (increment >= 0) {
-					reactionName.append(" --> ");
-				} else {
-					reactionName.append(" --| ");
-				}
-				res = currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
-				if (res == null) {
-					edgeName = "" + edge.getSource() + " --> " + edge.getTarget();
-				} else {
-					reactionName.append(res);
-					edgeName = reactionName.toString();
-				}
-			} else {
-				edgeName = "" + edge.getSource() + " --> " + edge.getTarget();
-			}
+//			String res = currentNetwork.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
+//			String edgeName;
+//			StringBuilder reactionName = new StringBuilder();
+//			if (res == null) {
+//				reactionName.append(res);
+//
+//				if (increment >= 0) {
+//					reactionName.append(" --> ");
+//				} else {
+//					reactionName.append(" --| ");
+//				}
+//				res = currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
+//				if (res == null) {
+//					edgeName = "" + edge.getSource() + " --> " + edge.getTarget();
+//				} else {
+//					reactionName.append(res);
+//					edgeName = reactionName.toString();
+//				}
+//			} else {
+//				edgeName = "" + edge.getSource() + " --> " + edge.getTarget();
+//			}
+			String edgeName = EdgeDialog.getEdgeName(currentNetwork, edge);
 
 			// Check that the edge has a selected scenario
 			Integer scenarioIdx = currentNetwork.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
@@ -760,7 +762,6 @@ public class Model implements Serializable {
 								* (1 + uncertainty / 100.0)));
 			}
 			
-			
 			if (minValueInTables == 0) {
 				double proposedSecStep = secPerStep
 						/ (1.1 * minValueRate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0)));
@@ -797,8 +798,12 @@ public class Model implements Serializable {
 		if (!Double.isInfinite(maxSecStep) && secPerStep > maxSecStep) {
 			System.err.println("\tThe current setting is over the top: " + secPerStep + " > " + maxSecStep
 					+ ", so take " + maxSecStep);
+			double oldSecPerStep = secPerStep;
 			secPerStep = maxSecStep;
 			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
+			double factor = oldSecPerStep / secPerStep;
+			secStepFactor *= factor;
+			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, secStepFactor);
 		} else {
 			// System.err.println("\tNon vado sopra il massimo: " + secPerStep + " <= " + maxSecStep);
 		}
@@ -807,8 +812,12 @@ public class Model implements Serializable {
 																			// understand them, thus producing no result
 			System.err.println("\tThe current setting is under the bottom: " + secPerStep + " < " + minSecStep
 					+ ", so take " + minSecStep);
+			double oldSecPerStep = secPerStep;
 			secPerStep = minSecStep;
 			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECONDS_PER_POINT, Double.class, secPerStep);
+			double factor = oldSecPerStep / secPerStep;
+			secStepFactor *= factor;
+			Animo.setRowValue(currentNetworkLocalTable.getRow(currentNetwork.getSUID()), Model.Properties.SECS_POINT_SCALE_FACTOR, Double.class, secStepFactor);
 		}
 	}
 

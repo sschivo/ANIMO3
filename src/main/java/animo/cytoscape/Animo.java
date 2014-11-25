@@ -35,6 +35,7 @@ import org.osgi.framework.BundleContext;
 
 import animo.core.AnimoBackend;
 import animo.cytoscape.contextmenu.EdgeDoubleClickTaskFactory;
+import animo.cytoscape.contextmenu.EdgeRescaleKContextMenu;
 import animo.cytoscape.contextmenu.EditReactantNodeMenu;
 import animo.cytoscape.contextmenu.EditReactionEdgeViewContextMenu;
 import animo.cytoscape.contextmenu.EnableDisableEdgeViewContextMenu;
@@ -161,26 +162,32 @@ public class Animo extends AbstractCyActivator {
 		EnableDisableNodeMenu enabledisablenodemenu = new EnableDisableNodeMenu();
 		Properties enabledisablenodeprops = new Properties();
 		enabledisablenodeprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
-		props.put(ServiceProperties.MENU_GRAVITY, "2");
+		enabledisablenodeprops.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, enabledisablenodemenu, enabledisablenodeprops);
 
 		PlotHideNodeMenu plothidemenu = new PlotHideNodeMenu();
 		Properties plothideprops = new Properties();
 		plothideprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
-		props.put(ServiceProperties.MENU_GRAVITY, "1");
+		plothideprops.put(ServiceProperties.MENU_GRAVITY, "1");
 		registerAllServices(bc, plothidemenu, plothideprops);
 
 		EditReactionEdgeViewContextMenu editreactionedge = new EditReactionEdgeViewContextMenu();
 		Properties editreactionedgeprops = new Properties();
 		editreactionedgeprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
-		props.put(ServiceProperties.MENU_GRAVITY, "2");
+		editreactionedgeprops.put(ServiceProperties.MENU_GRAVITY, "3");
 		registerAllServices(bc, editreactionedge, editreactionedgeprops);
 
 		EnableDisableEdgeViewContextMenu enabledisableedge = new EnableDisableEdgeViewContextMenu();
 		Properties enabledisableedgeprops = new Properties();
 		enabledisableedgeprops.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
-		props.put(ServiceProperties.MENU_GRAVITY, "1");
+		enabledisableedgeprops.put(ServiceProperties.MENU_GRAVITY, "1");
 		registerAllServices(bc, enabledisableedge, enabledisableedgeprops);
+		
+		EdgeRescaleKContextMenu rescaleEdges = new EdgeRescaleKContextMenu();
+		Properties rescaleEdgesProps = new Properties();
+		rescaleEdgesProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
+		rescaleEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2");
+		registerAllServices(bc, rescaleEdges, rescaleEdgesProps);
 		
 		//Register node and edge double click listeners to open the edit dialogs
 		NodeViewTaskFactory nodeDblClkListener = new NodeDoubleClickTaskFactory();

@@ -602,7 +602,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 							ex.printStackTrace();
 						}
 					}
-					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done saving the frames.\nTo create an animation:\n- open the folder \"" + directory + "\"\n- open GIMP\n- File -> Open as Layers...\n- select all the FrameXX.png files\n- File -> Export\n- make sure that the file type is .gif, choose a name and click Export\n- select \"As animation\" and chose the options as you want\n- click Export"); 
+					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done saving the frames.\nTo create an animation:\n- open GIMP\n- File -> Open as Layers...\n- go to the folder \"" + directory + "\"\n- select all the FrameXX.png files\n- File -> Export As...\n- make sure that the file type is .gif, choose a name and click Export\n- select \"As animation\" and chose the options as you want\n- click Export"); 
 				}
 			});
 			sliderPanel.add(animate, BorderLayout.EAST);

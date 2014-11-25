@@ -72,7 +72,7 @@ public class EnableDisableEdgeViewContextMenu implements CyEdgeViewContextMenuFa
 		this.network = netView.getModel();
 		JMenuItem menuItem = new JMenuItem("Enable/disable");
 		menuItem.addActionListener(this);
-		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 1);
 		return cyMenuItem;
 	}
 

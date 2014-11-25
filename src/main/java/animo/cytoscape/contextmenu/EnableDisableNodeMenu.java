@@ -74,7 +74,7 @@ public class EnableDisableNodeMenu implements CyNodeViewContextMenuFactory, Acti
 	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyNode> nodeView) {
 		JMenuItem menuItem = new JMenuItem("Enable/Disable");
 		menuItem.addActionListener(this);
-		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 0);
+		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 2);
 
 		this.network = netView.getModel();
 		this.nodeView = nodeView;
