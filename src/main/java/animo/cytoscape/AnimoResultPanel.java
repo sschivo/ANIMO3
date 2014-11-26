@@ -973,11 +973,11 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			}
 		} else if (caption.equals(END_DIFFERENCE)) {
 			if (differenceWith != null) {
-				Map<String, String> hisMapCytoscapeIDtoModelID = differenceWith.model.getMapCytoscapeIDtoReactantID();
-				Map<String, String> myMapCytoscapeIDtoModelID = this.model.getMapCytoscapeIDtoReactantID();
-				Map<String, String> myMapModelIDtoCytoscapeID = new HashMap<String, String>();
+				Map<Long, String> hisMapCytoscapeIDtoModelID = differenceWith.model.getMapCytoscapeIDtoReactantID();
+				Map<Long, String> myMapCytoscapeIDtoModelID = this.model.getMapCytoscapeIDtoReactantID();
+				Map<String, Long> myMapModelIDtoCytoscapeID = new HashMap<String, Long>();
 
-				for (String k : myMapCytoscapeIDtoModelID.keySet()) {
+				for (Long k : myMapCytoscapeIDtoModelID.keySet()) {
 					myMapModelIDtoCytoscapeID.put(myMapCytoscapeIDtoModelID.get(k), k);
 				}
 
@@ -1209,23 +1209,18 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		//The reactantIds in the result are R0, R1 like in the UPPAAL model for the reactants, and Exxx for reactions where xxx is the ID of the reaction in the UPPAAL model (so R0_R1, R3_R4_R0 etc)
 		//The reactant IDs in the model are the IDs we use in the UPPAAL model, like R0, R1, R2, ...
 		//The CYTOSCAPE_IDs are the SUIDs used by Cytoscape
+		//As we cannot use the old ANIMO 2.x simulations without having also the classes conntected with them (Model, LevelResult etc), we don't support them anymore.
+		//So the IDs we get here may only be ANIMO 3 IDs: this means that the Cytoscape IDs are always SUIDs
 		for (String r : this.result.getReactantIds()) {
 			if (this.model.getReactant(r) == null)
 				continue;
 			Long id = -1L;
-			try {  //There is first the chance that we have an ANIMO 2.x simulation: let's check if that "cytoscape id" isn't what we now call node name
+			try {
 				id = this.model.getReactant(r).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
 			} catch (Exception ex) {
 				id = -1L;
 			}
 			CyNode node = net.getNode(id);
-			if (node == null) {
-				Collection<CyRow> possibleNodes = net.getDefaultNodeTable().getMatchingRows(CyNetwork.NAME, this.model.getReactant(r).get(Model.Properties.CYTOSCAPE_ID).as(String.class));
-				if (possibleNodes.size() != 1) {
-					continue;
-				}
-				node = net.getNode(possibleNodes.iterator().next().get(CyNode.SUID, Long.class));
-			}
 			if (node == null) continue; //The node may be null if we are looking at a network where the node does not exist and playing a simulation from another network (where the node existed)
 			final double level = this.result.getConcentration(r, t);
 			CyRow nodeRow = net.getRow(node);
@@ -1237,16 +1232,11 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				if (!(r.charAt(0) == 'E')) continue; //We added an "E" in front of the reaction IDs to make them easily distinguished
 				CyEdge edge = null;
 				Reaction reaction = this.model.getReaction(r.substring(1));
-				if (reaction == null) { //This means that we have an ANIMO 2.x simulation: the reaction id there is "E" + what here is called the reaction "name"
-					Collection<CyRow> possibleEdges = net.getDefaultEdgeTable().getMatchingRows(CyNetwork.NAME, r.substring(1));
-					if (possibleEdges.size() != 1) {
-						continue;
-					}
-					edge = net.getEdge(possibleEdges.iterator().next().get(CyEdge.SUID, Long.class));
-				} else {
-					Long edgeId = reaction.get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
-					edge = net.getEdge(edgeId);
+				if (reaction == null) {
+					continue;
 				}
+				Long edgeId = reaction.get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+				edge = net.getEdge(edgeId);
 				if (edge == null) continue;
 				CyRow edgeRow = net.getRow(edge),
 					  sourceRow = net.getRow(edge.getSource()),
@@ -1279,14 +1269,17 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 							break;
 						case 2:
 							//We have saved the E1 and E2 with their cytoscape names (CyNetwork.NAME for Cytoscape 3), so we recover them by looking in the proper table saved by the model
-							Long e1 = model.getReactantByCytoscapeName(edgeRow.get(Model.Properties.REACTANT_ID_E1, String.class)).get(Model.Properties.CYTOSCAPE_ID).as(Long.class),
-								 e2 = model.getReactantByCytoscapeName(edgeRow.get(Model.Properties.REACTANT_ID_E2, String.class)).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+							//As we have saved the E1 and E2 using their SUIDs (which we keep updated automatically when we load a new session, to make sure that these SUIDs always point to existing nodes) 
+							Long e1Id = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class), //model.getReactantByCytoscapeName(edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class)).get(Model.Properties.CYTOSCAPE_ID).as(Long.class),
+								 e2Id = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class); //model.getReactantByCytoscapeName(edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class)).get(Model.Properties.CYTOSCAPE_ID).as(Long.class);
+							CyRow e1Row = net.getRow(net.getNode(e1Id)),
+								  e2Row = net.getRow(net.getNode(e2Id));
 							//System.err.println("Scenario 2, E1 = " + e1 + ", isActive? " + edgeAttributes.getBooleanAttribute(edge.getIdentifier(), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1) + ", level = " + nodeAttributes.getDoubleAttribute(e1, Model.Properties.SHOWN_LEVEL));
-							if (((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
-								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && net.getRow(net.getNode(e1)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))
+							if (((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && e1Row.get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
+								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class) && e1Row.get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))
 								||
-								((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
-								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class) && net.getRow(net.getNode(e2)).get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))) {
+								((edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class) && e2Row.get(Model.Properties.SHOWN_LEVEL, Double.class) == 0)
+								|| (!edgeRow.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class) && e2Row.get(Model.Properties.SHOWN_LEVEL, Double.class) == 1))) {
 								//concentration = 0;
 								candidate = true;
 							}

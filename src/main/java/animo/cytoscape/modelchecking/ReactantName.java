@@ -3,9 +3,10 @@ package animo.cytoscape.modelchecking;
 import animo.core.model.Model;
 
 public class ReactantName {
-	private String cytoscapeID, canonicalName, modelID;
+	private Long cytoscapeID;
+	private String canonicalName, modelID;
 
-	public ReactantName(String cytoscapeID, String canonicalName) {
+	public ReactantName(Long cytoscapeID, String canonicalName) {
 		this.cytoscapeID = cytoscapeID;
 		this.canonicalName = canonicalName;
 	}
@@ -21,7 +22,7 @@ public class ReactantName {
 	@Override
 	public String toString() {
 		if (modelID == null) {
-			return StateFormula.REACTANT_NAME_DELIMITER + cytoscapeID + StateFormula.REACTANT_NAME_DELIMITER;
+			return "" + StateFormula.REACTANT_NAME_DELIMITER + cytoscapeID + StateFormula.REACTANT_NAME_DELIMITER;
 		} else {
 			return modelID;
 		}

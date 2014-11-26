@@ -25,8 +25,8 @@ public abstract class LevelResult {
 	 *            The same thing, but to go in subtractFrom from the original Cytoscape id to the corresponding model id
 	 * @return
 	 */
-	public abstract LevelResult difference(LevelResult subtractFrom, Map<String, String> myMapModelIDtoCytoscapeID,
-			Map<String, String> hisMapCytoscapeIDtoModelID);
+	public abstract LevelResult difference(LevelResult subtractFrom, Map<String, Long> myMapModelIDtoCytoscapeID,
+			Map<Long, String> hisMapCytoscapeIDtoModelID);
 
 	/**
 	 * Returns a new LevelResult where only the series whose names are in the given List are present. All other series are discarded.

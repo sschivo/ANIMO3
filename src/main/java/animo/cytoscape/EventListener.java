@@ -33,10 +33,12 @@ import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.application.swing.events.CytoPanelComponentSelectedEvent;
 import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener;
+import org.cytoscape.model.CyColumn;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.model.CyTable;
 import org.cytoscape.model.events.AddedEdgesEvent;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesEvent;
@@ -185,37 +187,124 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE);
 		
 		try {
-			//Try to see if the Cytoscape ID mapping service provided by the session actually works.
+			//Use the Cytoscape ID mapping service provided by the session to translate an ANIMO 2.x model into a new one (just the SUIDs referred in the edges table)
+			//For ANIMO 3.x models, change the references to node/edge SUIDs from the previous session to the current, to make sure that they still refer to existing objects
 			CySession session = sessionEvent.getLoadedSession();
-			System.err.println("Ecco la sessione che abbiamo appena caricato: " + session);
-			//1) Can we really map Cytoscape 2.x ID's (names) to Cytoscape 3 SUIDs?
-			CyNode wnt = session.getObject("node47", CyNode.class); //Nodo Wnt della rete model_solution_noSims di FOS 2014
-			if (wnt != null) {
-				Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getRow(wnt).set(CyNetwork.SELECTED, true);
-				//JOptionPane.showMessageDialog(null, "Node node2_437 exists here =)\nIt is node " + wnt, "Node found!", JOptionPane.INFORMATION_MESSAGE);
-				System.err.println("Il nodo node47 esiste, ed e' " + Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getRow(wnt).get(Model.Properties.CANONICAL_NAME, String.class) + " (SUID: " + wnt.getSUID() + ")");
-				wnt = session.getObject(wnt.getSUID(), CyNode.class);
-				if (wnt != null) {
-					System.err.println("Posso prendere anche lo stesso nodo con il suo SUID (che tanto non sarà mica cambiato dalla sessione prima, no?");
-				} else {
-					System.err.println("A quanto pare, non posso prendere il nodo dato il suo SUID =(");
+			for (CyNetwork network : session.getNetworks()) {
+				CyTable edgesTable = network.getDefaultEdgeTable(),
+						nodesTable = network.getDefaultNodeTable();
+				CyColumn e1IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E1),
+						 e2IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E2);
+				if (e1IDColumn != null && e1IDColumn.getType().equals(String.class)) { //We have an old ANIMO 2.x model: we must convert these node names into SUIDs
+					System.err.println("E1 Traduco un modello 2.x in 3.x");
+					Map<Long, String> savedValues = new HashMap<Long, String>();
+					for (CyEdge edge : network.getEdgeList()) {
+						if (!edgesTable.getRow(edge.getSUID()).isSet(Model.Properties.REACTANT_ID_E1)) {
+							continue;
+						}
+						String oldId = edgesTable.getRow(edge.getSUID()).get(Model.Properties.REACTANT_ID_E1, String.class);
+						if (oldId == null) {
+							continue;
+						}
+						savedValues.put(edge.getSUID(), oldId);
+					}
+					edgesTable.deleteColumn(Model.Properties.REACTANT_ID_E1);
+					edgesTable.createColumn(Model.Properties.REACTANT_ID_E1, Long.class, false);
+					for (CyEdge edge : network.getEdgeList()) {
+						String oldId = savedValues.get(edge.getSUID());
+						if (oldId == null) { //Not all edges have scenario[2], of course
+							continue;
+						}
+						CyNode node = session.getObject(oldId, CyNode.class);
+						if (node == null) { //If I can't find the node by looking at its name, I can't do much more
+							System.err.println("E1 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
+							Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
+							if (matchingRows.size() != 1) {
+								System.err.println("E1 Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
+								continue;
+							}
+							try {
+								node = network.getNode(matchingRows.iterator().next().get(CyNode.SUID, Long.class));
+							} catch (Exception ex) {
+								node = null;
+							}
+							if (node == null) {
+								System.err.println("E1 Non sono riuscito a trovarlo neanche cercandolo per nome");
+								continue;
+							}
+						}
+						Long nodeId = node.getSUID();
+						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E1, nodeId);
+					}
+				} else if (e1IDColumn != null && e1IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model: map the saved node SUIDs to current SUIDs
+					System.err.println("E1 Traduco un modello 3.x in 3.x");
+					for (CyEdge edge : network.getEdgeList()) {
+						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class);
+						CyNode foundNode = session.getObject(oldId, CyNode.class);
+						if (foundNode == null) {
+							System.err.println("E1 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
+							continue;
+						}
+						edgeRow.set(Model.Properties.REACTANT_ID_E1, foundNode.getSUID());
+					}
 				}
-			} else {
-				//JOptionPane.showMessageDialog(null, "Node node2_437 does not exist here =(", "Not found!", JOptionPane.ERROR_MESSAGE);
-				System.err.println("Il nodo node47 NON esiste?!?");
-			}
-			//2) Can we map Cytoscape 3 SUIDs from a previous session to (possibly different) "new" ones in this session?
-			CyEdge wnt_frzld = session.getObject(404L, CyEdge.class); //Edge Wnt -> FRZLD della rete di prima
-			if (wnt_frzld != null) {
-				Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getRow(wnt_frzld).set(CyNetwork.SELECTED, true);
-				//JOptionPane.showMessageDialog(null, "Edge 87 exists here =)\nIt is edge " + wnt_frzld, "Edge found!", JOptionPane.INFORMATION_MESSAGE);
-				System.err.println("L'edge 404 esiste, ed e' " + wnt_frzld);
-			} else {
-				//JOptionPane.showMessageDialog(null, "Edge 87 does not exist here =(", "Not found!", JOptionPane.ERROR_MESSAGE);
-				System.err.println("L'edge 404 NON esiste?!?");
+				if (e2IDColumn != null && e2IDColumn.getType().equals(String.class)) { //Same here: ANIMO 2.x model
+					System.err.println("E2 Traduco un modello 2.x in 3.x");
+					Map<Long, String> savedValues = new HashMap<Long, String>();
+					for (CyEdge edge : network.getEdgeList()) {
+						if (!edgesTable.getRow(edge.getSUID()).isSet(Model.Properties.REACTANT_ID_E2)) {
+							continue;
+						}
+						String oldId = edgesTable.getRow(edge.getSUID()).get(Model.Properties.REACTANT_ID_E2, String.class);
+						if (oldId == null) {
+							continue;
+						}
+						savedValues.put(edge.getSUID(), oldId);
+					}
+					edgesTable.deleteColumn(Model.Properties.REACTANT_ID_E2);
+					edgesTable.createColumn(Model.Properties.REACTANT_ID_E2, Long.class, false);
+					for (CyEdge edge : network.getEdgeList()) {
+						String oldId = savedValues.get(edge.getSUID());
+						if (oldId == null) { //Not all edges have scenario[2], of course
+							continue;
+						}
+						CyNode node = session.getObject(oldId, CyNode.class);
+						if (node == null) { //If I can't find the node by looking at its name, I can't do much more
+							System.err.println("E2 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
+							Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
+							if (matchingRows.size() != 1) {
+								System.err.println("E2 Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
+								continue;
+							}
+							try {
+								node = network.getNode(matchingRows.iterator().next().get(CyNode.SUID, Long.class));
+							} catch (Exception ex) {
+								node = null;
+							}
+							if (node == null) {
+								System.err.println("E2 Non sono riuscito a trovarlo neanche cercandolo per nome");
+								continue;
+							}
+						}
+						Long nodeId = node.getSUID();
+						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E2, nodeId);
+					}
+				} else if (e2IDColumn != null && e2IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model
+					System.err.println("E2 Traduco un modello 3.x in 3.x");
+					for (CyEdge edge : network.getEdgeList()) {
+						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
+						CyNode foundNode = session.getObject(oldId, CyNode.class);
+						if (foundNode == null) {
+							System.err.println("E2 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
+							continue;
+						}
+						edgeRow.set(Model.Properties.REACTANT_ID_E2, foundNode.getSUID());
+					}
+				}
 			}
 		} catch (Exception ex) {
-			System.err.println("Ecco perché non rispondeva...");
 			ex.printStackTrace(System.err);
 		}
 	}

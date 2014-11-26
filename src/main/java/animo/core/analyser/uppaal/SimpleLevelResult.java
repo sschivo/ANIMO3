@@ -40,8 +40,8 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 	}
 
 	@Override
-	public LevelResult difference(LevelResult subtractFrom_, Map<String, String> myMapModelIDtoCytoscapeID,
-			Map<String, String> hisMapCytoscapeIDtoModel) {
+	public LevelResult difference(LevelResult subtractFrom_, Map<String, Long> myMapModelIDtoCytoscapeID,
+			Map<Long, String> hisMapCytoscapeIDtoModel) {
 		SimpleLevelResult subtractFrom = (SimpleLevelResult)subtractFrom_;
 		Map<String, SortedMap<Double, Double>> lev = new HashMap<String, SortedMap<Double, Double>>();
 		// System.err.println("Differenzio tra " + subtractFrom + " (" + subtractFrom.getNumberOfLevels() + " livelli) e " + this + " (" + this.getNumberOfLevels() + " livelli)");
@@ -51,7 +51,7 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 		for (String myKey : levels.keySet()) {
 			if (!myMapModelIDtoCytoscapeID.containsKey(myKey))
 				continue; // Skip the edge identifiers
-			String myCytoID = myMapModelIDtoCytoscapeID.get(myKey);
+			Long myCytoID = myMapModelIDtoCytoscapeID.get(myKey);
 			// System.err.println(myKey + " --> " + myCytoID + " --> " + hisMapCytoscapeIDtoModel.get(myCytoID));
 			if (!hisMapCytoscapeIDtoModel.containsKey(myCytoID)) {
 				// Skip the nodes that the other does not have

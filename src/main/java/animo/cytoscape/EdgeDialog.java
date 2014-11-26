@@ -57,13 +57,11 @@ import animo.util.XmlConfiguration;
  */
 public class EdgeDialog extends JDialog {
 	private static final long serialVersionUID = 6630154220142970079L;
-	private static final String DECIMAL_FORMAT_STRING = "##.####", SAVE = "Save", CANCEL = "Cancel",
-			SCENARIO = Model.Properties.SCENARIO, CANONICAL_NAME = Model.Properties.CANONICAL_NAME,
-			INCREMENT = Model.Properties.INCREMENT, UNCERTAINTY = Model.Properties.UNCERTAINTY;
+	private static final String DECIMAL_FORMAT_STRING = "##.####", SAVE = "Save", CANCEL = "Cancel";
 
 	private Scenario[] scenarios = Scenario.THREE_SCENARIOS;
 	private String[] reactantAliases;
-	private String[] reactantIdentifiers; // The identifiers and aliases of all reactants in the network
+	private Long[] reactantIdentifiers; // The identifiers (Cytoscape SUIDs) and aliases of all reactants in the network
 	// private int previouslySelectedScenario = -1;
 
 	private boolean wasNewlyCreated = false;
@@ -101,58 +99,58 @@ public class EdgeDialog extends JDialog {
 		super(owner, getEdgeName(network, edge), Dialog.ModalityType.APPLICATION_MODAL);
 		this.network = network;
 
-		StringBuilder title = new StringBuilder();
-		title.append("Reaction ");
-		CyRow sourceNodeRow = network.getRow(edge.getSource());
-		CyRow targetNodeRow = network.getRow(edge.getTarget());
+//		StringBuilder title = new StringBuilder();
+//		title.append("Reaction ");
+//		CyRow sourceNodeRow = network.getRow(edge.getSource());
+//		CyRow targetNodeRow = network.getRow(edge.getTarget());
 		CyRow edgeRow = network.getRow(edge);
-
-		// CyTable nodeAttrib = edge.getTarget().getNetworkPointer().getDefaultNodeTable();
-		// final CyTable edgeAttrib = edge.getTarget().getNetworkPointer().getDefaultEdgeTable();
+//
+//		// CyTable nodeAttrib = edge.getTarget().getNetworkPointer().getDefaultNodeTable();
+//		// final CyTable edgeAttrib = edge.getTarget().getNetworkPointer().getDefaultEdgeTable();
 		final Integer increment;
-		Integer tempInteger = edgeRow.get(INCREMENT, Integer.class);
+		Integer tempInteger = edgeRow.get(Model.Properties.INCREMENT, Integer.class);
 		if (tempInteger == null) {
 			increment = 1;
 		} else {
 			increment = tempInteger;
 		}
-
-		String res = sourceNodeRow.get(CANONICAL_NAME, String.class);
-		if (res != null) {
-			title.append(res);
-
-			if (increment >= 0) {
-				title.append(" --> ");
-			} else {
-				title.append(" --| ");
-			}
-			res = targetNodeRow.get(CANONICAL_NAME, String.class);
-			if (res != null) {
-				title.append(res);
-				this.setTitle(title.toString());
-			}
-		}
+//
+//		String res = sourceNodeRow.get(CANONICAL_NAME, String.class);
+//		if (res != null) {
+//			title.append(res);
+//
+//			if (increment >= 0) {
+//				title.append(" --> ");
+//			} else {
+//				title.append(" --| ");
+//			}
+//			res = targetNodeRow.get(CANONICAL_NAME, String.class);
+//			if (res != null) {
+//				title.append(res);
+//				this.setTitle(title.toString());
+//			}
+//		}
 
 		// Read the list of reactant identifiers and aliases from the nodes in the current network
 		// CyNetwork network = edge.getSource().getNetworkPointer();
 
 		reactantAliases = new String[network.getNodeCount()];
-		reactantIdentifiers = new String[network.getNodeCount()];
+		reactantIdentifiers = new Long[network.getNodeCount()];
 		Iterator<CyNode> nodes = network.getNodeList().iterator();
 		for (int i = 0; nodes.hasNext(); i++) {
 			CyNode node = nodes.next();
-			reactantIdentifiers[i] = network.getRow(node).get(CyNetwork.NAME, String.class);
+			reactantIdentifiers[i] = node.getSUID();
 
 			String canonical = network.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class);
 			if (canonical != null) {
 				reactantAliases[i] = canonical;
 			} else {
-				reactantAliases[i] = reactantIdentifiers[i];
+				reactantAliases[i] = network.getRow(node).get(CyNetwork.NAME, String.class);
 			}
 			
-			if (network.getRow(edge.getSource()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[i])) { //Highlight the nodes involved in the current reaction
+			if (edge.getSource().getSUID().equals(reactantIdentifiers[i])) { //Highlight the nodes involved in the current reaction
 				reactantAliases[i] += " (the Upstream reactant)";
-			} else if (network.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[i])) {
+			} else if (edge.getTarget().getSUID().equals(reactantIdentifiers[i])) {
 				reactantAliases[i] += " (the Downstream reactant)";
 			}
 			
@@ -189,7 +187,7 @@ public class EdgeDialog extends JDialog {
 		});
 
 		final int scenarioIdx;
-		tempInteger = edgeRow.get(SCENARIO, Integer.class);
+		tempInteger = edgeRow.get(Model.Properties.SCENARIO, Integer.class);
 		if (tempInteger == null) {
 			scenarioIdx = new Integer(0);
 		} else {
@@ -203,7 +201,7 @@ public class EdgeDialog extends JDialog {
 
 		Box boxScenarioAllParameters = new Box(BoxLayout.Y_AXIS);
 
-		Integer value = edgeRow.get(UNCERTAINTY, Integer.class);
+		Integer value = edgeRow.get(Model.Properties.UNCERTAINTY, Integer.class);
 		if (value == null) {
 			value = 0;
 		}
@@ -314,12 +312,13 @@ public class EdgeDialog extends JDialog {
 					} else if (paramFields[i] instanceof Box) { // Scenario 3 reactants
 						Box e1Box = (Box) paramFields[i++], // Two consecutive boxes
 						e2Box = (Box) paramFields[i];
-						JComboBox<String> listE1act = (JComboBox<String>) (e1Box.getComponent(1)), listE1 = (JComboBox<String>) (e1Box
-								.getComponent(2)), listE2act = (JComboBox<String>) (e2Box.getComponent(1)), listE2 = (JComboBox<String>) (e2Box
-								.getComponent(2));
-
+						JComboBox<String> listE1act = (JComboBox<String>) (e1Box.getComponent(1)),
+										  listE1 = (JComboBox<String>) (e1Box.getComponent(2)),
+										  listE2act = (JComboBox<String>) (e2Box.getComponent(1)),
+										  listE2 = (JComboBox<String>) (e2Box.getComponent(2));
+						
 						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID_E1, reactantIdentifiers[listE1.getSelectedIndex()]);
-						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class,
+						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID_E1, Long.class,
 								reactantIdentifiers[listE1.getSelectedIndex()]);
 
 						if (listE1act.getSelectedIndex() == 0) {
@@ -332,7 +331,7 @@ public class EdgeDialog extends JDialog {
 									Boolean.class, false);
 						}
 						// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_ID_E2, reactantIdentifiers[listE2.getSelectedIndex()]);
-						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class,
+						Animo.setRowValue(network.getRow(edge), Model.Properties.REACTANT_ID_E2, Long.class,
 								reactantIdentifiers[listE2.getSelectedIndex()]);
 						if (listE2act.getSelectedIndex() == 0) {
 							// edgeAttrib.getRow(edge).set(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, true);
@@ -360,11 +359,11 @@ public class EdgeDialog extends JDialog {
 				}
 
 				// edgeAttrib.getRow(edge).set(UNCERTAINTY, uncertVal);
-				Animo.setRowValue(network.getRow(edge), UNCERTAINTY, Integer.class, uncertVal);
+				Animo.setRowValue(network.getRow(edge), Model.Properties.UNCERTAINTY, Integer.class, uncertVal);
 				// edgeAttrib.getRow(edge).set(SCENARIO, comboScenario.getSelectedIndex());
-				Animo.setRowValue(network.getRow(edge), SCENARIO, Integer.class, comboScenario.getSelectedIndex());
+				Animo.setRowValue(network.getRow(edge), Model.Properties.SCENARIO, Integer.class, comboScenario.getSelectedIndex());
 				// edgeAttrib.getRow(edge).set(INCREMENT, ((positiveIncrement.isSelected()) ? 1 : -1));
-				Animo.setRowValue(network.getRow(edge), INCREMENT, Integer.class, ((positiveIncrement.isSelected()) ? 1 : -1));
+				Animo.setRowValue(network.getRow(edge), Model.Properties.INCREMENT, Integer.class, ((positiveIncrement.isSelected()) ? 1 : -1));
 				// edgeAttrib.getRow(edge).set(Model.Properties.DESCRIPTION, description.getText());
 				Animo.setRowValue(network.getRow(edge), Model.Properties.DESCRIPTION, String.class,
 						description.getText());
@@ -460,11 +459,12 @@ public class EdgeDialog extends JDialog {
 			parametersBox.add(label2);
 		} else if (currentlySelectedScenario == 2) {
 			String[] activeInactive = new String[] { "active", "inactive" };
-			final JComboBox<String> listE1 = new JComboBox<String>(reactantAliases), listE2 = new JComboBox<String>(
-					reactantAliases), listE1act = new JComboBox<String>(activeInactive), listE2act = new JComboBox<String>(
-					activeInactive);
+			final JComboBox<String> listE1 = new JComboBox<String>(reactantAliases),
+									listE2 = new JComboBox<String>(reactantAliases),
+									listE1act = new JComboBox<String>(activeInactive),
+									listE2act = new JComboBox<String>(activeInactive);
 			int selectedReactant = -1;
-			String id = n.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class);
+			Long id = n.getRow(edge).get(Model.Properties.REACTANT_ID_E1, Long.class);
 			if (id != null) {
 				Boolean active = n.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1, Boolean.class);
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
@@ -484,7 +484,7 @@ public class EdgeDialog extends JDialog {
 			}
 			if (selectedReactant == -1) {
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
-					if (reactantIdentifiers[i].equals(network.getRow(edge.getSource()).get(CyNetwork.NAME, String.class))) {
+					if (reactantIdentifiers[i].equals(edge.getSource().getSUID())) {
 						selectedReactant = i;
 						break;
 					}
@@ -496,7 +496,7 @@ public class EdgeDialog extends JDialog {
 			}
 
 			selectedReactant = -1;
-			id = n.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class);
+			id = n.getRow(edge).get(Model.Properties.REACTANT_ID_E2, Long.class);
 			if (id != null) {
 				Boolean active = n.getRow(edge).get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2, Boolean.class);
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
@@ -516,7 +516,7 @@ public class EdgeDialog extends JDialog {
 			}
 			if (selectedReactant == -1) {
 				for (int i = 0; i < reactantIdentifiers.length; i++) {
-					if (reactantIdentifiers[i].equals(network.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class))) {
+					if (reactantIdentifiers[i].equals(edge.getTarget().getSUID())) {
 						selectedReactant = i;
 						break;
 					}
@@ -531,7 +531,7 @@ public class EdgeDialog extends JDialog {
 				public void actionPerformed(ActionEvent e) { // Show the selected node in the network, so that the user can be sure of which it is.
 					for (View<CyNode> v : nodeViews) {
 						// CyTable networkAttr = network.getDefaultNetworkTable();
-						if (network.getRow(v.getModel()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[listE1.getSelectedIndex()])) {
+						if (v.getModel().getSUID().equals(reactantIdentifiers[listE1.getSelectedIndex()])) {
 							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, true);
 						} else {
 							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, false);
@@ -544,15 +544,14 @@ public class EdgeDialog extends JDialog {
 				@Override
 				public void actionPerformed(ActionEvent e) { // Show the selected node in the network, so that the user can be sure of which it is.
 					for (View<CyNode> v : nodeViews) {
-						if (network.getRow(v.getModel()).get(CyNetwork.NAME, String.class).equals(reactantIdentifiers[listE2.getSelectedIndex()])) {
+						if (v.getModel().getSUID().equals(reactantIdentifiers[listE2.getSelectedIndex()])) {
 							//network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, true);
 							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, true);
 						} else {
 							//network.getDefaultNodeTable().getRow(v.getModel()).set(CyNetwork.SELECTED, false);
 							Animo.setRowValue(network.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, false);
 						}
-						boolean selected = network.getRow(v.getModel()).get(CyNetwork.NAME, String.class)
-								.equals(reactantIdentifiers[listE2.getSelectedIndex()]);
+						boolean selected = v.getModel().getSUID().equals(reactantIdentifiers[listE2.getSelectedIndex()]);
 						Animo.setRowValue(n.getRow(v.getModel()), CyNetwork.SELECTED, Boolean.class, selected);
 					}
 					networkView.updateView();

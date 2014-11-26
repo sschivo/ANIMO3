@@ -28,10 +28,10 @@ import animo.cytoscape.Animo;
 public class StateFormula extends JPanel {
 	private class ReactantId implements Comparable<ReactantId> {
 		private String alias;
-		private String identifier;
+		private Long identifier;
 		private CyNode node;
 
-		public ReactantId(String alias, String identifier, CyNode node) {
+		public ReactantId(String alias, Long identifier, CyNode node) {
 			this.alias = alias;
 			this.identifier = identifier;
 			this.node = node;
@@ -57,7 +57,7 @@ public class StateFormula extends JPanel {
 			return alias;
 		}
 
-		public String getIdentifier() {
+		public Long getIdentifier() {
 			return identifier;
 		}
 
@@ -105,10 +105,10 @@ public class StateFormula extends JPanel {
 				continue;
 			}
 			// reactantIdentifiers[i] = node.getIdentifier();
-			String identif = node.getSUID().toString();
+			Long identif = node.getSUID();
 			String alias = network.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class);
 			if (alias == null) {
-				alias = identif;
+				alias = identif.toString();
 			}
 			reactantsV.add(new ReactantId(alias, identif, node));
 		}

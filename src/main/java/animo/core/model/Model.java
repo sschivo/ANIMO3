@@ -432,16 +432,16 @@ public class Model implements Serializable {
 
 			if (scenarioIdx == 2) {
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E1)) {
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, String.class,
-							currentNetwork.getRow(edge.getSource()).get(CyNetwork.NAME, String.class)); //To keep compatibility with ANIMO 2.x models, we use node NAMEs instead of SUIDs to refer to them
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, Long.class,
+							edge.getSource().getSUID());
 				}
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1)) {
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
 							Boolean.class, true);
 				}
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E2)) {
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, String.class,
-							currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
+					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, Long.class,
+							edge.getTarget().getSUID());
 				}
 				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2)) {
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
@@ -449,29 +449,28 @@ public class Model implements Serializable {
 				}
 				
 				StringBuilder nameBuilder = new StringBuilder();
-				CyNode e1 = edge.getSource();
-				CyNode e2 = edge.getTarget();
+				CyNode e1 = currentNetwork.getNode(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, Long.class)),
+					   e2 = currentNetwork.getNode(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, Long.class));
 				
 				if (currentNetwork.getRow(e1).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e1).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class));
+					nameBuilder.append(currentNetwork.getRow(e1).get(CyNetwork.NAME, String.class));
 				}
 				
 				nameBuilder.append(" AND ");
 				if (currentNetwork.getRow(e2).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e2).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class));
+					nameBuilder.append(currentNetwork.getRow(e2).get(CyNetwork.NAME, String.class));
 				}
 				
 				nameBuilder.append(increment >= 0 ? " --> " : " --| ");
 				
 				if (currentNetwork.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)) {
-					nameBuilder.append(currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME,
-							String.class));
+					nameBuilder.append(currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
-					nameBuilder.append(edge.getTarget());
+					nameBuilder.append(currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
 				}
 				edgeName = nameBuilder.toString();
 			}
@@ -839,8 +838,8 @@ public class Model implements Serializable {
 			boolean generateTables) throws AnimoException {
 		checkParameters(nMinutesToSimulate);
 
-		Map<String, String> nodeNameToId = new HashMap<String, String>();
-		Map<String, String> edgeNameToId = new HashMap<String, String>();
+		Map<Long, String> nodeSUIDToModelId = new HashMap<Long, String>();
+		Map<Long, String> edgeSUIDToModelId = new HashMap<Long, String>();
 
 		Model model = new Model();
 
@@ -904,7 +903,7 @@ public class Model implements Serializable {
 
 			final String reactantId = "R" + i;
 			Reactant r = new Reactant(reactantId);
-			nodeNameToId.put(currentNetwork.getRow(node).get(CyNetwork.NAME, String.class), reactantId);
+			nodeSUIDToModelId.put(node.getSUID(), reactantId);
 			// TODO: types zijn nogal gegokt
 			r.let(Model.Properties.CYTOSCAPE_ID).be(node.getSUID());
 			r.let(Model.Properties.REACTANT_NAME).be(currentNetwork.getRow(node).get(CyNetwork.NAME, String.class));
@@ -945,7 +944,7 @@ public class Model implements Serializable {
 			Double levelsScaleFactor;
 			String reactionId = "reaction" + i;
 			Reaction r = new Reaction(reactionId);
-			edgeNameToId.put(edge.getSUID().toString(), reactionId);
+			edgeSUIDToModelId.put(edge.getSUID(), reactionId);
 
 			r.let(Model.Properties.ENABLED).be(currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class));
 			r.let(Model.Properties.INCREMENT).be(currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class));
@@ -953,10 +952,10 @@ public class Model implements Serializable {
 
 			r.let(Model.Properties.REACTION_TYPE).be(Model.Properties.BI_REACTION);
 
-			final String reactant = nodeNameToId.get(currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
+			final String reactant = nodeSUIDToModelId.get(edge.getTarget().getSUID());
 			r.let(Model.Properties.REACTANT).be(reactant);
 
-			final String catalyst = nodeNameToId.get(currentNetwork.getRow(edge.getSource()).get(CyNetwork.NAME, String.class));
+			final String catalyst = nodeSUIDToModelId.get(edge.getSource().getSUID());
 			r.let(Model.Properties.CATALYST).be(catalyst);
 
 			int nLevelsR1, nLevelsR2;
@@ -989,10 +988,10 @@ public class Model implements Serializable {
 							.as(Integer.class);
 					break;
 				case 2:
-					String e1_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class);
-					String e2_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class);
-					String e1 = nodeNameToId.get(e1_id);
-					String e2 = nodeNameToId.get(e2_id);
+					Long e1_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, Long.class);
+					Long e2_id = currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, Long.class);
+					String e1 = nodeSUIDToModelId.get(e1_id);
+					String e2 = nodeSUIDToModelId.get(e2_id);
 					levelsScaleFactor = 1.0
 							/ model.getReactant(reactant).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class)
 							* model.getReactant(e1).get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class)
@@ -1069,8 +1068,8 @@ public class Model implements Serializable {
 
 			if (scenarioIdx == 2) { // actually, they are both catalysts
 				String cata, reac;
-				cata = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class));
-				reac = nodeNameToId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class));
+				cata = nodeSUIDToModelId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, Long.class));
+				reac = nodeSUIDToModelId.get(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, Long.class));
 				r.let(Model.Properties.CATALYST).be(cata);
 				r.let(Model.Properties.REACTANT).be(reac);
 				if (!model.getReactant(cata).get(Model.Properties.NUMBER_OF_LEVELS).isNull()) {
@@ -1083,7 +1082,7 @@ public class Model implements Serializable {
 				} else {
 					nLevelsR2 = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
 				}
-				String out = nodeNameToId.get(currentNetwork.getRow(edge.getTarget()).get(CyNetwork.NAME, String.class));
+				String out = nodeSUIDToModelId.get(edge.getTarget().getSUID());
 				r.let(Model.Properties.OUTPUT_REACTANT).be(out);
 				// levelsScaleFactor /= 2*nodeAttributes.getDoubleAttribute(network.getRow(edge).get(Model.Properties.REACTANT_ID_E2,String.class)),
 				// Model.Properties.LEVELS_SCALE_FACTOR);
@@ -1297,7 +1296,7 @@ public class Model implements Serializable {
 		}
 		model.getProperties().let(Model.Properties.MAXIMUM_DURATION).be(maxTimeModel);
 
-		model.mapCytoscapeIDtoReactantID = nodeNameToId;
+		model.mapCytoscapeIDtoReactantID = nodeSUIDToModelId;
 
 		return model;
 	}
@@ -1312,7 +1311,7 @@ public class Model implements Serializable {
 	 */
 	private Map<String, Reaction> reactions;
 
-	private Map<String, String> mapCytoscapeIDtoReactantID = null;
+	private Map<Long, String> mapCytoscapeIDtoReactantID = null;
 
 	/**
 	 * The global properties on the model.
@@ -1369,7 +1368,7 @@ public class Model implements Serializable {
 		return model;
 	}
 
-	public Map<String, String> getMapCytoscapeIDtoReactantID() {
+	public Map<Long, String> getMapCytoscapeIDtoReactantID() {
 		return this.mapCytoscapeIDtoReactantID;
 	}
 
@@ -1397,10 +1396,10 @@ public class Model implements Serializable {
 	 * Given the Cytoscape node id, return the corresponding Reactant in the model
 	 * 
 	 * @param id
-	 *            The Cytoscape node identificator (e.g. node102 etc)
+	 *            The Cytoscape node identificator (SUID)
 	 * @return The Reactant as constructed in the current model
 	 */
-	public Reactant getReactantByCytoscapeName(String id) {
+	public Reactant getReactantByCytoscapeName(Long id) {
 		return this.reactants.get(this.mapCytoscapeIDtoReactantID.get(id));
 	}
 
@@ -1477,7 +1476,7 @@ public class Model implements Serializable {
 		e.setModel(null);
 	}
 
-	public void setMapCytoscapeIDtoReactantID(Map<String, String> mapCytoscapeIDtoReactantID) {
+	public void setMapCytoscapeIDtoReactantID(Map<Long, String> mapCytoscapeIDtoReactantID) {
 		this.mapCytoscapeIDtoReactantID = mapCytoscapeIDtoReactantID;
 	}
 

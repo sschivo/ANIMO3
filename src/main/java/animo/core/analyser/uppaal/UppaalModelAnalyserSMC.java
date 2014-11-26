@@ -761,7 +761,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 					levels.put(reactantId, new TreeMap<Double, Double>());
 				} else {
 					reactionId = reactantId.substring(0, reactantId.lastIndexOf(dot));
-					reaction = m.getReaction(reactionId);
+					reaction = m.getReaction(reactionId); //The reaction IDs in the model are in the form R1_R2 or R4_R3_R5 (for scenario[2])
 					reactionId = "E" + reactionId; //We want to distinguish them in the result, so that we can highlight arrows according to their activity
 					if (reaction != null) {
 						levels.put(reactionId, new TreeMap<Double, Double>());
