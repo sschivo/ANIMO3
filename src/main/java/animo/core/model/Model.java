@@ -447,26 +447,26 @@ public class Model implements Serializable {
 					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
 							Boolean.class, true);
 				}
-
+				
 				StringBuilder nameBuilder = new StringBuilder();
 				CyNode e1 = edge.getSource();
 				CyNode e2 = edge.getTarget();
-
+				
 				if (currentNetwork.getRow(e1).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e1).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
 					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, String.class));
 				}
-
+				
 				nameBuilder.append(" AND ");
 				if (currentNetwork.getRow(e2).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e2).get(Model.Properties.CANONICAL_NAME, String.class));
 				} else {
 					nameBuilder.append(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, String.class));
 				}
-
+				
 				nameBuilder.append(increment >= 0 ? " --> " : " --| ");
-
+				
 				if (currentNetwork.getRow(edge.getTarget()).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME,
 							String.class));

@@ -29,6 +29,7 @@ import javax.xml.transform.dom.DOMSource;
 import javax.xml.transform.stream.StreamResult;
 
 import org.cytoscape.application.swing.CytoPanel;
+import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.application.swing.events.CytoPanelComponentSelectedEvent;
 import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener;
@@ -45,6 +46,7 @@ import org.cytoscape.model.events.NetworkAddedListener;
 import org.cytoscape.model.events.RowSetRecord;
 import org.cytoscape.model.events.RowsSetEvent;
 import org.cytoscape.model.events.RowsSetListener;
+import org.cytoscape.session.CySession;
 import org.cytoscape.session.events.SessionAboutToBeSavedEvent;
 import org.cytoscape.session.events.SessionAboutToBeSavedListener;
 import org.cytoscape.session.events.SessionLoadedEvent;
@@ -58,6 +60,8 @@ import org.cytoscape.view.vizmap.events.VisualStyleSetListener;
 import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+import animo.core.model.Model;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
 		SessionLoadedListener, NetworkAddedListener, NetworkViewAddedListener, VisualStyleChangedListener,
@@ -143,11 +147,12 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	@Override
 	public void handleEvent(NetworkViewAddedEvent e) {
 		Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
+		Animo.selectAnimoControlPanel();
 		//Before (Cytoscape 2.8.x) we added here also the listeners to node/edge double click events. Now they are added in Animo.hookListeners(), and they are disguised as Edge/NodeViewTaskFactories
 		System.err.println("Network view added (rete " + e.getNetworkView().getModel() + "): dovrebbe succedere DOPO network added");
 	}
 	
-	
+	//This does NOT seem to be called the first time a network is created in a Cytoscape session!!
 	@Override
 	public void handleEvent(NetworkAddedEvent e) {
 		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE); //Default to normal style for newly created networks
@@ -178,6 +183,41 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		Animo.selectAnimoControlPanel();
 		//and apply our default visual style
 		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE);
+		
+		try {
+			//Try to see if the Cytoscape ID mapping service provided by the session actually works.
+			CySession session = sessionEvent.getLoadedSession();
+			System.err.println("Ecco la sessione che abbiamo appena caricato: " + session);
+			//1) Can we really map Cytoscape 2.x ID's (names) to Cytoscape 3 SUIDs?
+			CyNode wnt = session.getObject("node47", CyNode.class); //Nodo Wnt della rete model_solution_noSims di FOS 2014
+			if (wnt != null) {
+				Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getRow(wnt).set(CyNetwork.SELECTED, true);
+				//JOptionPane.showMessageDialog(null, "Node node2_437 exists here =)\nIt is node " + wnt, "Node found!", JOptionPane.INFORMATION_MESSAGE);
+				System.err.println("Il nodo node47 esiste, ed e' " + Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getRow(wnt).get(Model.Properties.CANONICAL_NAME, String.class) + " (SUID: " + wnt.getSUID() + ")");
+				wnt = session.getObject(wnt.getSUID(), CyNode.class);
+				if (wnt != null) {
+					System.err.println("Posso prendere anche lo stesso nodo con il suo SUID (che tanto non sarà mica cambiato dalla sessione prima, no?");
+				} else {
+					System.err.println("A quanto pare, non posso prendere il nodo dato il suo SUID =(");
+				}
+			} else {
+				//JOptionPane.showMessageDialog(null, "Node node2_437 does not exist here =(", "Not found!", JOptionPane.ERROR_MESSAGE);
+				System.err.println("Il nodo node47 NON esiste?!?");
+			}
+			//2) Can we map Cytoscape 3 SUIDs from a previous session to (possibly different) "new" ones in this session?
+			CyEdge wnt_frzld = session.getObject(404L, CyEdge.class); //Edge Wnt -> FRZLD della rete di prima
+			if (wnt_frzld != null) {
+				Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getRow(wnt_frzld).set(CyNetwork.SELECTED, true);
+				//JOptionPane.showMessageDialog(null, "Edge 87 exists here =)\nIt is edge " + wnt_frzld, "Edge found!", JOptionPane.INFORMATION_MESSAGE);
+				System.err.println("L'edge 404 esiste, ed e' " + wnt_frzld);
+			} else {
+				//JOptionPane.showMessageDialog(null, "Edge 87 does not exist here =(", "Not found!", JOptionPane.ERROR_MESSAGE);
+				System.err.println("L'edge 404 NON esiste?!?");
+			}
+		} catch (Exception ex) {
+			System.err.println("Ecco perché non rispondeva...");
+			ex.printStackTrace(System.err);
+		}
 	}
 	
 	//Only look at nodes/edges names (field CyNetwork.NAME). If the new value already exists, ask to change it.
@@ -196,9 +236,25 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			String newName = (String)rec.getValue();
 			Collection<CyRow> otherWithTheSameName = rec.getRow().getTable().getMatchingRows(CyNetwork.NAME, newName);
 			if (otherWithTheSameName.size() > 1) { //The '1' is the one that just got this name
-				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Please change the name of one of the nodes/edges called \"" + newName + "\",\notherwise ANIMO could not work properly.\nIf you want to rename a node/edge, please use ANIMO's interface:\ndouble click on the node/edge to open the Edit window.", "Duplicate Node/Edge name!", JOptionPane.WARNING_MESSAGE);
+				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Please change the name of one of the nodes/edges called \"" + newName + "\",\notherwise ANIMO could not work properly.\nIf you want to rename a node, please use ANIMO's interface:\ndouble click on the node to open the Edit window.", "Duplicate Node/Edge name!", JOptionPane.WARNING_MESSAGE);
 			}
 		}
+	}
+	
+	private CytoPanelComponent findResultPanel(Component c) {
+		if (c instanceof CytoPanelComponent) {
+			return (CytoPanelComponent)c;
+		}
+		if (c instanceof Container) {
+			Container cont = (Container)c;
+			for (Component comp : cont.getComponents()) {
+				CytoPanelComponent res = findResultPanel(comp);
+				if (res != null) {
+					return res;
+				}
+			}
+		}
+		return null;
 	}
 
 	/**
@@ -213,7 +269,11 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 				Component c = results.getComponentAt(i);
 				panelsToBeRemoved.add(c);
 			}
+			for (Component c : panelsToBeRemoved) {
+				Animo.removeResultPanel(findResultPanel(c));
+			}
 		}
+		
 		// Then load the .sim files from the list of files
 		if ((myFiles == null) || myFiles.isEmpty()) {
 			// No simulations to restore

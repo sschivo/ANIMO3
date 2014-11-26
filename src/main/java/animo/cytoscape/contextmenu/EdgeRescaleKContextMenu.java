@@ -56,7 +56,7 @@ public class EdgeRescaleKContextMenu implements CyEdgeViewContextMenuFactory, Ac
 	@Override
 	public void actionPerformed(ActionEvent e) {
 		List<CyEdge> selectedEdges = CyTableUtil.getEdgesInState(network, "selected", true);
-		if (selectedEdges.isEmpty()) { //We can enable/disable a set of edges or only the edge on which the right-click action was performed. We are in the second case here.
+		if (selectedEdges.isEmpty()) { //We can rescale a set of edges or only the edge on which the right-click action was performed. We are in the second case here.
 			try {
 				CyEdge edge = edgeView.getModel();
 				CyRow edgeRow = network.getRow(edge);
@@ -80,7 +80,7 @@ public class EdgeRescaleKContextMenu implements CyEdgeViewContextMenuFactory, Ac
 				ex.printStackTrace(System.err);
 				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Could not rescale the k value.\nError: " + ex, "Error while rescaling", JOptionPane.ERROR_MESSAGE);
 			}
-		} else { //Enable/disable all selected edges
+		} else { //Rescale all selected edges
 			try {
 				String resultingScaleS = null;
 				Double resultingScale = null;

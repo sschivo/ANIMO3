@@ -779,7 +779,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						}
 					}
 					EventListener.setListenerStatus(true);
-					NodeDialog.tryNetworkViewUpdate();
+					//NodeDialog.tryNetworkViewUpdate();
 				}
 			});
 			try {
@@ -794,7 +794,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					throw new IOException(); // Just to do the same when we have no image as when the image has problems
 				}
 			} catch (IOException ex) {
-				ex.printStackTrace();
+				ex.printStackTrace(System.err);
 				resetToThisNetwork.setToolTipText("Reset the network to the input that gave this result");
 			}
 		}
@@ -1167,7 +1167,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 	public void stateChanged(ChangeEvent e) {
 		if (this.slider.getValueIsAdjusting()) {
 			//System.err.println("Evito l'aggiornamento perche' stai ancora slidando");
-			NodeDialog.dontUpdateNetworkView();
+			//NodeDialog.dontUpdateNetworkView();
 		}
 		CyApplicationManager cyApplicationManager = Animo.getCytoscapeApp().getCyApplicationManager();
 		CyNetwork net = cyApplicationManager.getCurrentNetwork();
