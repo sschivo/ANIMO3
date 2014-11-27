@@ -99,9 +99,8 @@ public class StateFormula extends JPanel {
 		// for (int i = 0; nodes.hasNext(); i++) {
 		while (nodes.hasNext()) {
 			CyNode node = nodes.next();
-			String enabledString = network.getRow(node).get(Model.Properties.ENABLED, String.class);
-			Boolean enabledBool = network.getRow(node).get(Model.Properties.ENABLED, Boolean.class);
-			if (enabledString != null && !enabledBool) { // Don't allow disabled nodes to be used in the formula
+			Boolean enabled = network.getRow(node).get(Model.Properties.ENABLED, Boolean.class);
+			if (enabled != null && !enabled) { // Don't allow disabled nodes to be used in the formula
 				continue;
 			}
 			// reactantIdentifiers[i] = node.getIdentifier();

@@ -138,6 +138,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				cmd[1] = "-c";
 				cmd[2] = verifytaPath;				
 			}
+			//TODO: At the moment we don't have statistical model checking queries, so I expect that we always go with the first option 
 			if (m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE) != null && m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE).as(Integer.class) == Model.Properties.NORMAL_MODEL_CHECKING) {
 				cmd[2] += " -s -y -o2 -t0 \"" + nomeFileModello + "\" \"" + nomeFileQuery + "\"";// > \"" + nomeFileOutput + "\"";//2>&1";
 			} else {
@@ -892,7 +893,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 						|| reactantId.endsWith(dot + "deltaOldOld") || reactantId.endsWith(dot + "deltaOldOldOld")
 						|| reactantId.endsWith(dot + "deltaAlternating")) continue;
 					if (reactantId.endsWith(dot + "T")) {
-						reactantId = m.getReaction(reactantId.substring(0, reactantId.lastIndexOf(dot + "T"))).get(Model.Properties.CYTOSCAPE_ID).as(String.class);
+						//reactantId = m.getReaction(reactantId.substring(0, reactantId.lastIndexOf(dot + "T"))).get(Model.Properties.CYTOSCAPE_ID).as(String.class);
+						reactantId = "E" + reactantId.substring(0, reactantId.lastIndexOf(dot + "T"));
 					}
 					//System.err.println("Inserisco il reagente " + reactantId);
 					// put the reactant into the result map
@@ -1266,7 +1268,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 					reactionId = reactantId.substring(0, reactantId.lastIndexOf(dot + "T")); //It is in the form R6_R4.T, so we remove the ".T" and keep the rest, which is used as reaction ID in the Model object
 					reaction = m.getReaction(reactionId);
 					if (reaction != null) {
-						chosenMap = reaction.get(Model.Properties.CYTOSCAPE_ID).as(String.class);
+						chosenMap = "E" + reactionId; //reaction.get(Model.Properties.CYTOSCAPE_ID).as(String.class);
 						//int minTime = reaction.get(Model.Properties.MINIMUM_DURATION).as(Integer.class); //We use global instead of local minimum: see definition of minTime
 						if (level == 0 || level == VariablesModelReactionCentered.INFINITE_TIME || minTime == VariablesModelReactionCentered.INFINITE_TIME) { //I put also level == 0 because otherwise we go in the "else" and we divide by 0 =)
 							level = 0;

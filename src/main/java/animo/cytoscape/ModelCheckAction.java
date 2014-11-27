@@ -19,9 +19,12 @@ import javax.swing.JOptionPane;
 
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.work.AbstractTask;
+import org.cytoscape.work.FinishStatus;
+import org.cytoscape.work.ObservableTask;
 import org.cytoscape.work.TaskIterator;
 import org.cytoscape.work.TaskManager;
 import org.cytoscape.work.TaskMonitor;
+import org.cytoscape.work.TaskObserver;
 
 import animo.core.AnimoBackend;
 import animo.core.analyser.AnalysisException;
@@ -69,6 +72,7 @@ public class ModelCheckAction extends AnimoActionTask {
 						resultViewer.addToPanel(Animo.getCytoscape().getCytoPanel(CytoPanelName.EAST));
 						resultViewer.setTitle(humanFormula + " (" + (result.getBooleanResult() ? "True" : "False")
 								+ ")");
+						Animo.selectAnimoControlPanel();
 					}
 				}
 			});
@@ -98,7 +102,7 @@ public class ModelCheckAction extends AnimoActionTask {
 					}
 					formulaToCheck.setReactantIDs(model); // This is enough to set the proper model IDs to all reactants in the formula
 					model.getProperties().let(Model.Properties.MODEL_CHECKING_TYPE)
-							.be(Model.Properties.STATISTICAL_MODEL_CHECKING);
+							.be(Model.Properties.NORMAL_MODEL_CHECKING); //We don't use statistical model checking here (e.g. queries about probability etc), especially because with uncertainty = 0 the models are deterministic
 					try {
 						performModelChecking(model, formulaToCheck.toString(), formulaToCheck.toHumanReadable(),
 								monitor);
@@ -175,16 +179,28 @@ public class ModelCheckAction extends AnimoActionTask {
 			return; // If the user simply closed the window, the analysis is cancelled
 		System.err.println("Checking formula " + formulaToCheck.toHumanReadable());
 
+		TaskObserver taskObserver = new TaskObserver() {
+
+			@Override
+			public void allFinished(FinishStatus s) {
+				long endTime = System.currentTimeMillis();
+				System.err.println("Time taken: " + AnimoActionTask.timeDifferenceFormat(startTime, endTime));
+				System.err.flush();
+				System.setErr(oldErr);
+				if (logStream != null) {
+					logStream.close();
+				}
+			}
+
+			@Override
+			public void taskFinished(ObservableTask t) {
+				//see allFinished
+			}
+			
+		};
+		
 		// Execute Task in New Thread; pops open JTask Dialog Box.
 		TaskManager<?, ?> taskManager = Animo.getCytoscapeApp().getTaskManager();
-		taskManager.execute(new TaskIterator(task));
-
-		long endTime = System.currentTimeMillis();
-		System.err.println("Time taken: " + AnimoActionTask.timeDifferenceFormat(startTime, endTime));
-		System.err.flush();
-		System.setErr(oldErr);
-		if (logStream != null) {
-			logStream.close();
-		}
+		taskManager.execute(new TaskIterator(task), taskObserver);
 	}
 }

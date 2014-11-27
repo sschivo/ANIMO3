@@ -17,7 +17,6 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
-import javax.swing.JOptionPane;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -45,7 +44,6 @@ import org.cytoscape.model.events.AddedNodesEvent;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedEvent;
 import org.cytoscape.model.events.NetworkAddedListener;
-import org.cytoscape.model.events.RowSetRecord;
 import org.cytoscape.model.events.RowsSetEvent;
 import org.cytoscape.model.events.RowsSetListener;
 import org.cytoscape.session.CySession;
@@ -309,25 +307,9 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		}
 	}
 	
-	//Only look at nodes/edges names (field CyNetwork.NAME). If the new value already exists, ask to change it.
-	//Unfortunately, we cannot undo the change ourself.
+	//We don't use this at the moment: consider just removing the corresponding implements and registration in Animo
 	public void handleEvent(RowsSetEvent ev) {
-		if (!ev.containsColumn(CyNetwork.NAME)
-				//We also need to check that we are looking only at the default node/edge tables, otherwise we get the same event also for the shared tables, duplicating our reaction
-			|| (ev.getSource() != Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getDefaultNodeTable()
-				&& ev.getSource() != Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork().getDefaultEdgeTable())) {
-			return;
-		}
-		for (RowSetRecord rec : ev.getPayloadCollection()) {
-			if (!rec.getColumn().equals(CyNetwork.NAME)) {
-				continue;
-			}
-			String newName = (String)rec.getValue();
-			Collection<CyRow> otherWithTheSameName = rec.getRow().getTable().getMatchingRows(CyNetwork.NAME, newName);
-			if (otherWithTheSameName.size() > 1) { //The '1' is the one that just got this name
-				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Please change the name of one of the nodes/edges called \"" + newName + "\",\notherwise ANIMO could not work properly.\nIf you want to rename a node, please use ANIMO's interface:\ndouble click on the node to open the Edit window.", "Duplicate Node/Edge name!", JOptionPane.WARNING_MESSAGE);
-			}
-		}
+		
 	}
 	
 	private CytoPanelComponent findResultPanel(Component c) {
