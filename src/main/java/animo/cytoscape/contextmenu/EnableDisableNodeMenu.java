@@ -35,10 +35,10 @@ public class EnableDisableNodeMenu implements CyNodeViewContextMenuFactory, Acti
 				status = !row.get(Model.Properties.ENABLED, Boolean.class);
 			}
 			row.set(Model.Properties.ENABLED, status);
-			for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
-				CyRow edgeRow = network.getRow(edge);
-				edgeRow.set(Model.Properties.ENABLED, status);
-			}
+//			for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
+//				CyRow edgeRow = network.getRow(edge);
+//				edgeRow.set(Model.Properties.ENABLED, status);
+//			}
 		} else { //Enable/disable all selected nodes
 			for (CyNode node : selectedNodes) {
 				CyRow row = network.getRow(node);

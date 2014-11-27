@@ -44,6 +44,7 @@ import org.cytoscape.model.events.AddedNodesEvent;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedEvent;
 import org.cytoscape.model.events.NetworkAddedListener;
+import org.cytoscape.model.events.RowSetRecord;
 import org.cytoscape.model.events.RowsSetEvent;
 import org.cytoscape.model.events.RowsSetListener;
 import org.cytoscape.session.CySession;
@@ -307,9 +308,29 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 		}
 	}
 	
-	//We don't use this at the moment: consider just removing the corresponding implements and registration in Animo
+	//If a node was enabled or disabled, check the surrounding (incoming/outgoing) edges and make them also enabled/disabled
+	//But ONLY if the property actually changed! If it was set to its previous value I don't want to interfere...
+	//Unfortunately, it is not possible to know the previous value of the property, so I have instead done so that I check before setting it in the NodeDialog
 	public void handleEvent(RowsSetEvent ev) {
-		
+		if (!ev.containsColumn(Model.Properties.ENABLED)) {
+			return;
+		}
+		CyNetwork network = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+		CyTable nodesTable = network.getDefaultNodeTable();
+		for (RowSetRecord rec : ev.getColumnRecords(Model.Properties.ENABLED)) {
+			if (!rec.getRow().getTable().equals(nodesTable)) { //Only look at nodes
+				continue;
+			}
+			Long nodeID = rec.getRow().get(CyNode.SUID, Long.class);
+			if (nodeID == null) continue;
+			CyNode node = network.getNode(nodeID);
+			if (node == null) continue;
+			boolean status = rec.getRow().get(Model.Properties.ENABLED, Boolean.class);
+			for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
+				CyRow edgeRow = network.getRow(edge);
+				edgeRow.set(Model.Properties.ENABLED, status);
+			}
+		}
 	}
 	
 	private CytoPanelComponent findResultPanel(Component c) {

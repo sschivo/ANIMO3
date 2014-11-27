@@ -304,8 +304,15 @@ public class NodeDialog extends JDialog {
 				// nodeAttributesRow.set(Model.Properties.MOLECULE_TYPE, moleculeType.getSelectedItem().toString());
 				Animo.setRowValue(nodeAttributesRow, Model.Properties.MOLECULE_TYPE, String.class, moleculeType
 						.getSelectedItem().toString());
+				
 				// nodeAttributesRow.set(Model.Properties.ENABLED, enabledNode.isSelected());
-				Animo.setRowValue(nodeAttributesRow, Model.Properties.ENABLED, Boolean.class, enabledNode.isSelected());
+				Boolean currentValue = nodeAttributesRow.get(Model.Properties.ENABLED, Boolean.class);
+				//We set the property only if it was unset before or when it was actually changed.
+				//I set the property only on change to avoid triggering an event on the modification of ENABLED, which could change
+				//the status of adjacent edges (and that would be counterintuitive if the property was not changed)
+				if (currentValue == null || !currentValue.equals(new Boolean(enabledNode.isSelected()))) {
+					Animo.setRowValue(nodeAttributesRow, Model.Properties.ENABLED, Boolean.class, enabledNode.isSelected());
+				}
 
 				// nodeAttributesRow.set(Model.Properties.PLOTTED, plottedNode.isSelected());
 				Animo.setRowValue(nodeAttributesRow, Model.Properties.PLOTTED, Boolean.class, plottedNode.isSelected());
