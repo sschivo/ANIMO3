@@ -7,7 +7,7 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
 import java.rmi.NotBoundException;
-import java.util.Calendar;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.swing.JCheckBox;
@@ -374,20 +374,21 @@ public class RunAction extends AnimoActionTask {
 
 		final long startTime = System.currentTimeMillis();
 		Date now = new Date(startTime);
-		Calendar nowCal = Calendar.getInstance();
+//		Calendar nowCal = Calendar.getInstance();
 		File logFile = null;
 		final PrintStream logStream;
 		PrintStream tmpLogStream = null;
 		final PrintStream oldErr = System.err;
 		try {
-			if (UppaalModelAnalyserSMC/* FasterConcrete */.areWeUnderWindows()) {
-				logFile = File.createTempFile(
-						Animo.APP_NAME + "_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
-								+ nowCal.get(Calendar.DAY_OF_MONTH) + "_" + nowCal.get(Calendar.HOUR_OF_DAY) + "-"
-								+ nowCal.get(Calendar.MINUTE) + "-" + nowCal.get(Calendar.SECOND), ".log"); // windows doesn't like long file names..
-			} else {
-				logFile = File.createTempFile(Animo.APP_NAME + " run " + now.toString(), ".log");
-			}
+//			if (UppaalModelAnalyserSMC/* FasterConcrete */.areWeUnderWindows()) {
+//				logFile = File.createTempFile(
+//						Animo.APP_NAME + "_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
+//								+ nowCal.get(Calendar.DAY_OF_MONTH) + "_" + nowCal.get(Calendar.HOUR_OF_DAY) + "-"
+//								+ nowCal.get(Calendar.MINUTE) + "-" + nowCal.get(Calendar.SECOND), ".log"); // windows doesn't like long file names..
+//			} else {
+				//Let's just do this for everybody
+				logFile = File.createTempFile(Animo.APP_NAME + "_run_" + new SimpleDateFormat("dd-MMM-yyyy_HH.mm.ss_").format(now)/*Animo.APP_NAME + " run " + now.toString()*/, ".log");
+//			}
 			logFile.deleteOnExit();
 			tmpLogStream = new PrintStream(new FileOutputStream(logFile));
 			System.setErr(tmpLogStream);
