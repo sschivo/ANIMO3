@@ -3,8 +3,13 @@
  */
 package animo.util;
 
+import java.awt.Desktop;
+import java.awt.Toolkit;
+import java.awt.datatransfer.StringSelection;
 import java.io.File;
 import java.io.IOException;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import javax.swing.JOptionPane;
@@ -237,7 +242,34 @@ public class XmlConfiguration {
 			sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
 		} else {
 			sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
-			JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
+			//JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
+			int answer = JOptionPane.showConfirmDialog(Animo.getCytoscape().getJFrame(), "ANIMO needs UPPAAL (at least version 4.1) to perform analyses.\nYou can freely download UPPAAL (for academic use)\nfrom www.uppaal.org: would you like\nto visit that page now?", "UPPAAL not detected", JOptionPane.YES_NO_OPTION);
+			if (answer == JOptionPane.YES_OPTION) {
+				if(Desktop.isDesktopSupported()) {
+					try {
+						Desktop.getDesktop().browse(new URI("http://www.it.uu.se/research/group/darts/uppaal/download.shtml"));
+						JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Once you have unzipped the UPPAAL archive somewhere\n(make sure it is at least version 4.1!)\n, press the OK button to try and find it.");
+						try {
+							verifytaLocationStr = findVerifytaLocation();
+						} catch (Exception ex) {
+							verifytaLocationStr = null;
+						}
+						if (verifytaLocationStr == null) {
+							JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
+						} else {
+							sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
+						}
+					} catch (URISyntaxException e) {
+						e.printStackTrace();
+					}
+				} else {
+					StringSelection sel = new StringSelection("http://www.it.uu.se/research/group/darts/uppaal/download.shtml");
+					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(sel, null);
+					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "I was unable to open the browser,\nbut the UPPAAL download page has been copied\nto your clipboard.\nJust open a web browser and paste\nin the address bar to download UPPAAL.", "Couldn't open browser", JOptionPane.WARNING_MESSAGE);
+				}
+			} else {
+				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you have installed UPPAAL.", "No UPPAAL program was found", JOptionPane.WARNING_MESSAGE);
+			}
 		}
 		/*
 		 * JOptionPane.showMessageDialog(Cytoscape.getDesktop(), "Please, find and select the \"tracer\" tool.", "Tracer", JOptionPane.QUESTION_MESSAGE); String tracerLocation =
