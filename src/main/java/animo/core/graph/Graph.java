@@ -511,6 +511,10 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 	}
 
+	public void setSeriesColor(int seriesIdx, Color color) {
+		data.elementAt(seriesIdx).setColor(color);
+	}
+	
 	/*
 	 * Marks the Series at index seriesIdx to be changed of color next time we repaint
 	 */
@@ -1507,7 +1511,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 
 		// Set the names for all masters/overlays only
 		for (Series s : data) {
-			if (!s.isSlave()) {
+			if (!s.isSlave() && seriesNameMapping.containsKey(s.getName())) {
 				s.setName(seriesNameMapping.get(s.getName()));
 			}
 		}
@@ -1519,7 +1523,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 
 		Collections.sort(data);
-
+		
 		customLegendPosition = false;
 		needRedraw = true;
 	}

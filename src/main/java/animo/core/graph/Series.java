@@ -174,6 +174,11 @@ public class Series implements Comparable<Series> {
 		return this.changeColor;
 	}
 
+	public void setColor(Color color) {
+		this.myColor = color;
+		this.changeColor = false;
+	}
+	
 	public Color getColor() {
 		return this.myColor;
 	}

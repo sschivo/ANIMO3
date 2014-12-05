@@ -8,10 +8,21 @@ import static org.ejml.ops.CommonOps.subtract;
 import static org.ejml.ops.CommonOps.subtractEquals;
 import static org.ejml.ops.SpecializedOps.diffNormF;
 
+import java.awt.BorderLayout;
+import java.awt.Color;
+import java.awt.Component;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import java.beans.PropertyChangeEvent;
+import java.beans.PropertyChangeListener;
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.io.PrintStream;
+import java.lang.reflect.Method;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
@@ -22,6 +33,13 @@ import java.util.SortedMap;
 import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
+import java.util.concurrent.ExecutionException;
+
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JOptionPane;
+import javax.swing.JProgressBar;
+import javax.swing.SwingWorker;
 
 import org.ejml.data.DenseMatrix64F;
 
@@ -36,6 +54,8 @@ import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.core.model.Scenario;
+import animo.cytoscape.Animo;
+import animo.cytoscape.RunAction;
 import animo.fitting.ScenarioCfg;
 
 /**
@@ -67,6 +87,8 @@ public class LevenbergMarquardt {
     public double DELTA = 1e-8;
     
     public double MIN_COST = 0.001; //The point at which we already are happy enough to stop
+    private double minCost = Double.NaN; //The minimum cost up to now
+    private DenseMatrix64F minimumCostParameters; //The parameters that give the minimum cost up to this moment
 
     private double initialLambda;
 
@@ -134,6 +156,12 @@ public class LevenbergMarquardt {
     public DenseMatrix64F getParameters() {
         return param;
     }
+    
+    @SuppressWarnings("rawtypes")
+	private SwingWorker swingWorker;
+    public void setSwingWorker(@SuppressWarnings("rawtypes") SwingWorker worker) {
+    	this.swingWorker = worker;
+    }
 
     /**
      * Finds the best fit parameters.
@@ -150,16 +178,19 @@ public class LevenbergMarquardt {
         configure(initParam,X,Y);
 
         // save the cost of the initial parameters so that it knows if it improves or not
-        initialCost = cost(param,X,Y);
+        minCost = initialCost = cost(param,X,Y);
+        minimumCostParameters = new DenseMatrix64F(initParam); //Keep a copy of the initial parameters: it will be updated if parameters with better cost are found (the cost will be saved in minCost)
 
-        // iterate until the difference between the costs is insignificant
-        // or it iterates too many times
-        if( !adjustParam(X, Y, initialCost) ) {
-            finalCost = Double.NaN;
-            return false;
-        }
+//        // iterate until the difference between the costs is insignificant
+//        // or it iterates too many times
+//        if( !adjustParam(X, Y, initialCost) ) {
+//            finalCost = Double.NaN;
+//            return false;
+//        }
+        //pensa ai casi tui
+        return adjustParam(X, Y, initialCost);
 
-        return true;
+//        return true;
     }
 
     /**
@@ -190,8 +221,65 @@ public class LevenbergMarquardt {
                 subtract(param, negDelta, tempParam);
 
                 double cost = cost(tempParam,X,Y);
+
+                if (cost < minCost) {
+                	minCost = cost;
+                	minimumCostParameters.set(tempParam);
+                }
+                
+                if (swingWorker != null) {
+	                try { //Complicated, but we cannot set the progress outside of that class (the function is protected). As a bonus, I will declare the class "in the future", so at the moment the method is not visible and I need to use reflection to find it
+	                	Method setProgresso = null;
+	                	try {
+	                		setProgresso = swingWorker.getClass().getMethod("setProgresso", Integer.class);
+	                	} catch (NoSuchMethodException ex) {
+	                		setProgresso = null;
+	                	}
+	                	if (setProgresso != null) {
+	                		int progresso = (int)Math.round(100.0 - 100.0 * cost / initialCost);
+	                		if (progresso < 0) {
+	                			progresso = 0;
+	                		}
+	                		if (progresso > 100) {
+	                			progresso = 100;
+	                		}
+	                		setProgresso.invoke(swingWorker, new Integer(progresso));
+	                	}
+	                } catch (Exception ex) {
+	                	ex.printStackTrace(System.err);
+	                }
+                
+	                try {
+	                	Method getMustTerminate = null;
+	                	try {
+	                		getMustTerminate = swingWorker.getClass().getMethod("getMustTerminate");
+	                	} catch (NoSuchMethodException ex) {
+	                		getMustTerminate = null;
+	                		return false;
+	                	}
+	                	if (getMustTerminate != null) {
+	                		//System.err.println("Il metodo l'ho anche trovato.. " + getMustTerminate + "\n\tAllora lo invoco su " + swingWorker);
+	                		Object res = getMustTerminate.invoke(swingWorker);
+	                		//System.err.println("E ottengo " + res);
+	                		boolean bRes = false;
+	                		try {
+	                			bRes = Boolean.parseBoolean(res.toString());
+	                		} catch (Exception ex) {
+	                			bRes = false;
+	                		}
+	                		if (bRes) { //We must end before completing the computation: return the best result up to now (stored in minimumCostParameters, with cost minCost)
+	                			finalCost = minCost;
+	                			param.set(minimumCostParameters);
+	                			return false;
+	                		}
+	                	}
+	                } catch (Exception ex) {
+	                	ex.printStackTrace(System.err);
+	                }
+                }
                 //System.out.println("Costo: " + cost);
                 if (cost < MIN_COST) {
+                	finalCost = cost;
                 	param.set(tempParam);
                 	return true;
                 }
@@ -375,13 +463,13 @@ public class LevenbergMarquardt {
 		}
 		double data[][] = new double[(/*1 + */columnNames.size()) * timeIndices.size()][1];
 		int cnt = 0;
-		System.out.println("Lette " + columnNames.size() + " colonne, e " + timeIndices.size() + " righe.");
+//		System.out.println("Lette " + columnNames.size() + " colonne, e " + timeIndices.size() + " righe.");
 		for (double t : timeIndices) {
 			//data[cnt++][0] = t;
 			for (String col : columnNames) {
 				double v = levelResult.getConcentration(col, t / scaleFactor);
 				data[cnt++][0] = v;
-				System.out.println(col + "[" + t + "] = " + data[cnt-1][0]);
+//				System.out.println(col + "[" + t + "] = " + data[cnt-1][0]);
 			}
 		}
 		return new DenseMatrix64F(data);
@@ -505,11 +593,12 @@ public class LevenbergMarquardt {
     		try {
     			//c:\Users\stefano\Desktop\FOS 2014
 				scass = readCSVtoMatrix("/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv", Arrays.asList("ERK data", "Frizzled data"), 240);
+				//Graph.plotGraph(new File("/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv"));
 				//printMatrix(scass);
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
-    		Function function = new Function() {
+    		class MyFunction implements Function {
     			private Model model;
     			private Reaction wnt_frzld,
     							 frzld_frzldInt,
@@ -518,10 +607,16 @@ public class LevenbergMarquardt {
     							 erkP_erk;
     			int minTimeModel;
     			int maxTimeModel;
+    			private Graph graph;
     			
         		private int contaTentativi = 0;
         		
-        		{
+        		public MyFunction(Graph graph) {
+        			this();
+        			this.graph = graph;
+        		}
+        		
+        		public MyFunction() {
         			minTimeModel = Integer.MAX_VALUE;
         			maxTimeModel = Integer.MIN_VALUE;
         			model = new Model();
@@ -647,7 +742,7 @@ public class LevenbergMarquardt {
         				   p2 = params.get(2),
         				   p3 = params.get(3),
         				   p4 = params.get(4);
-        			System.err.println("Nuovi parameteri: " + p0 + ", " + p1 + ", " + p2 + ", " + p3 + ", " + p4);
+//        			System.err.println("Nuovi parameteri: " + p0 + ", " + p1 + ", " + p2 + ", " + p3 + ", " + p4);
         			setScenario(model, wnt_frzld, 1, p0, 1);
         			setScenario(model, frzld_frzldInt, 1, p1, 1);
         			setScenario(model, frzldInt_frzld, 0, p2, -1);
@@ -847,24 +942,82 @@ public class LevenbergMarquardt {
 //    				printMatrix(y);
     				
     				contaTentativi++;
-    				System.out.println("Tentativo " + contaTentativi); // + ". p = " + param);
+//    				System.out.println("Tentativo " + contaTentativi); // + ". p = " + param);
     				updateParameters(param);
     				int nMinutesToSimulate = 240;
     				int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
     				double scale = (double) nMinutesToSimulate / timeTo;
     				SimpleLevelResult result = null;
     				try {
+    					PrintStream sysErr = System.err;
+    					System.setErr(new PrintStream(new OutputStream() {
+    					    public void write(int b) {
+    					    	//Not interested in UPPAAL analysis output here
+    					    }
+    					}));
     					result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(Arrays.asList("R3", "R1"));
+    					System.setErr(sysErr);
     				} catch (Exception ex) {
     					ex.printStackTrace(System.out);
     				}
+    				//graph.reset();
+    				Map<String, String> seriesNameMapping = new HashMap<String, String>();
+    				seriesNameMapping.put("R3", "ERK");
+    				seriesNameMapping.put("R1", "Frizzled");
+    				graph.reset();
+    				graph.parseLevelResult(result, seriesNameMapping, scale);
+    				double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size() - 1);
+    				try {
+						graph.parseCSV("/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv");
+						Vector<String> seriesNames = graph.getSeriesNames();
+						for (int i = 0; i < seriesNames.size(); i++) {
+							String name = seriesNames.get(i);
+							if (name.equals("ERK")) {
+								graph.setSeriesColor(i, Color.BLUE.brighter());
+							} else if (name.startsWith("ERK")) {
+								graph.setSeriesColor(i, Color.BLUE.darker());
+							} else if (name.equals("Frizzled")) {
+								graph.setSeriesColor(i, Color.RED.brighter());
+							} else if (name.startsWith("Frizzled")) {
+								graph.setSeriesColor(i, Color.RED.darker());
+							}
+						}
+					} catch (FileNotFoundException e) {
+						e.printStackTrace(System.err);
+					} catch (IOException e) {
+						e.printStackTrace(System.err);
+					}
+    				graph.declareMaxYValue(100);
+    				graph.setDrawArea(0, maxTime, 0, 100);
+    				Component w = graph.getParent();
+    				while (w != null) {
+	    				if (w instanceof JFrame) {
+	    					JFrame f = (JFrame)w;
+	    					f.setTitle("Attempt nr. " + contaTentativi);
+	    					break;
+	    				}
+	    				w = w.getParent();
+    				}
+    				graph.repaint();
+//    				try {
+//    					Thread.sleep(500);
+//    				} catch (Exception ex) {
+//    				}
     				y.set(levelResultToMatrix(result, scale, Arrays.asList(0.0, 30.0, 60.0, 120.0, 240.0)));
     			}
         	};
-    		LevenbergMarquardt lm = new LevenbergMarquardt(function);
+        	final Graph graph = new Graph();
+        	final JFrame frame = new JFrame();
+        	frame.getContentPane().add(graph, BorderLayout.CENTER);
+        	final JProgressBar progressBar = new JProgressBar(0, 100);
+        	frame.getContentPane().add(progressBar, BorderLayout.SOUTH);
+        	frame.setBounds(100, 100, 600, 400);
+        	frame.setVisible(true);
+        	final Function function = new MyFunction(graph);
+    		final LevenbergMarquardt lm = new LevenbergMarquardt(function);
         	lm.MIN_COST = 0.5;
         	lm.DELTA = 0.0001;
-        	DenseMatrix64F initParam, X, Y;
+        	final DenseMatrix64F initParam, X, Y;
         	//exact parameters: {0.000625}, {0.0001}, {0.0008}, {0.04}, {0.015}
         	//with scenarios:        1         0        1         1       0
         	/*
@@ -894,23 +1047,146 @@ public class LevenbergMarquardt {
         	//Y = new DenseMatrix64F(new double[][]{{0}, {15}, {0}, {5}, {15}, {10}, {10}, {15}, {15}}); //{10}, {15}, {15}});
         	X = new DenseMatrix64F(new double[][]{{0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}, {0}}); //{0}, {0}, {30}, {0}, {60}, {0}, {120}, {0}
         	Y = scass;
-        	System.out.println("X");
+//        	System.out.println("X");
         	printMatrix(X);
-        	System.out.println("Y");
+//        	System.out.println("Y");
         	printMatrix(Y);
-        	System.out.println("Fine Y");
-        	boolean success = false;
-        	success = lm.optimize(initParam, X, Y);
-//        	function.compute(initParam, X, Y);
-//        	printMatrix(Y);
-        	if (success) {
-        		System.out.println("Ho trovato i parametri migliori: " + lm.getParameters());
-        		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());
-        		printMatrix(lm.getParameters());
-        	} else {
-        		System.out.println("Niente parametri migliori. Ho questi: " + lm.getParameters());
-        		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());
-        	}
+//        	System.out.println("Fine Y");
+//        	boolean success = false;
+        	//success = lm.optimize(initParam, X, Y);
+        	class MySwingWorker extends SwingWorker<Boolean, Void> {
+        		private boolean success = false;
+        		private boolean mustTerminate = false;
+        		
+        		@SuppressWarnings("unused")
+				public boolean getMustTerminate() {
+        			return mustTerminate;
+        		}
+        		
+        		public void setMustTerminate(boolean mustTerminate) {
+        			this.mustTerminate = mustTerminate;
+        		}
+        		
+        		@SuppressWarnings("unused")
+				public void setProgresso(Integer progress) {
+        			this.setProgress(progress);
+        		}
+        		
+				@Override
+				protected Boolean doInBackground() throws Exception {
+					this.setProgress(0);
+					lm.setSwingWorker(this);
+					success = lm.optimize(initParam, X, Y);
+					this.setProgress(100);
+					return success;
+				}
+				
+				@Override
+				protected void done() {
+					System.err.println("Ho fatto: success = " + success);
+				}
+        		
+        	};
+        	final MySwingWorker worker = new MySwingWorker();
+        	JButton chiudi = new JButton("Chiudi");
+        	chiudi.addActionListener(new ActionListener() {
+        		public void actionPerformed(ActionEvent e) {
+        			//JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Chiudo qui!");
+        			worker.setMustTerminate(true); //Just close the window to cancel the job
+        		}
+        	});
+        	frame.add(chiudi, BorderLayout.EAST);
+//        	frame.addWindowListener(new WindowAdapter() {
+//        		@Override
+//        		public void windowClosed(WindowEvent e) {
+//        			new Thread() {
+//        				public void run() {
+//		        			JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Chiudo qui!");
+//		        			worker.setMustTerminate(true); //Just close the window to cancel the job
+//        				}
+//        			}.start();
+//        		}
+//        	});
+        	System.err.print("Eseguo l'ottimizzazione");
+        	final long startTime = System.currentTimeMillis();
+        	worker.addPropertyChangeListener(new PropertyChangeListener() {
+        		int contaFalsiAllarmi = 0;
+        		
+				@Override
+				public void propertyChange(PropertyChangeEvent evt) {
+					//The other default property is "progress", i.e. the progress, and its event is generated every time the setProgress is called in the worker
+					if (!evt.getPropertyName().equals("state") || !worker.getState().equals(SwingWorker.StateValue.DONE)) {
+						contaFalsiAllarmi++;
+						if (evt.getPropertyName().equals("progress")) {
+							System.err.println("Progresso: " + worker.getProgress());
+							progressBar.setValue(worker.getProgress());
+						}
+						return;
+					}
+					System.err.println("Fatto! (forse?), con " + contaFalsiAllarmi + " falsi allarmi..");
+					boolean success = false;
+		        	try {
+						success = worker.get();
+					} catch (InterruptedException e) {
+						e.printStackTrace(System.err);
+					} catch (ExecutionException e) {
+						e.printStackTrace(System.err);
+					}
+//		        	function.compute(initParam, X, Y);
+//		        	printMatrix(Y);
+		        	long endTime = System.currentTimeMillis();
+
+		        	JFrame newFrame = new JFrame("Resulting graph (cost " + lm.getFinalCost() + ")");
+		        	graph.reset();
+		        	function.compute(lm.getParameters(), X, Y);
+		        	newFrame.getContentPane().add(graph, BorderLayout.CENTER);
+		        	newFrame.setBounds(frame.getBounds());
+		        	frame.setVisible(false);
+		        	frame.dispose();
+		        	
+		        	if (success) {
+		        		System.out.println("Ho trovato i parametri migliori: " + lm.getParameters());
+		        		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());
+		        		printMatrix(lm.getParameters());
+		        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + RunAction.timeDifferenceFormat(startTime, endTime) + ".\nFinal cost: " + lm.getFinalCost() + "\nParameters: " + lm.getParameters(), "Good result found!", JOptionPane.INFORMATION_MESSAGE);
+		        	} else {
+		        		System.out.println("Niente parametri migliori. Ho questi: " + lm.getParameters());
+		        		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());
+		        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + RunAction.timeDifferenceFormat(startTime, endTime) + ".\nMinimum cost found: " + lm.getFinalCost() + "\nParameters with that cost: " + lm.getParameters(), "No good result found!", JOptionPane.ERROR_MESSAGE);
+		        	}
+		        	
+		        	newFrame.setVisible(true);
+				}
+        		
+        	});
+        	worker.execute();
+//        	int p = worker.getProgress();
+//        	while (p < 100) {
+//        		System.err.print(".");
+//        		try {
+//					Thread.sleep(500);
+//				} catch (InterruptedException e) {
+//				}
+//        		p = worker.getProgress();
+//        	}
+//        	System.err.println(" Fatto!");
+//        	try {
+//				success = worker.get();
+//			} catch (InterruptedException e) {
+//				e.printStackTrace(System.err);
+//			} catch (ExecutionException e) {
+//				e.printStackTrace(System.err);
+//			}
+////        	function.compute(initParam, X, Y);
+////        	printMatrix(Y);
+//        	if (success) {
+//        		System.out.println("Ho trovato i parametri migliori: " + lm.getParameters());
+//        		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());
+//        		printMatrix(lm.getParameters());
+//        	} else {
+//        		System.out.println("Niente parametri migliori. Ho questi: " + lm.getParameters());
+//        		System.out.println("Costo iniziale: " + lm.getInitialCost() + ". Costo finale: " + lm.getFinalCost());
+//        	}
     	}
     }
     
