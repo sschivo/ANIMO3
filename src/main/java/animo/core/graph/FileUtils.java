@@ -12,7 +12,6 @@ import javax.imageio.ImageWriteParam;
 import javax.imageio.ImageWriter;
 import javax.imageio.stream.FileImageOutputStream;
 import javax.swing.JFileChooser;
-import javax.swing.JFrame;
 import javax.swing.JOptionPane;
 import javax.swing.filechooser.FileFilter;
 import javax.swing.filechooser.FileSystemView;
@@ -91,23 +90,12 @@ public class FileUtils {
 			});
 		}
 		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
-		JFrame fintoFrame = null;
-		if (parent == null) {
-			//Basically, it seems that passing the Animo.getCytoscape().getJFrame() as parent here is not a good idea: for some reason, the open dialog is not displayed and Cytoscape hangs
-			fintoFrame = new JFrame("Trying to solve a problem if Cytoscape has just started..");
-			fintoFrame.setBounds(0, 0, 1, 1);
-			fintoFrame.setVisible(true);
-			parent = fintoFrame;
-		}
 		//System.err.println("Ora apro il dialog, eh");
 		int result = JFileChooser.CANCEL_OPTION;
 		try {
 			result = chooser.showOpenDialog(parent);
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
-		}
-		if (fintoFrame != null) {
-			fintoFrame.dispose();
 		}
 		//System.err.println("Ecco il risultato: " + result);
 		if (result == JFileChooser.APPROVE_OPTION) {
@@ -136,12 +124,20 @@ public class FileUtils {
 			//System.err.println("First looking for " + fileName + " starting in " + initialDirectory.getAbsolutePath());
 			result = findFile(fileName, initialDirectory, isFile, strictlyEquals);
 		}
+		if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+			Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+			return null;
+		}
 		if (result == null || !result.exists()) {
 			File[] roots = FileSystemView.getFileSystemView().getRoots();
 			for (File dir : roots) {
 				result = findFile(fileName, dir, isFile, strictlyEquals);
 				if (result != null) {
 					return result;
+				}
+				if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+					Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+					return null;
 				}
 			}
 		}
@@ -165,11 +161,19 @@ public class FileUtils {
 				return f;
 			}
 		}
+		if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+			Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+			return null;
+		}
 		for (File f : contents) {
 			if (f.isDirectory() && !f.getName().endsWith(".") && !f.getName().endsWith("..")) {
 				result = findFile(fileName, f, isFile, strictlyEquals);
 				if (result != null) {
 					return result;
+				}
+				if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+					Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+					return null;
 				}
 			}
 		}
@@ -195,6 +199,11 @@ public class FileUtils {
 			//System.err.println("First looking for " + fileName + " starting in " + initialDirectory.getAbsolutePath());
 			result = findFileInDirectory(fileName, dirName, initialDirectory, false);
 		}
+		if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+			Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+			return null;
+		}
+		
 		if (result == null || !result.exists()) {
 			File[] roots = FileSystemView.getFileSystemView().getRoots();
 			//System.err.println("Not found. Looking in the roots");
@@ -203,6 +212,10 @@ public class FileUtils {
 				result = findFileInDirectory(fileName, dirName, dir, false);
 				if (result != null) {
 					return result;
+				}
+				if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+					Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+					return null;
 				}
 			}
 		}
@@ -238,6 +251,10 @@ public class FileUtils {
 				if (result != null) { //If the file was found in this directory, return it and we are done.
 					return result;
 				} //Otherwise, we just continue to the next matching directory
+				if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+					Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+					return null;
+				}
 			}
 		}
 		for (File f : contents) {
@@ -246,6 +263,10 @@ public class FileUtils {
 				if (result != null) { //If we have found the file, just return it
 					return result;
 				} //Note that whenever result != null we are sure it is the file we were looking for: we never return the directory, but directly start from the directory looking for the file
+				if (Thread.interrupted()) { //If the user cancelled the search, the interrupt status of this thread is set
+					Thread.currentThread().interrupt(); //Because it is a recursive method, we want to keep the interrupted status (which is cleared when checking it), so that every method in the call stack can see it and exit
+					return null;
+				}
 			}
 		}
 		return result;

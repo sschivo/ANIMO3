@@ -13,6 +13,7 @@ import java.net.URISyntaxException;
 import java.util.HashMap;
 
 import javax.swing.JOptionPane;
+import javax.swing.SwingUtilities;
 import javax.xml.namespace.QName;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -97,13 +98,13 @@ public class XmlConfiguration {
 			//sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY); It makes no sense to have a default location for uppaal verifyta if it's very unlikely to work..
 			v = null;
 			try {
-				v = findVerifytaLocation();
+				v = findOrInstallVerifyta();
 			} catch (Exception ex) {
 				v = null;
 			}
 			if (v == null) {
 				sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
-				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
+				//JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
 			} else {
 				sourceConfig.put(VERIFY_KEY, v);
 			}
@@ -148,11 +149,13 @@ public class XmlConfiguration {
 		final String verifytaFileName_ = verifytaFileName;
 		final ObservableTask findFileTask = new ObservableTask() {
 			private File verifytaFile = null;
+			private Thread threadWhereTheSearchHappens = null;
+			
 			
 			@Override
 			public void cancel() {
-				//cannot cancel this task?
-				done = true;
+				//done = true; The done status should be set only by the task observer, not by the task!
+				threadWhereTheSearchHappens.interrupt(); //This way we can signal the search process to stop
 			}
 
 			@Override
@@ -161,7 +164,11 @@ public class XmlConfiguration {
 				monitor.setProgress(0);
 				monitor.setStatusMessage("Looking for UPPAAL verifyta program");
 				// startTime = System.currentTimeMillis();
+				threadWhereTheSearchHappens = Thread.currentThread();
 				verifytaFile = FileUtils.findFileInDirectory(verifytaFileName_, "uppaal");
+				if (Thread.interrupted()) { //This also clears the last setting for interrupt (if I started it in cancel())
+					monitor.setStatusMessage("Search interrupted by the user.");
+				}
 				//long endTime = System.currentTimeMillis();
 				//System.err.println("La ricerca e' durata " + AnimoActionTask.timeDifferenceFormat((endTime - startTime)/1000));
 				if (verifytaFile != null && verifytaFile.exists()) {
@@ -190,8 +197,9 @@ public class XmlConfiguration {
 					//System.err.println("Trovato verifyta al posto \"" + verifytaFile.getAbsolutePath() + "\"!!");
 					JOptionPane.showMessageDialog(null, "ANIMO was correctly installed.\nUPPAAL verifyta program was found at\n" + verifytaFile.getAbsolutePath() + ".\nIf you want to change this, press \"Options...\"\nat the bottom of the ANIMO panel.");
 					verifytaLocationStr = verifytaFile.getAbsolutePath();
+					done = true;
 				} else {
-					//System.err.println("Non trovato il verifyta");
+					//System.err.println("Non trovato il verifyta: mostro l'open dialog!");
 					JOptionPane.showMessageDialog(
 							Animo.getCytoscape().getJFrame(),
 							"Please, find and select the \"verifyta\" tool.\nIt is usually located in the \"bin\" directory of UPPAAL.",
@@ -199,12 +207,16 @@ public class XmlConfiguration {
 					//System.err.println("Apro il dialogo per verifyta");
 					//For some reason, if I pass Animo.getCytoscape().getJFrame() in this case (when Cytoscape has just started), the dialog is NOT shown and Cytoscape does not respond anymore.. o_O
 					//Using null as a parent has the same effect.
-					//So I changed the open function: if it gets a null parent, it creates a 1x1 pixel window for a parent, then destroys it when the dialog has been used 
-					verifytaLocationStr = FileUtils.open(verifytaFileName_, "Verifyta Executable", null); //Animo.getCytoscape().getJFrame());
-					//System.err.println("Acquisita la stringa: " + verifytaLocationStr);
+					//So I changed the open function: if it gets a null parent, it creates a 1x1 pixel window for a parent, then destroys it when the dialog has been used
+					//Apparently that didn't work either. If I run the thing on a different thread after this function has done, we get what we want.
+					SwingUtilities.invokeLater(new Thread() {
+						public void run() {
+							verifytaLocationStr = FileUtils.open(verifytaFileName_, "Verifyta Executable", null); //Animo.getCytoscape().getJFrame());
+							//System.err.println("Acquisita la stringa: " + verifytaLocationStr);
+							done = true;
+						}
+					});
 				}
-				
-				done = true;
 			}
 
 			@Override
@@ -225,13 +237,9 @@ public class XmlConfiguration {
 		return verifytaLocationStr;
 	}
 	
-	/**
-	 * Create the default configuration file.
-	 * 
-	 * @throws ParserConfigurationException
-	 * @throws TransformerException
-	 */
-	public XmlConfiguration(final File configuration) throws ParserConfigurationException, TransformerException, IOException {
+	//This should be called when looking for verifyta: it does all the work, including bringing the user to the
+	//UPPAAL download page and trying again to look for verifyta
+	private String findOrInstallVerifyta() {
 		verifytaLocationStr = null;
 		try {
 			verifytaLocationStr = findVerifytaLocation();
@@ -239,37 +247,60 @@ public class XmlConfiguration {
 			verifytaLocationStr = null;
 		}
 		if (verifytaLocationStr != null) {
-			sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
+			//sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
+			return verifytaLocationStr;
 		} else {
-			sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
+			//sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
 			//JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
 			int answer = JOptionPane.showConfirmDialog(Animo.getCytoscape().getJFrame(), "ANIMO needs UPPAAL (at least version 4.1) to perform analyses.\nYou can freely download UPPAAL (for academic use)\nfrom www.uppaal.org: would you like\nto visit that page now?", "UPPAAL not detected", JOptionPane.YES_NO_OPTION);
 			if (answer == JOptionPane.YES_OPTION) {
+				boolean useClipboard = true;
 				if(Desktop.isDesktopSupported()) {
 					try {
 						Desktop.getDesktop().browse(new URI("http://www.it.uu.se/research/group/darts/uppaal/download.shtml"));
-						JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Once you have unzipped the UPPAAL archive somewhere\n(make sure it is at least version 4.1!)\n, press the OK button to try and find it.");
-						try {
-							verifytaLocationStr = findVerifytaLocation();
-						} catch (Exception ex) {
-							verifytaLocationStr = null;
-						}
-						if (verifytaLocationStr == null) {
-							JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you know the location of the\nUPPAAL verifyta program.", "No UPPAAL verifyta program was found", JOptionPane.WARNING_MESSAGE);
-						} else {
-							sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
-						}
+						useClipboard = false;
+					} catch (IOException e) {
+						e.printStackTrace(System.err);
 					} catch (URISyntaxException e) {
-						e.printStackTrace();
+						e.printStackTrace(System.err);
 					}
-				} else {
+				}
+				if (useClipboard) { //This is done if either the direct opening of a browser is not supported, or if an error occurred while opening the browser
 					StringSelection sel = new StringSelection("http://www.it.uu.se/research/group/darts/uppaal/download.shtml");
 					Toolkit.getDefaultToolkit().getSystemClipboard().setContents(sel, null);
 					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "I was unable to open the browser,\nbut the UPPAAL download page has been copied\nto your clipboard.\nJust open a web browser and paste\nin the address bar to download UPPAAL.", "Couldn't open browser", JOptionPane.WARNING_MESSAGE);
 				}
+				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Once you have unzipped the UPPAAL archive somewhere\n(make sure it is at least version 4.1!),\npress the OK button to try and find it.");
+				try {
+					verifytaLocationStr = findVerifytaLocation();
+				} catch (Exception ex) {
+					verifytaLocationStr = null;
+				}
+				if (verifytaLocationStr == null) {
+					JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you have installed UPPAAL.", "No UPPAAL program was found", JOptionPane.WARNING_MESSAGE);
+				} else {
+					//sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
+					return verifytaLocationStr;
+				}
 			} else {
 				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "ANIMO cannot perform any analysis.\nPlease press the \"Options...\" button\nat the bottom of the ANIMO panel\nwhen you have installed UPPAAL.", "No UPPAAL program was found", JOptionPane.WARNING_MESSAGE);
 			}
+		}
+		return null;
+	}
+	
+	/**
+	 * Create the default configuration file.
+	 * 
+	 * @throws ParserConfigurationException
+	 * @throws TransformerException
+	 */
+	public XmlConfiguration(final File configuration) throws ParserConfigurationException, TransformerException, IOException {
+		verifytaLocationStr = findOrInstallVerifyta();
+		if (verifytaLocationStr != null) {
+			sourceConfig.put(VERIFY_KEY, verifytaLocationStr);
+		} else {
+			sourceConfig.put(VERIFY_KEY, DEFAULT_VERIFY);
 		}
 		/*
 		 * JOptionPane.showMessageDialog(Cytoscape.getDesktop(), "Please, find and select the \"tracer\" tool.", "Tracer", JOptionPane.QUESTION_MESSAGE); String tracerLocation =
