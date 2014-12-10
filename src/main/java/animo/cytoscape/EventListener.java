@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.swing.SwingUtilities;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -146,19 +147,31 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	}
 
 	@Override
-	public void handleEvent(NetworkViewAddedEvent e) {
-		Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
-		Animo.selectAnimoControlPanel();
-		//Before (Cytoscape 2.8.x) we added here also the listeners to node/edge double click events. Now they are added in Animo.hookListeners(), and they are disguised as Edge/NodeViewTaskFactories
-		System.err.println("Network view added (rete " + e.getNetworkView().getModel() + "): dovrebbe succedere DOPO network added");
+	public void handleEvent(final NetworkViewAddedEvent e) {
+		SwingUtilities.invokeLater(new Runnable() {
+		    public void run() {
+				Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE);
+				//Animo.getVSA().applyVisualStyleTo(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE, e.getNetworkView()); //Default to normal style for newly created networks
+				Animo.selectAnimoControlPanel();
+				Animo.getVSA().updateLegends();
+				//Before (Cytoscape 2.8.x) we added here also the listeners to node/edge double click events. Now they are added in Animo.hookListeners(), and they are disguised as Edge/NodeViewTaskFactories
+				//System.err.println("Network view added (rete " + e.getNetworkView().getModel() + "): dovrebbe succedere DOPO network added");
+		    }
+		});
 	}
 	
 	//This does NOT seem to be called the first time a network is created in a Cytoscape session!!
+	//Also, we can set a visual style only when we have a network view, so this is not very useful..
 	@Override
 	public void handleEvent(NetworkAddedEvent e) {
-		Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE); //Default to normal style for newly created networks
-		Animo.selectAnimoControlPanel();
-		System.err.println("Network added (rete " + e.getNetwork() + "): dovrebbe succedere PRIMA di network view added"); //peccato che la prima rete che creo non lanci questa proprieta'...
+//		SwingUtilities.invokeLater(new Runnable() {
+//		    public void run() {
+//				Animo.getVSA().applyVisualStyle(VisualStyleAnimo.ANIMO_NORMAL_VISUAL_STYLE); //Default to normal style for newly created networks
+//				Animo.selectAnimoControlPanel();
+//				Animo.getVSA().updateLegends();
+//				//System.err.println("Network added (rete " + e.getNetwork() + "): dovrebbe succedere PRIMA di network view added"); //peccato che la prima rete che creo non lanci questa proprieta'...
+//		    }
+//		});
 	}
 
 	/**

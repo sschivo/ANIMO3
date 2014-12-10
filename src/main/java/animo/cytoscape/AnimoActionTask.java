@@ -54,9 +54,6 @@ public class AnimoActionTask extends AbstractCyAction {
 		}
 		
 		return builder.toString();
-
-//		return String.format("%d day%s, %d hour%s, %d minute%s, %d second%s", diff[0], diff[0] != 1 ? "s" : "",
-//				diff[1], diff[1] != 1 ? "s" : "", diff[2], diff[2] != 1 ? "s" : "", diff[3], diff[3] != 1 ? "s" : "");
 	}
 
 	public static String timeDifferenceFormat(long startTime, long endTime) {

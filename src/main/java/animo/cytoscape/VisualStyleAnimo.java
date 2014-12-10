@@ -345,6 +345,9 @@ public class VisualStyleAnimo {
 				!visualStyleName.equals(ANIMO_DIFF_VISUAL_STYLE)) {
 			return;
 		}
+		if (networkview == null) { //Cannot apply any style to a null network view..
+			return;
+		}
 		
 		CyTable edgeLocalAttrs = networkview.getModel().getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS); //Make sure that the edge attribute "activityRatio" is present: in older versions of ANIMO we destroyed it when it was not needed, but it is better to keep it
 		if (edgeLocalAttrs.getColumn(Model.Properties.SHOWN_LEVEL) == null) {
@@ -398,6 +401,7 @@ public class VisualStyleAnimo {
 		// Apply the visual style to a NetwokView
 		//currentVisualStyle.apply(currentNetworkView); TODO Ma se non la uso, serve ancora tenere la networkview??
 		//currentNetworkView.updateView();
+		visualMappingManager.setVisualStyle(currentVisualStyle, currentNetworkView);
 		visualMappingManager.setCurrentVisualStyle(currentVisualStyle);
 	}
 
