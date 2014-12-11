@@ -942,9 +942,9 @@ public class Model implements Serializable {
 				continue;
 
 			Double levelsScaleFactor;
-			String reactionId = "reaction" + i;
+			String reactionId = "reaction" + i; // <<---- THIS ID IS NOT USED!! We set it later!
 			Reaction r = new Reaction(reactionId);
-			edgeSUIDToModelId.put(edge.getSUID(), reactionId);
+			//edgeSUIDToModelId.put(edge.getSUID(), reactionId); <<-- So also this one is not done now.
 
 			r.let(Model.Properties.ENABLED).be(currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class));
 			r.let(Model.Properties.INCREMENT).be(currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class));
@@ -1284,6 +1284,8 @@ public class Model implements Serializable {
 			String r2Id = r.get(Model.Properties.REACTANT).as(String.class);
 			String rOutput = r.get(Model.Properties.OUTPUT_REACTANT).as(String.class);
 			r.setId(r1Id + "_" + r2Id + ((rOutput.equals(r2Id)) ? "" : "_" + rOutput));
+			
+			edgeSUIDToModelId.put(edge.getSUID(), r.getId());
 
 			model.add(r);
 		}
@@ -1297,6 +1299,7 @@ public class Model implements Serializable {
 		model.getProperties().let(Model.Properties.MAXIMUM_DURATION).be(maxTimeModel);
 
 		model.mapCytoscapeIDtoReactantID = nodeSUIDToModelId;
+		model.mapCytoscapeIDtoReactionID = edgeSUIDToModelId;
 
 		return model;
 	}
@@ -1312,6 +1315,7 @@ public class Model implements Serializable {
 	private Map<String, Reaction> reactions;
 
 	private Map<Long, String> mapCytoscapeIDtoReactantID = null;
+	private Map<Long, String> mapCytoscapeIDtoReactionID = null;
 
 	/**
 	 * The global properties on the model.
@@ -1399,8 +1403,12 @@ public class Model implements Serializable {
 	 *            The Cytoscape node identificator (SUID)
 	 * @return The Reactant as constructed in the current model
 	 */
-	public Reactant getReactantByCytoscapeName(Long id) {
+	public Reactant getReactantByCytoscapeID(Long id) {
 		return this.reactants.get(this.mapCytoscapeIDtoReactantID.get(id));
+	}
+	
+	public Reaction getReactionByCytoscapeID(Long id) {
+		return this.reactions.get(this.mapCytoscapeIDtoReactionID.get(id));
 	}
 
 	/**

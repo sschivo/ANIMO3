@@ -8,6 +8,7 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Vector;
 
@@ -15,6 +16,7 @@ import javax.swing.JFrame;
 
 import org.ejml.data.DenseMatrix64F;
 
+import animo.core.analyser.LevelResult;
 import animo.core.analyser.uppaal.SimpleLevelResult;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.analyser.uppaal.VariablesModel;
@@ -33,6 +35,11 @@ import animo.util.LevenbergMarquardt.Function;
 //All three are single-column matrices (as ugly as this can be..)
 public class LevenbergMarquardtFunction implements Function {
 	private Model model;
+	private List<Reaction> reactionsToBeOptimized;
+	private String referenceDataFile;
+	private LevelResult referenceData;
+	private Map<Reactant, String> reactantToDataReference;
+	private int timeTo;
 	private Map<Reaction, Map<String, Integer>> reactionParameterIndices; //Associate a Map to each reaction.
 																		  //The Map gives the integer corresponding to the index of each parameter of this reaction inside the params DenseMatrix64F, which contains all the reaction parameters in one (column)matrix
 	int minTimeModel;
@@ -41,36 +48,32 @@ public class LevenbergMarquardtFunction implements Function {
 	
 	private int contaTentativi = 0;
 	
+	public LevenbergMarquardtFunction(Graph graph,
+									  Model model,
+									  List<Reaction> reactionsToBeOptimized,
+									  String referenceDataFile,
+									  Map<Reactant, String> reactantToDataCorrespondence,
+									  int timeTo) {
+		this.graph = graph;
+		this.model = model;
+		this.reactionsToBeOptimized = reactionsToBeOptimized;
+		this.reactantToDataReference = reactantToDataCorrespondence;
+		this.referenceDataFile = referenceDataFile;
+		try {
+			this.referenceData = Graph.readCSVtoLevelResult(referenceDataFile, new Vector<String>(reactantToDataCorrespondence.values()), timeTo);
+		} catch (IOException e) {
+			this.referenceData = null;
+			e.printStackTrace(System.err);
+		}
+		this.timeTo = timeTo;
+	}
+	
 	public LevenbergMarquardtFunction(Graph graph, Model model) {
 		this.graph = graph;
 		this.model = model;
+		this.reactionsToBeOptimized = new Vector<Reaction>(model.getReactionCollection());
 	}
-	
-	public DenseMatrix64F getInitialParameters() {
-		DenseMatrix64F initialParameters = null;
-		//We must set this ourself.
-		Vector<Double> params = new Vector<Double>();
-		//Also, we are supposed to fill the reactionParameterIndices with the same indices we use when creating the parameters matrix
-		reactionParameterIndices = new HashMap<Reaction, Map<String, Integer>>();
-		int idx = 0;
-		for (Reaction r : model.getReactionCollection()) {
-			Map<String, Integer> reactionParameters = new HashMap<String, Integer>();
-			Scenario scenario = Scenario.THREE_SCENARIOS[r.get(Model.Properties.SCENARIO).as(Integer.class)];
-			for (String paramName : scenario.getReactantNames()) {
-				reactionParameters.put(paramName, idx++);
-				double paramValue = r.get(paramName).as(Double.class);
-				params.add(paramValue);
-			}
-			reactionParameterIndices.put(r, reactionParameters);
-		}
-		double[][] paramsData = new double[params.size()][1];
-		for (int i = 0; i < params.size(); i++) {
-			paramsData[i][0] = params.get(i);
-		}
-		initialParameters = new DenseMatrix64F(paramsData);
-		return initialParameters;
-	}
-	
+
 	public LevenbergMarquardtFunction(Graph graph) {
 		this();
 		this.graph = graph;
@@ -84,55 +87,55 @@ public class LevenbergMarquardtFunction implements Function {
 		model.getProperties().let(Model.Properties.SECONDS_PER_POINT).be(0.01);
 		model.getProperties().let(Model.Properties.SECS_POINT_SCALE_FACTOR).be(100.0);
 		
-		Reactant reactant = new Reactant("R0");
-		reactant.let(Model.Properties.REACTANT_NAME).be("Wnt");
-		reactant.setName("Wnt");
-		reactant.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
-		reactant.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
-		reactant.let(Model.Properties.ENABLED).be(true);
-		reactant.let(Model.Properties.PLOTTED).be(false);
-		reactant.let(Model.Properties.INITIAL_LEVEL).be(100);
-		model.add(reactant);
+		Reactant Wnt = new Reactant("R0");
+		Wnt.let(Model.Properties.REACTANT_NAME).be("Wnt");
+		Wnt.setName("Wnt");
+		Wnt.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
+		Wnt.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
+		Wnt.let(Model.Properties.ENABLED).be(true);
+		Wnt.let(Model.Properties.PLOTTED).be(false);
+		Wnt.let(Model.Properties.INITIAL_LEVEL).be(100);
+		model.add(Wnt);
 		
-		reactant = new Reactant("R1");
-		reactant.let(Model.Properties.REACTANT_NAME).be("FRZLD");
-		reactant.setName("FRZLD");
-		reactant.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
-		reactant.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
-		reactant.let(Model.Properties.ENABLED).be(true);
-		reactant.let(Model.Properties.PLOTTED).be(false);
-		reactant.let(Model.Properties.INITIAL_LEVEL).be(0);
-		model.add(reactant);
+		Reactant Frzld = new Reactant("R1");
+		Frzld.let(Model.Properties.REACTANT_NAME).be("FRZLD");
+		Frzld.setName("FRZLD");
+		Frzld.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
+		Frzld.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
+		Frzld.let(Model.Properties.ENABLED).be(true);
+		Frzld.let(Model.Properties.PLOTTED).be(false);
+		Frzld.let(Model.Properties.INITIAL_LEVEL).be(0);
+		model.add(Frzld);
 		
-		reactant = new Reactant("R2");
-		reactant.let(Model.Properties.REACTANT_NAME).be("FRZLD_Int");
-		reactant.setName("FRZLD_Int");
-		reactant.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
-		reactant.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
-		reactant.let(Model.Properties.ENABLED).be(true);
-		reactant.let(Model.Properties.PLOTTED).be(false);
-		reactant.let(Model.Properties.INITIAL_LEVEL).be(0);
-		model.add(reactant);
+		Reactant Frzld_Int = new Reactant("R2");
+		Frzld_Int.let(Model.Properties.REACTANT_NAME).be("FRZLD_Int");
+		Frzld_Int.setName("FRZLD_Int");
+		Frzld_Int.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
+		Frzld_Int.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
+		Frzld_Int.let(Model.Properties.ENABLED).be(true);
+		Frzld_Int.let(Model.Properties.PLOTTED).be(false);
+		Frzld_Int.let(Model.Properties.INITIAL_LEVEL).be(0);
+		model.add(Frzld_Int);
 		
-		reactant = new Reactant("R3");
-		reactant.let(Model.Properties.REACTANT_NAME).be("ERK");
-		reactant.setName("ERK");
-		reactant.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
-		reactant.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
-		reactant.let(Model.Properties.ENABLED).be(true);
-		reactant.let(Model.Properties.PLOTTED).be(true);
-		reactant.let(Model.Properties.INITIAL_LEVEL).be(0);
-		model.add(reactant);
+		Reactant ERK = new Reactant("R3");
+		ERK.let(Model.Properties.REACTANT_NAME).be("ERK");
+		ERK.setName("ERK");
+		ERK.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
+		ERK.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
+		ERK.let(Model.Properties.ENABLED).be(true);
+		ERK.let(Model.Properties.PLOTTED).be(true);
+		ERK.let(Model.Properties.INITIAL_LEVEL).be(0);
+		model.add(ERK);
 		
-		reactant = new Reactant("R4");
-		reactant.let(Model.Properties.REACTANT_NAME).be("ERK P");
-		reactant.setName("ERK P");
-		reactant.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
-		reactant.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
-		reactant.let(Model.Properties.ENABLED).be(true);
-		reactant.let(Model.Properties.PLOTTED).be(false);
-		reactant.let(Model.Properties.INITIAL_LEVEL).be(100);
-		model.add(reactant);
+		Reactant ERK_P = new Reactant("R4");
+		ERK_P.let(Model.Properties.REACTANT_NAME).be("ERK P");
+		ERK_P.setName("ERK P");
+		ERK_P.let(Model.Properties.NUMBER_OF_LEVELS).be(100);
+		ERK_P.let(Model.Properties.LEVELS_SCALE_FACTOR).be(6.6666);
+		ERK_P.let(Model.Properties.ENABLED).be(true);
+		ERK_P.let(Model.Properties.PLOTTED).be(false);
+		ERK_P.let(Model.Properties.INITIAL_LEVEL).be(100);
+		model.add(ERK_P);
 		
 		Reaction wnt_frzld,
 				 frzld_frzldInt,
@@ -229,6 +232,38 @@ public class LevenbergMarquardtFunction implements Function {
 		}
 		model.getProperties().let(Model.Properties.MAXIMUM_DURATION).be(maxTimeModel);
 		
+		reactionsToBeOptimized = new Vector<Reaction>(model.getReactionCollection());
+		referenceDataFile = "/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv";
+		reactantToDataReference = new HashMap<Reactant, String>();
+		reactantToDataReference.put(ERK, "ERK data");
+		reactantToDataReference.put(Frzld, "Frizzled data");
+	}
+	
+	//This actually gives back the parameters of ALL the reactions,
+	//but in general we would like to optimize only a subset!
+	public DenseMatrix64F getInitialParameters() {
+		DenseMatrix64F initialParameters = null;
+		//We must set this ourself.
+		Vector<Double> params = new Vector<Double>();
+		//Also, we are supposed to fill the reactionParameterIndices with the same indices we use when creating the parameters matrix
+		reactionParameterIndices = new HashMap<Reaction, Map<String, Integer>>();
+		int idx = 0;
+		for (Reaction r : this.reactionsToBeOptimized) {
+			Map<String, Integer> reactionParameters = new HashMap<String, Integer>();
+			Scenario scenario = Scenario.THREE_SCENARIOS[r.get(Model.Properties.SCENARIO).as(Integer.class)];
+			for (String paramName : scenario.listVariableParameters()) {
+				reactionParameters.put(paramName, idx++);
+				double paramValue = r.get(paramName).as(Double.class);
+				params.add(paramValue);
+			}
+			reactionParameterIndices.put(r, reactionParameters);
+		}
+		double[][] paramsData = new double[params.size()][1];
+		for (int i = 0; i < params.size(); i++) {
+			paramsData[i][0] = params.get(i);
+		}
+		initialParameters = new DenseMatrix64F(paramsData);
+		return initialParameters;
 	}
 	
 	private void updateParameters(DenseMatrix64F params) {
@@ -414,7 +449,7 @@ public class LevenbergMarquardtFunction implements Function {
 	public void compute(DenseMatrix64F param, DenseMatrix64F x, DenseMatrix64F y) {
 		contaTentativi++;
 		updateParameters(param);
-		int nMinutesToSimulate = 240;
+		int nMinutesToSimulate = this.timeTo; //240;
 		int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
 		double scale = (double) nMinutesToSimulate / timeTo;
 		SimpleLevelResult result = null;
@@ -425,40 +460,73 @@ public class LevenbergMarquardtFunction implements Function {
 			    	//Not interested in UPPAAL analysis output here
 			    }
 			}));
-			result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(Arrays.asList("R3", "R1"));
+			Vector<String> reactantIDs = new Vector<String>(this.reactantToDataReference.keySet().size());
+			for (Reactant r : this.reactantToDataReference.keySet()) {
+				reactantIDs.add(r.getId());
+			}
+			result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(reactantIDs);
 			System.setErr(sysErr);
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}
 		//graph.reset();
 		Map<String, String> seriesNameMapping = new HashMap<String, String>();
-		seriesNameMapping.put("R3", "ERK");
-		seriesNameMapping.put("R1", "Frizzled");
+		for (Reactant r : this.reactantToDataReference.keySet()) { //Mapping from the IDs we read from the verifyta result (i.e., ANIMO IDs such as R1, R2, ...) to the names displayed on the nodes in the Cytoscape network
+			seriesNameMapping.put(r.getId(), r.getName());
+		}
+//		seriesNameMapping.put("R3", "ERK");
+//		seriesNameMapping.put("R1", "Frizzled");
 		graph.reset();
 		graph.parseLevelResult(result, seriesNameMapping, scale);
 		double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size() - 1);
-		try {
-			graph.parseCSV("/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv");
-			Vector<String> seriesNames = graph.getSeriesNames();
-			for (int i = 0; i < seriesNames.size(); i++) {
-				String name = seriesNames.get(i);
-				if (name.equals("ERK")) {
-					graph.setSeriesColor(i, Color.BLUE.brighter());
-				} else if (name.startsWith("ERK")) {
-					graph.setSeriesColor(i, Color.BLUE.darker());
-				} else if (name.equals("Frizzled")) {
-					graph.setSeriesColor(i, Color.RED.brighter());
-				} else if (name.startsWith("Frizzled")) {
-					graph.setSeriesColor(i, Color.RED.darker());
+		List<Double> timePoints = null;
+		if (this.referenceData != null) { //Maybe this way we avoid to read the csv file every time
+			timePoints = referenceData.getTimeIndices();
+			seriesNameMapping = new HashMap<String, String>();
+			for (String name : this.reactantToDataReference.values()) {
+				seriesNameMapping.put(name, name); //Identity mapping: we want the column names as they appear in the csv file
+			}
+			List<String> listOfNames = new Vector<String>(reactantToDataReference.values());
+			listOfNames.addAll(graph.getSeriesNames());
+			graph.parseLevelResult(referenceData, seriesNameMapping, graph.getScale().getXScale(), listOfNames);
+		} else {
+			try {
+				//TODO: certainly this is not as it should be done!!!
+				System.err.print("I am setting a most-probably-useless time series: ");
+				timePoints = Arrays.asList(0.0, 30.0, 60.0, 120.0, 240.0);
+				for (double d : timePoints) {
+					System.err.print(d + ", ");
+				}
+				System.err.println("\b\b");
+				graph.parseCSV(referenceDataFile, new Vector<String>(reactantToDataReference.values()));
+			} catch (FileNotFoundException e) {
+				e.printStackTrace(System.err);
+			} catch (IOException e) {
+				e.printStackTrace(System.err);
+			}
+		}
+		
+		//Reassign colors so that it is easier to guess what series are connected
+		Vector<String> seriesNames = graph.getSeriesNames();
+		Color colors[] = graph.getAvailableColors();
+		int colorIdx = 0;
+		for (Reactant r : reactantToDataReference.keySet()) {
+			int idx = seriesNames.lastIndexOf(r.getName());
+			if (idx != -1) {
+				graph.setSeriesColor(idx, colors[colorIdx]);
+				idx = seriesNames.lastIndexOf(reactantToDataReference.get(r));
+				if (idx != -1) {
+					graph.setSeriesColor(idx, colors[colorIdx].darker());
+				}
+				colorIdx++;
+				if (colorIdx >= colors.length) {
+					colorIdx = 0;
 				}
 			}
-		} catch (FileNotFoundException e) {
-			e.printStackTrace(System.err);
-		} catch (IOException e) {
-			e.printStackTrace(System.err);
 		}
-		graph.declareMaxYValue(100);
-		graph.setDrawArea(0, maxTime, 0, 100);
+		int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
+		graph.declareMaxYValue(nLevels);
+		graph.setDrawArea(0, maxTime, 0, nLevels);
 		Component w = graph.getParent();
 		while (w != null) {
 			if (w instanceof JFrame) {
@@ -469,6 +537,11 @@ public class LevenbergMarquardtFunction implements Function {
 			w = w.getParent();
 		}
 		graph.repaint();
-		y.set(LevenbergMarquardt.levelResultToMatrix(result, scale, Arrays.asList(0.0, 30.0, 60.0, 120.0, 240.0)));
+		DenseMatrix64F tmpResult = LevenbergMarquardt.levelResultToMatrix(result, scale, timePoints);
+		System.err.println("Risultato letto:");
+		LevenbergMarquardt.printMatrix(tmpResult);
+		System.err.println("\nY corrente:");
+		LevenbergMarquardt.printMatrix(y);
+		y.set(LevenbergMarquardt.levelResultToMatrix(result, scale, timePoints));
 	}
 }

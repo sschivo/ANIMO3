@@ -35,6 +35,7 @@ import org.osgi.framework.BundleContext;
 
 import animo.core.AnimoBackend;
 import animo.cytoscape.contextmenu.EdgeDoubleClickTaskFactory;
+import animo.cytoscape.contextmenu.EdgeOptimizeKContextMenu;
 import animo.cytoscape.contextmenu.EdgeRescaleKContextMenu;
 import animo.cytoscape.contextmenu.EditReactantNodeMenu;
 import animo.cytoscape.contextmenu.EditReactionEdgeViewContextMenu;
@@ -188,6 +189,12 @@ public class Animo extends AbstractCyActivator {
 		rescaleEdgesProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
 		rescaleEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, rescaleEdges, rescaleEdgesProps);
+		
+		EdgeOptimizeKContextMenu optimizeEdges = new EdgeOptimizeKContextMenu();
+		Properties optimizeEdgesProps = new Properties();
+		optimizeEdgesProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
+		optimizeEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2.5");
+		registerAllServices(bc, optimizeEdges, optimizeEdgesProps);
 		
 		//Register node and edge double click listeners to open the edit dialogs
 		NodeViewTaskFactory nodeDblClkListener = new NodeDoubleClickTaskFactory();

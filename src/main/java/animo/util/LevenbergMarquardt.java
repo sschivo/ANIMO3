@@ -8,27 +8,16 @@ import static org.ejml.ops.CommonOps.subtract;
 import static org.ejml.ops.CommonOps.subtractEquals;
 import static org.ejml.ops.SpecializedOps.diffNormF;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
 import java.io.IOException;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.SortedMap;
-import java.util.StringTokenizer;
-import java.util.TreeMap;
 import java.util.Vector;
 
 import org.ejml.data.DenseMatrix64F;
 
 import animo.core.analyser.LevelResult;
-import animo.core.analyser.uppaal.SimpleLevelResult;
 import animo.core.graph.Graph;
-import animo.core.graph.P;
-import animo.core.graph.SmartTokenizer;
 import animo.fitting.LevenbergMarquardtFitter.LMSwingWorker;
 
 /**
@@ -377,7 +366,7 @@ public class LevenbergMarquardt {
     }
     
     public static DenseMatrix64F readCSVtoMatrix(String csvFileName, Collection<String> selectedColumns, double untilTime) throws IOException {
-		LevelResult levelResult = readCSVtoLevelResult(csvFileName, selectedColumns, untilTime);
+		LevelResult levelResult = Graph.readCSVtoLevelResult(csvFileName, selectedColumns, untilTime);
 		return levelResultToMatrix(levelResult);
 	}
     
@@ -412,109 +401,8 @@ public class LevenbergMarquardt {
 		return new DenseMatrix64F(data);
 	}
 	
-	public static LevelResult readCSVtoLevelResult(String csvFileName, Collection<String> selectedColumns, double untilTime) throws IOException {
-		File f = new File(csvFileName);
-		BufferedReader is = new BufferedReader(new FileReader(f));
-		String firstLine = is.readLine();
-		if (firstLine == null) {
-			is.close();
-			throw new IOException("Error: the file " + csvFileName + " is empty!");
-		}
-		StringTokenizer tritatutto = new StringTokenizer(firstLine, ",");
-		int nColonne = tritatutto.countTokens();
-		String[] columnNames = new String[nColonne - 1];
-		Vector<Vector<P>> dataSeries = new Vector<Vector<P>>(columnNames.length);
-		Map<String, SortedMap<Double, Double>> levels = new HashMap<String, SortedMap<Double, Double>>();
-		@SuppressWarnings("unused")
-		String xSeriesName = tritatutto.nextToken().replace('\"', ' '); // il primo e' la X (tempo)
-		boolean mustRescaleYValues = false; //We assume that Y values are in the [0, 100] interval. Otherwise, a column named like animo.core.graph.Graph.MAX_Y_STRING will tell us (in the first value it contains) the maximal Y value on which to rescale (we assume minimum = 0)
-		for (int i = 0; i < columnNames.length; i++) {
-			columnNames[i] = tritatutto.nextToken();
-			columnNames[i] = columnNames[i].replace('\"', ' ');
-			if (columnNames[i].toLowerCase().contains(Graph.MAX_Y_STRING.toLowerCase())) {
-				mustRescaleYValues = true;
-			}
-			dataSeries.add(new Vector<P>());
-			if (selectedColumns.contains(columnNames[i])) {
-				levels.put(columnNames[i], new TreeMap<Double, Double>());
-			}
-		}
-		while (true) {
-			String result = is.readLine();
-			if (result == null || result.length() < 2) {
-				break;
-			}
-			SmartTokenizer rigaSpezzata = new SmartTokenizer(result, ",");
-			String s = rigaSpezzata.nextToken();
-			double xValue = Double.parseDouble(s); // here s can't be null (differently from below) because there is absolutely no sense in not giving the x value for the entire
-													// line
-			if (untilTime >= 0 && xValue > untilTime) { //We can stop early if we don't need to read the whole time series
-				break;
-			}
-			int lungRiga = rigaSpezzata.countTokens();
-			for (int i = 0; i < lungRiga; i++) {
-				s = rigaSpezzata.nextToken();
-				if (s == null || s.trim().length() < 1)
-					continue; // there could be one of the series which does not have a point in this line: we skip it
-				dataSeries.elementAt(i).add(new P(xValue, Double.parseDouble(s)));
-				if (!mustRescaleYValues && selectedColumns.contains(columnNames[i])) {
-					levels.get(columnNames[i]).put(xValue, Double.parseDouble(s));
-				}
-			}
-		}
-		is.close();
-		
-		double maxYValue = 100.0;
-		if (mustRescaleYValues) {
-			int indexForOtherMaxY = -1;
-			maxYValue = 0;
-			for (int i = 0; i < columnNames.length; i++) {
-				if (columnNames[i].equals(Graph.MAX_Y_STRING)) {
-					indexForOtherMaxY = i;
-					maxYValue = dataSeries.elementAt(i).elementAt(0).y;
-					break;
-				}
-			}
-			for (int i = 0; i < columnNames.length; i++) {
-				if (i == indexForOtherMaxY || !selectedColumns.contains(columnNames[i]))
-					continue;
-				P[] grafico = new P[1];
-				grafico = dataSeries.elementAt(i).toArray(grafico);
-				if (grafico != null && grafico.length > 1) {
-					for (P p : grafico) { // before adding the graph data, we update it by rescaling the y values
-						p.y /= maxYValue;
-						levels.get(columnNames[i]).put(p.x, p.y);
-					}
-				}
-			}
-		} else {
-			maxYValue = 100.0;
-		}
-		return new SimpleLevelResult((int)Math.round(maxYValue), levels);
-
-//		for (Series s : data) {
-//			if (s.getName().toLowerCase().trim().endsWith(Series.SLAVE_SUFFIX)) {
-//				for (Series s2 : data) {
-//					if (s2.getName()
-//							.trim()
-//							.equals(s.getName().trim()
-//									.substring(0, s.getName().toLowerCase().trim().lastIndexOf(Series.SLAVE_SUFFIX)))) {
-//						s.setMaster(s2);
-//					}
-//				}
-//			}
-//			if (this.selectedColumns.size() > 0 && !this.selectedColumns.contains(s.getName())) {
-//				s.setEnabled(false);
-//			} else {
-//				s.setEnabled(true);
-//			}
-//		}
-//
-//		Collections.sort(data);
-	}
 	
-	@SuppressWarnings("unused")
-	private static void printMatrix(DenseMatrix64F x) {
+	public static void printMatrix(DenseMatrix64F x) {
     	for (int r = 0; r < x.getNumRows(); r++) {
 			System.out.print("[ ");
 			for (int c = 0; c < x.getNumCols()-1; c++) {

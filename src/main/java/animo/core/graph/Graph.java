@@ -34,12 +34,16 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Random;
+import java.util.SortedMap;
 import java.util.StringTokenizer;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import javax.swing.JCheckBoxMenuItem;
@@ -50,6 +54,7 @@ import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
 
 import animo.core.analyser.LevelResult;
+import animo.core.analyser.uppaal.SimpleLevelResult;
 import animo.cytoscape.Animo;
 import animo.util.HeatChart;
 
@@ -511,8 +516,14 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 	}
 
+	//Force a series to have the given color
 	public void setSeriesColor(int seriesIdx, Color color) {
 		data.elementAt(seriesIdx).setColor(color);
+	}
+	
+	//List all the "officially available" colors
+	public Color[] getAvailableColors() {
+		return this.colori.clone(); //I don't want people to modify my list of colors, I am attached to it!
 	}
 	
 	/*
@@ -1378,6 +1389,95 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		needRedraw = true;
 	}
 
+	
+	/*
+	 * Parse a CSV file translating it into LevelResult
+	 * csvFileName is the name of the .csv file. It CANNOT be null/empty.
+	 * selectedColumns contains the columns to be parsed. It can be null: in that case, get all the columns
+	 * untilTime is the time up to which the parsing is done. It can be < 0: in that case, parse until the end
+	 */
+	public static LevelResult readCSVtoLevelResult(String csvFileName, Collection<String> selectedColumns, double untilTime) throws IOException {
+		File f = new File(csvFileName);
+		BufferedReader is = new BufferedReader(new FileReader(f));
+		String firstLine = is.readLine();
+		if (firstLine == null) {
+			is.close();
+			throw new IOException("Error: the file " + csvFileName + " is empty!");
+		}
+		StringTokenizer tritatutto = new StringTokenizer(firstLine, ",");
+		int nColonne = tritatutto.countTokens();
+		String[] columnNames = new String[nColonne - 1];
+		Vector<Vector<P>> dataSeries = new Vector<Vector<P>>(columnNames.length);
+		Map<String, SortedMap<Double, Double>> levels = new HashMap<String, SortedMap<Double, Double>>();
+		@SuppressWarnings("unused")
+		String xSeriesName = tritatutto.nextToken().replace('\"', ' '); // il primo e' la X (tempo)
+		boolean mustRescaleYValues = false; //We assume that Y values are in the [0, 100] interval. Otherwise, a column named like animo.core.graph.Graph.MAX_Y_STRING will tell us (in the first value it contains) the maximal Y value on which to rescale (we assume minimum = 0)
+		for (int i = 0; i < columnNames.length; i++) {
+			columnNames[i] = tritatutto.nextToken();
+			columnNames[i] = columnNames[i].replace('\"', ' ');
+			if (columnNames[i].toLowerCase().contains(Graph.MAX_Y_STRING.toLowerCase())) {
+				mustRescaleYValues = true;
+			}
+			dataSeries.add(new Vector<P>());
+			if (selectedColumns == null || selectedColumns.contains(columnNames[i])) {
+				levels.put(columnNames[i], new TreeMap<Double, Double>());
+			}
+		}
+		while (true) {
+			String result = is.readLine();
+			if (result == null || result.length() < 2) {
+				break;
+			}
+			SmartTokenizer rigaSpezzata = new SmartTokenizer(result, ",");
+			String s = rigaSpezzata.nextToken();
+			double xValue = Double.parseDouble(s); // here s can't be null (differently from below) because there is absolutely no sense in not giving the x value for the entire
+													// line
+			if (untilTime >= 0 && xValue > untilTime) { //We can stop early if we don't need to read the whole time series
+				break;
+			}
+			int lungRiga = rigaSpezzata.countTokens();
+			for (int i = 0; i < lungRiga; i++) {
+				s = rigaSpezzata.nextToken();
+				if (s == null || s.trim().length() < 1)
+					continue; // there could be one of the series which does not have a point in this line: we skip it
+				dataSeries.elementAt(i).add(new P(xValue, Double.parseDouble(s)));
+				if (!mustRescaleYValues && (selectedColumns == null || selectedColumns.contains(columnNames[i]))) {
+					levels.get(columnNames[i]).put(xValue, Double.parseDouble(s));
+				}
+			}
+		}
+		is.close();
+		
+		double maxYValue = 100.0;
+		if (mustRescaleYValues) {
+			int indexForOtherMaxY = -1;
+			maxYValue = 0;
+			for (int i = 0; i < columnNames.length; i++) {
+				if (columnNames[i].equals(Graph.MAX_Y_STRING)) {
+					indexForOtherMaxY = i;
+					maxYValue = dataSeries.elementAt(i).elementAt(0).y;
+					break;
+				}
+			}
+			for (int i = 0; i < columnNames.length; i++) {
+				if (i == indexForOtherMaxY || (selectedColumns != null && !selectedColumns.contains(columnNames[i])))
+					continue;
+				P[] grafico = new P[1];
+				grafico = dataSeries.elementAt(i).toArray(grafico);
+				if (grafico != null && grafico.length > 1) {
+					for (P p : grafico) { // before adding the graph data, we update it by rescaling the y values
+						p.y /= maxYValue;
+						levels.get(columnNames[i]).put(p.x, p.y);
+					}
+				}
+			}
+		} else {
+			maxYValue = 100.0;
+		}
+		return new SimpleLevelResult((int)Math.round(maxYValue), levels);
+
+	}
+	
 	/*
 	 * Add a new set of Series from a given LevelResult, marking all as shown
 	 */

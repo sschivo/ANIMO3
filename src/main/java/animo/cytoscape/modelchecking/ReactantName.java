@@ -12,7 +12,7 @@ public class ReactantName {
 	}
 
 	public void setReactantID(Model m) {
-		this.modelID = m.getReactantByCytoscapeName(cytoscapeID).getId();
+		this.modelID = m.getReactantByCytoscapeID(cytoscapeID).getId();
 	}
 
 	public String toHumanReadable() {
