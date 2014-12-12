@@ -47,8 +47,8 @@ import animo.core.graph.FileUtils;
 import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
-import animo.fitting.LevenbergMarquardtFitter;
-import animo.fitting.ParameterFitter;
+import animo.fitting.bruteforce.BruteforceParameterFitter;
+import animo.fitting.levenbergmarquardt.LevenbergMarquardtFitter;
 import animo.util.XmlConfiguration;
 
 public class ControlPanel extends JPanel implements CytoPanelComponent {
@@ -67,7 +67,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 
 		@Override
 		public void actionPerformed(ActionEvent e) {
-			ParameterFitter fitter = new ParameterFitter();
+			BruteforceParameterFitter fitter = new BruteforceParameterFitter();
 			fitter.showWindow(false, Integer.parseInt(timeTo.getValue().toString()));
 		}
 	}

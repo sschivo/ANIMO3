@@ -446,7 +446,7 @@ public class EdgeDialog extends JDialog {
 			nodeViews[i] = networkView.getNodeView(node);
 		}
 		if (currentlySelectedScenario == 0) {
-			String upstreamReactantName = n.getRow(edge).get(Model.Properties.CANONICAL_NAME, String.class);
+			String upstreamReactantName = n.getRow(edge.getSource()).get(Model.Properties.CANONICAL_NAME, String.class);
 			JLabel label = new JLabel("E = active " + upstreamReactantName);
 			parametersBox.add(label);
 		} else if (currentlySelectedScenario == 1) {

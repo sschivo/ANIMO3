@@ -1,4 +1,4 @@
-package animo.fitting;
+package animo.fitting.levenbergmarquardt;
 
 import java.awt.Color;
 import java.awt.Component;
@@ -25,8 +25,9 @@ import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.core.model.Scenario;
-import animo.util.LevenbergMarquardt;
-import animo.util.LevenbergMarquardt.Function;
+import animo.fitting.ScenarioCfg;
+import animo.fitting.levenbergmarquardt.LevenbergMarquardt.Function;
+import animo.util.Pair;
 
 //Computes the X * params = Y for the L&M method,
 //where X is the initial state of the ANIMO model
@@ -266,6 +267,40 @@ public class LevenbergMarquardtFunction implements Function {
 		return initialParameters;
 	}
 	
+	//If somebody wants to know to which reaction (and which parameter name) the parameters
+	//we use in our internal DenseMatrix64F params matrix are associated, this is how to know it.
+	//Probably translateReactionParameters is more useful
+	public Map<Integer, Pair<Reaction, String>> getParametersMapping() {
+		Map<Integer, Pair<Reaction, String>> result = new HashMap<Integer, Pair<Reaction, String>>();
+		for (Reaction r : reactionParameterIndices.keySet()) {
+			Map<String, Integer> paramIndices = reactionParameterIndices.get(r);
+			for (String paramName : paramIndices.keySet()) {
+				Pair<Reaction, String> pair = new Pair<Reaction, String>(r, paramName);
+				result.put(paramIndices.get(paramName), pair);
+			}
+		}
+		return result;
+	}
+	
+	//Return the "translated" version of the parameters contained in the given matrix
+	//As LevenbergMarquardtFunction is the only one who know to which parameters each index
+	//of the parameters matrix corresponds, given a matrix (that NEEDS to be in the same
+	//format, of course!) we can give back indications about which reactions and parameter
+	//name each value corresponds
+	public Map<Reaction, Map<String, Double>> translateReactionParameters(DenseMatrix64F params) {
+		Map<Reaction, Map<String, Double>> result = new HashMap<Reaction, Map<String, Double>>();
+		for (Reaction r : reactionParameterIndices.keySet()) {
+			Map<String, Double> parameterValues = new HashMap<String, Double>();
+			Map<String, Integer> paramIndices = reactionParameterIndices.get(r);
+			for (String paramName : paramIndices.keySet()) {
+				double paramValue = params.get(paramIndices.get(paramName));
+				parameterValues.put(paramName, paramValue);
+			}
+			result.put(r, parameterValues);
+		}
+		return result;
+	}
+	
 	private void updateParameters(DenseMatrix64F params) {
 		for (Reaction r : reactionParameterIndices.keySet()) {
 			Map<String, Integer> paramIndices = reactionParameterIndices.get(r);
@@ -469,13 +504,10 @@ public class LevenbergMarquardtFunction implements Function {
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}
-		//graph.reset();
 		Map<String, String> seriesNameMapping = new HashMap<String, String>();
 		for (Reactant r : this.reactantToDataReference.keySet()) { //Mapping from the IDs we read from the verifyta result (i.e., ANIMO IDs such as R1, R2, ...) to the names displayed on the nodes in the Cytoscape network
 			seriesNameMapping.put(r.getId(), r.getName());
 		}
-//		seriesNameMapping.put("R3", "ERK");
-//		seriesNameMapping.put("R1", "Frizzled");
 		graph.reset();
 		graph.parseLevelResult(result, seriesNameMapping, scale);
 		double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size() - 1);
@@ -506,7 +538,7 @@ public class LevenbergMarquardtFunction implements Function {
 			}
 		}
 		
-		//Reassign colors so that it is easier to guess what series are connected
+		//Reassign colors so that it is easier to guess which series are connected
 		Vector<String> seriesNames = graph.getSeriesNames();
 		Color colors[] = graph.getAvailableColors();
 		int colorIdx = 0;
@@ -537,11 +569,6 @@ public class LevenbergMarquardtFunction implements Function {
 			w = w.getParent();
 		}
 		graph.repaint();
-		DenseMatrix64F tmpResult = LevenbergMarquardt.levelResultToMatrix(result, scale, timePoints);
-		System.err.println("Risultato letto:");
-		LevenbergMarquardt.printMatrix(tmpResult);
-		System.err.println("\nY corrente:");
-		LevenbergMarquardt.printMatrix(y);
 		y.set(LevenbergMarquardt.levelResultToMatrix(result, scale, timePoints));
 	}
 }

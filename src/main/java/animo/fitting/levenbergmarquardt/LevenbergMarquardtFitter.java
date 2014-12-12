@@ -1,4 +1,4 @@
-package animo.fitting;
+package animo.fitting.levenbergmarquardt;
 
 import java.awt.BorderLayout;
 import java.awt.event.ActionEvent;
@@ -28,10 +28,10 @@ import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.cytoscape.Animo;
 import animo.cytoscape.RunAction;
-import animo.util.LevenbergMarquardt;
-import animo.util.LevenbergMarquardt.Function;
+import animo.fitting.ParameterFitter;
+import animo.fitting.levenbergmarquardt.LevenbergMarquardt.Function;
 
-public class LevenbergMarquardtFitter {
+public class LevenbergMarquardtFitter extends ParameterFitter {
 	
 	private Model model = null;
 	private List<Reaction> reactionsToBeOptimized = null;
@@ -39,6 +39,9 @@ public class LevenbergMarquardtFitter {
 	private Map<Reactant, String> reactantToDataCorrespondence = null;
 	private int timeTo = -1;
 	private Properties parameters = null;
+	private boolean keepResult = false;
+	private double finalCost = Double.NaN;
+	private Map<Reaction, Map<String, Double>> reactionParameters = null;
 	public static final String MIN_COST_KEY = "MIN_COST",
 							   DELTA_KEY = "DELTA";
 	private final double MIN_COST_DEFAULT = 0.5;
@@ -94,7 +97,6 @@ public class LevenbergMarquardtFitter {
     	frame.getContentPane().add(progressBox, BorderLayout.SOUTH);
     	JFrame cytoscapeFrame = Animo.getCytoscape().getJFrame();
     	frame.setBounds((int) (cytoscapeFrame.getWidth() * 0.2), (int) (cytoscapeFrame.getHeight() * 0.2), (int) (cytoscapeFrame.getWidth() * 0.6), (int) (cytoscapeFrame.getHeight() * 0.6));
-    	//100, 100, 600, 400);
     	frame.setVisible(true);
     	final LevenbergMarquardtFunction function = new LevenbergMarquardtFunction(graph, model, reactionsToBeOptimized, referenceDataFile, reactantToDataCorrespondence, timeTo);
     	final LevenbergMarquardt lm = new LevenbergMarquardt(function);
@@ -134,7 +136,7 @@ public class LevenbergMarquardtFitter {
     	chiudi.addActionListener(new ActionListener() {
     		public void actionPerformed(ActionEvent e) {
     			worker.setMustTerminate(true); //Just push the button to cancel the job
-    			//For some reason, listening for the window close does not work o_O
+    			//TODO For some reason, listening for the window close does not work o_O
     		}
     	});
     	frame.add(chiudi, BorderLayout.EAST);
@@ -170,18 +172,42 @@ public class LevenbergMarquardtFitter {
 	        	newFrame.setBounds(frame.getBounds());
 	        	frame.setVisible(false);
 	        	frame.dispose();
+	        	newFrame.setVisible(true); //Show the results, then ask if they want these parameters
 	        	
+	        	int answer = JOptionPane.NO_OPTION;
+	        	keepResult = false;
+	        	finalCost = lm.getFinalCost();
 	        	if (success) {
-	        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + lm.getFinalCost() + "\nParameters: " + lm.getParameters(), "Good result found!", JOptionPane.INFORMATION_MESSAGE);
+	        		answer = JOptionPane.showConfirmDialog(newFrame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with required cost found!", JOptionPane.YES_NO_OPTION);
 	        	} else {
-	        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + lm.getFinalCost() + "\nParameters with that cost: " + lm.getParameters(), "No good result found!", JOptionPane.ERROR_MESSAGE);
+	        		answer = JOptionPane.showConfirmDialog(newFrame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + finalCost + "\nDo you want to use the parameters that gave the minimum cost?", "No result with required cost found", JOptionPane.YES_NO_OPTION);
 	        	}
-	        	
-	        	newFrame.setVisible(true);
+	        	newFrame.dispose();
+	        	if (answer == JOptionPane.YES_OPTION) {
+	        		//In this way we "return" the chosen parameters, so that the (supposed) generic parameter fitter manager would get the new parameters if new were found/chosen (so that it can set them in the model), and nothing if no change is needed.
+	        		//That is why keep the list of parameters (and cost) to be asked by anybody interested after we have completed the execution, like LM itself does:
+	        		//see variables resultingParameters and finalCost, along with functions getKeepResult(), getReactionParameters(), getFinalCost() which are used to this end
+	        		keepResult = true;
+	        		reactionParameters = function.translateReactionParameters(lm.getParameters());
+	        	}
+	        	notifyObservers(); //Tell all registered observers (i.e. the supposed generic parameter fitter manager, whatever) that we are finally done for real
 			}
     		
     	});
     	worker.execute();
+	}
+	
+	public boolean getKeepResult() {
+		return keepResult;
+	}
+	
+	public double getFinalCost() {
+		return finalCost;
+	}
+	
+	//For each (optimized) reaction, tell us which are the values of its parameters (known by name)
+	public Map<Reaction, Map<String, Double>> getReactionParameters() {
+		return reactionParameters;
 	}
 	
 	public void vai() {

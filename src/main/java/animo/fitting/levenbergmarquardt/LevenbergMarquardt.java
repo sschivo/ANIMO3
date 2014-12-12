@@ -1,4 +1,4 @@
-package animo.util;
+package animo.fitting.levenbergmarquardt;
 
 import static org.ejml.ops.CommonOps.add;
 import static org.ejml.ops.CommonOps.multTransB;
@@ -18,7 +18,7 @@ import org.ejml.data.DenseMatrix64F;
 
 import animo.core.analyser.LevelResult;
 import animo.core.graph.Graph;
-import animo.fitting.LevenbergMarquardtFitter.LMSwingWorker;
+import animo.fitting.levenbergmarquardt.LevenbergMarquardtFitter.LMSwingWorker;
 
 /**
  * <p>
