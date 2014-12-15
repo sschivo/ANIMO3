@@ -190,11 +190,13 @@ public class Animo extends AbstractCyActivator {
 		rescaleEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, rescaleEdges, rescaleEdgesProps);
 		
-		EdgeOptimizeKContextMenu optimizeEdges = new EdgeOptimizeKContextMenu();
-		Properties optimizeEdgesProps = new Properties();
-		optimizeEdgesProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
-		optimizeEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2.5");
-		registerAllServices(bc, optimizeEdges, optimizeEdgesProps);
+		if (areWeTheDeveloper()) { //TODO Add this normally when it is well tested
+			EdgeOptimizeKContextMenu optimizeEdges = new EdgeOptimizeKContextMenu();
+			Properties optimizeEdgesProps = new Properties();
+			optimizeEdgesProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
+			optimizeEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2.5");
+			registerAllServices(bc, optimizeEdges, optimizeEdgesProps);
+		}
 		
 		//Register node and edge double click listeners to open the edit dialogs
 		NodeViewTaskFactory nodeDblClkListener = new NodeDoubleClickTaskFactory();

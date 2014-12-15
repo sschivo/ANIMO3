@@ -91,10 +91,12 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
     	progressBar.setStringPainted(true);
     	bestProgressBar.setString("Best fitness up to now");
     	bestProgressBar.setStringPainted(true);
-    	Box progressBox = new Box(BoxLayout.Y_AXIS);
+    	final Box progressBox = new Box(BoxLayout.Y_AXIS);
     	progressBox.add(progressBar);
     	progressBox.add(bestProgressBar);
-    	frame.getContentPane().add(progressBox, BorderLayout.SOUTH);
+    	final Box progressBoxHoriz = new Box(BoxLayout.X_AXIS);
+    	progressBoxHoriz.add(progressBox);
+    	frame.getContentPane().add(progressBoxHoriz, BorderLayout.SOUTH);
     	JFrame cytoscapeFrame = Animo.getCytoscape().getJFrame();
     	frame.setBounds((int) (cytoscapeFrame.getWidth() * 0.2), (int) (cytoscapeFrame.getHeight() * 0.2), (int) (cytoscapeFrame.getWidth() * 0.6), (int) (cytoscapeFrame.getHeight() * 0.6));
     	frame.setVisible(true);
@@ -132,14 +134,15 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
     	Y = experimentalData;
     	
     	final LMSwingWorker worker = new LMSwingWorker(lm, X, Y, initParam);
-    	JButton chiudi = new JButton("Chiudi");
+    	JButton chiudi = new JButton("Cancel");
     	chiudi.addActionListener(new ActionListener() {
     		public void actionPerformed(ActionEvent e) {
     			worker.setMustTerminate(true); //Just push the button to cancel the job
     			//TODO For some reason, listening for the window close does not work o_O
     		}
     	});
-    	frame.add(chiudi, BorderLayout.EAST);
+    	//frame.add(chiudi, BorderLayout.EAST);
+    	progressBoxHoriz.add(chiudi);
     	final long startTime = System.currentTimeMillis();
     	worker.addPropertyChangeListener(new PropertyChangeListener() {
     		
@@ -165,24 +168,26 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 				}
 	        	long endTime = System.currentTimeMillis();
 
-	        	JFrame newFrame = new JFrame("Resulting graph (cost " + lm.getFinalCost() + ")");
+//	        	JFrame newFrame = new JFrame("Resulting graph (cost " + lm.getFinalCost() + ")");
+	        	frame.getContentPane().remove(progressBoxHoriz);
 	        	graph.reset();
 	        	function.compute(lm.getParameters(), X, Y);
-	        	newFrame.getContentPane().add(graph, BorderLayout.CENTER);
-	        	newFrame.setBounds(frame.getBounds());
-	        	frame.setVisible(false);
-	        	frame.dispose();
-	        	newFrame.setVisible(true); //Show the results, then ask if they want these parameters
+	        	frame.validate();
+//	        	newFrame.getContentPane().add(graph, BorderLayout.CENTER);
+//	        	newFrame.setBounds(frame.getBounds());
+//	        	frame.setVisible(false);
+//	        	frame.dispose();
+//	        	newFrame.setVisible(true); //Show the results, then ask if they want these parameters
 	        	
 	        	int answer = JOptionPane.NO_OPTION;
 	        	keepResult = false;
 	        	finalCost = lm.getFinalCost();
 	        	if (success) {
-	        		answer = JOptionPane.showConfirmDialog(newFrame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with required cost found!", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with required cost found!", JOptionPane.YES_NO_OPTION);
 	        	} else {
-	        		answer = JOptionPane.showConfirmDialog(newFrame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + finalCost + "\nDo you want to use the parameters that gave the minimum cost?", "No result with required cost found", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + finalCost + "\nDo you want to use the parameters that gave the minimum cost?", "No result with required cost found", JOptionPane.YES_NO_OPTION);
 	        	}
-	        	newFrame.dispose();
+	        	frame.dispose();
 	        	if (answer == JOptionPane.YES_OPTION) {
 	        		//In this way we "return" the chosen parameters, so that the (supposed) generic parameter fitter manager would get the new parameters if new were found/chosen (so that it can set them in the model), and nothing if no change is needed.
 	        		//That is why keep the list of parameters (and cost) to be asked by anybody interested after we have completed the execution, like LM itself does:

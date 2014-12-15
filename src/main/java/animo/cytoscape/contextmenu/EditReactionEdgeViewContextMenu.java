@@ -20,7 +20,6 @@ public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFac
 	
 	@Override
 	public void actionPerformed(ActionEvent e) {
-		//CyEdge edge = CyTableUtil.getEdgesInState(network, "selected", true).get(0);
 		CyEdge edge = edgeView.getModel();
 		EdgeDialog dialog = new EdgeDialog(network, edge);
 		dialog.showYourself();
@@ -31,7 +30,8 @@ public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFac
 		JMenuItem menuItem = new JMenuItem("Edit reaction...");
 		menuItem.addActionListener(this);
 		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 3);
-		network = netView.getModel();
+		this.edgeView = edgeView;
+		this.network = netView.getModel();
 		return cyMenuItem;
 
 	}
