@@ -27,7 +27,6 @@ import animo.core.model.Reaction;
 import animo.core.model.Scenario;
 import animo.fitting.ScenarioCfg;
 import animo.fitting.levenbergmarquardt.LevenbergMarquardt.Function;
-import animo.util.Pair;
 
 //Computes the X * params = Y for the L&M method,
 //where X is the initial state of the ANIMO model
@@ -267,21 +266,6 @@ public class LevenbergMarquardtFunction implements Function {
 		return initialParameters;
 	}
 	
-	//If somebody wants to know to which reaction (and which parameter name) the parameters
-	//we use in our internal DenseMatrix64F params matrix are associated, this is how to know it.
-	//Probably translateReactionParameters is more useful
-	public Map<Integer, Pair<Reaction, String>> getParametersMapping() {
-		Map<Integer, Pair<Reaction, String>> result = new HashMap<Integer, Pair<Reaction, String>>();
-		for (Reaction r : reactionParameterIndices.keySet()) {
-			Map<String, Integer> paramIndices = reactionParameterIndices.get(r);
-			for (String paramName : paramIndices.keySet()) {
-				Pair<Reaction, String> pair = new Pair<Reaction, String>(r, paramName);
-				result.put(paramIndices.get(paramName), pair);
-			}
-		}
-		return result;
-	}
-	
 	//Return the "translated" version of the parameters contained in the given matrix
 	//As LevenbergMarquardtFunction is the only one who know to which parameters each index
 	//of the parameters matrix corresponds, given a matrix (that NEEDS to be in the same
@@ -510,6 +494,8 @@ public class LevenbergMarquardtFunction implements Function {
 		}
 		graph.reset();
 		graph.parseLevelResult(result, seriesNameMapping, scale);
+		int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
+		graph.declareMaxYValue(nLevels);
 		double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size() - 1);
 		List<Double> timePoints = null;
 		if (this.referenceData != null) { //Maybe this way we avoid to read the csv file every time
@@ -556,8 +542,6 @@ public class LevenbergMarquardtFunction implements Function {
 				}
 			}
 		}
-		int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
-		graph.declareMaxYValue(nLevels);
 		graph.setDrawArea(0, maxTime, 0, nLevels);
 		Component w = graph.getParent();
 		while (w != null) {

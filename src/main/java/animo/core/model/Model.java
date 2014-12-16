@@ -10,8 +10,6 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 
-import javax.swing.JOptionPane;
-
 import org.cytoscape.application.CyApplicationManager;
 import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
@@ -346,11 +344,11 @@ public class Model implements Serializable {
 		 * InatException("No reactants selected for plot: select at least one reactant to be plotted in the graph."); }
 		 */
 		if (noReactantsPlotted) {
-			if (JOptionPane.showConfirmDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-					"No graphs will be shown. Do you still want to continue?", "No reactants selected for plotting",
-					JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
-				throw new AnimoException("Model generation cancelled by the user");
-			}
+//			if (JOptionPane.showConfirmDialog(Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
+//					"No graphs will be shown. Do you still want to continue?", "No reactants selected for plotting",
+//					JOptionPane.YES_NO_OPTION) == JOptionPane.NO_OPTION) {
+//				throw new AnimoException("Model generation cancelled by the user");
+//			}
 		}
 
 		Iterator<CyEdge> edges = currentNetwork.getEdgeList().iterator();

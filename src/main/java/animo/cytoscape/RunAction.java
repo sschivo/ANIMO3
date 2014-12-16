@@ -1,6 +1,5 @@
 package animo.cytoscape;
 
-import java.awt.EventQueue;
 import java.awt.event.ActionEvent;
 import java.io.File;
 import java.io.FileOutputStream;
@@ -282,16 +281,18 @@ public class RunAction extends AnimoActionTask {
 				}
 			}
 			if (noReactantsPlotted && !smcUppaal.isSelected()) {
-				EventQueue.invokeLater(new Runnable() {
-					@Override
-					public void run() {
-						JOptionPane
-								.showMessageDialog(
-										Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
-										"No reactants selected for plot: select at least one reactant to be plotted in the graph.",
-										"Error", JOptionPane.ERROR_MESSAGE);
-					}
-				});
+				//This does work, but throwing the AnimoException has the same effect:
+				//the task ends and the error is displayed to the user.
+//				EventQueue.invokeLater(new Runnable() {
+//					@Override
+//					public void run() {
+//						JOptionPane
+//								.showMessageDialog(
+//										Animo.getCytoscape().getJFrame(),/* (Component) monitor, */
+//										"No reactants selected for plot: select at least one reactant to be plotted in the graph.",
+//										"Error", JOptionPane.ERROR_MESSAGE);
+//					}
+//				});
 				throw new AnimoException(
 						"No reactants selected for plot: select at least one reactant to be plotted in the graph.");
 			}

@@ -172,6 +172,7 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	        	frame.getContentPane().remove(progressBoxHoriz);
 	        	graph.reset();
 	        	function.compute(lm.getParameters(), X, Y);
+	        	frame.setTitle("Best result");
 	        	frame.validate();
 //	        	newFrame.getContentPane().add(graph, BorderLayout.CENTER);
 //	        	newFrame.setBounds(frame.getBounds());
@@ -183,9 +184,9 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	        	keepResult = false;
 	        	finalCost = lm.getFinalCost();
 	        	if (success) {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with required cost found!", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with " + (finalCost < lm.MIN_COST?"required":"better") + " cost found!", JOptionPane.YES_NO_OPTION);
 	        	} else {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + finalCost + "\nDo you want to use the parameters that gave the minimum cost?", "No result with required cost found", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nMinimum cost I found: " + finalCost + "\nDo you want to use the parameters that gave the minimum cost?", "No result with required cost found", JOptionPane.YES_NO_OPTION);
 	        	}
 	        	frame.dispose();
 	        	if (answer == JOptionPane.YES_OPTION) {

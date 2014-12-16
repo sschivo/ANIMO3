@@ -337,7 +337,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		if (source instanceof JMenuItem) {
 			JMenuItem menu = (JMenuItem) source;
 			if (menu.getText().equals(OPEN_LABEL)) {
-				String fileName = FileUtils.open(CSV_FILE_EXTENSION, CSV_FILE_DESCRIPTION, this);
+				String fileName = FileUtils.open(CSV_FILE_EXTENSION, CSV_FILE_DESCRIPTION, null, this);
 				if (fileName != null) {
 					try {
 						this.parseCSV(fileName);
@@ -1412,6 +1412,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		@SuppressWarnings("unused")
 		String xSeriesName = tritatutto.nextToken().replace('\"', ' '); // il primo e' la X (tempo)
 		boolean mustRescaleYValues = false; //We assume that Y values are in the [0, 100] interval. Otherwise, a column named like animo.core.graph.Graph.MAX_Y_STRING will tell us (in the first value it contains) the maximal Y value on which to rescale (we assume minimum = 0)
+											//In case we have to resize that interval, we resize it to a [0,100] interval.
 		for (int i = 0; i < columnNames.length; i++) {
 			columnNames[i] = tritatutto.nextToken();
 			columnNames[i] = columnNames[i].replace('\"', ' ');
@@ -1451,7 +1452,6 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		double maxYValue = 100.0;
 		if (mustRescaleYValues) {
 			int indexForOtherMaxY = -1;
-			maxYValue = 0;
 			for (int i = 0; i < columnNames.length; i++) {
 				if (columnNames[i].equals(Graph.MAX_Y_STRING)) {
 					indexForOtherMaxY = i;
@@ -1466,7 +1466,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				grafico = dataSeries.elementAt(i).toArray(grafico);
 				if (grafico != null && grafico.length > 1) {
 					for (P p : grafico) { // before adding the graph data, we update it by rescaling the y values
-						p.y /= maxYValue;
+						p.y = p.y / maxYValue * 100.0;
 						levels.get(columnNames[i]).put(p.x, p.y);
 					}
 				}

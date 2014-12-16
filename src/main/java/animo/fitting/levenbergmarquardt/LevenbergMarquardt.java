@@ -60,7 +60,7 @@ public class LevenbergMarquardt {
     // the optimized parameters and associated costs
     private DenseMatrix64F param;
     private double initialCost;
-    private double finalCost;
+    private double finalCost = -1;
 
     // used by matrix operations
     private DenseMatrix64F d;
@@ -165,18 +165,21 @@ public class LevenbergMarquardt {
         // the difference between the current and previous cost
         double difference = 1000;
 
-        for( int iter = 0; iter < 20 || difference < 1e-6 ; iter++ ) {
+        for( int iter = 0; iter < 20 && difference > 1e-6 ; iter++ ) {
             // compute some variables based on the gradient
             computeDandH(param,X,Y);
 
             // try various step sizes and see if any of them improve the
             // results over what has already been done
-            boolean foundBetter = false;
+//            boolean foundBetter = false;
             for( int i = 0; i < 5; i++ ) {
                 computeA(A,H,lambda);
 
-                if( !solve(A,d,negDelta) ) {
-                    return false;
+                if( !solve(A,d,negDelta) ) { //TODO Why is this so bad??
+                	finalCost = minCost;
+        			param.set(minimumCostParameters);
+                    //return false;
+        			continue;
                 }
                 // compute the candidate parameters
                 subtract(param, negDelta, tempParam);
@@ -211,7 +214,7 @@ public class LevenbergMarquardt {
                 }
                 if( cost < prevCost ) {
                     // the candidate parameters produced better results so use it
-                    foundBetter = true;
+//                    foundBetter = true;
                     param.set(tempParam);
                     difference = prevCost - cost;
                     prevCost = cost;
@@ -221,12 +224,18 @@ public class LevenbergMarquardt {
                 }
             }
 
-            // it reached a point where it can't improve so exit
-            if( !foundBetter )
-                break;
+            //I think it works better if we comment the check below
+//            // it reached a point where it can't improve so exit
+//            if( !foundBetter )
+//                break;
         }
-        finalCost = prevCost;
-        return true;
+//        finalCost = prevCost;
+        
+        //Instead of stopping at the last state, we return the state with the minimum cost
+        finalCost = minCost;
+		param.set(minimumCostParameters);
+		
+        return finalCost < initialCost; //Comparison with MIN_COST is made already as soon as possible
     }
 
     /**

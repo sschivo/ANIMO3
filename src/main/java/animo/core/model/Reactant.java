@@ -45,7 +45,7 @@ public class Reactant extends Entity implements Serializable {
 		return e;
 	}
 
-	public boolean getEnabled() {
+	public boolean isEnabled() {
 		return this.get(Model.Properties.ENABLED).as(Boolean.class);
 	}
 

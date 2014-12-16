@@ -211,7 +211,7 @@ public class XmlConfiguration {
 					//Apparently that didn't work either. If I run the thing on a different thread after this function has done, we get what we want.
 					SwingUtilities.invokeLater(new Thread() {
 						public void run() {
-							verifytaLocationStr = FileUtils.open(verifytaFileName_, "Verifyta Executable", null); //Animo.getCytoscape().getJFrame());
+							verifytaLocationStr = FileUtils.open(verifytaFileName_, "Verifyta Executable", "Find UPPAAL's verifyta program", null); //Animo.getCytoscape().getJFrame());
 							//System.err.println("Acquisita la stringa: " + verifytaLocationStr);
 							done = true;
 						}

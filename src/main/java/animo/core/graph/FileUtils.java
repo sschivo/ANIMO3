@@ -37,9 +37,9 @@ public class FileUtils {
 	 *            The file type description (ex. "Image file")
 	 * @param parent
 	 *            The parent Component (typically a window. null is ok)
-	 * @return The complete (absoluite) path of the file selected by the user, or null if the user has selected no file/closed the dialog
+	 * @return The complete (absolute) path of the file selected by the user, or null if the user has selected no file/closed the dialog
 	 */
-	public static String open(final String fileType, final String description, Component parent) {
+	public static String open(final String fileType, final String description, final String dialogTitle, Component parent) {
 		//System.err.println("Inizio dell'open (parent = " + parent + ")");
 		CyAppAdapter app = Animo.getCytoscapeApp();
 		CySessionManager manager = app.getCySessionManager();
@@ -90,6 +90,9 @@ public class FileUtils {
 			});
 		}
 		chooser.setFileSelectionMode(JFileChooser.FILES_AND_DIRECTORIES);
+		if (dialogTitle != null) {
+			chooser.setDialogTitle(dialogTitle);
+		}
 		//System.err.println("Ora apro il dialog, eh");
 		int result = JFileChooser.CANCEL_OPTION;
 		try {

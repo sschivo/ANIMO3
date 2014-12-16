@@ -237,7 +237,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 			public void actionPerformed(ActionEvent e) {
 				CyNetwork net = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
 				if (net != null) {
-					String inputFileName = FileUtils.open(".sim", Animo.APP_NAME + " simulation", Animo.getCytoscape().getJFrame());
+					String inputFileName = FileUtils.open(".sim", Animo.APP_NAME + " simulation", null, Animo.getCytoscape().getJFrame());
 					if (inputFileName == null)
 						return;
 					final AnimoResultPanel resultPanel = new AnimoResultPanel(new File(inputFileName));
@@ -344,6 +344,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 										"Please, find and select the \"verifyta\" tool.\nIt is usually located in the \"bin\" directory of UPPAAL.",
 										"Verifyta", JOptionPane.QUESTION_MESSAGE);
 						String verifytaFileLocation = FileUtils.open(verifytaFileName, "Verifyta Executable",
+								"Open UPPAAL verifyta program",
 								optionsDialog);
 						if (verifytaFileLocation != null) {
 							verifytaLocation.setText(verifytaFileLocation);
