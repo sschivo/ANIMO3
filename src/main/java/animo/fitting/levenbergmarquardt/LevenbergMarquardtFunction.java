@@ -8,8 +8,11 @@ import java.io.OutputStream;
 import java.io.PrintStream;
 import java.util.Arrays;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import javax.swing.JFrame;
@@ -38,7 +41,7 @@ public class LevenbergMarquardtFunction implements Function {
 	private List<Reaction> reactionsToBeOptimized;
 	private String referenceDataFile;
 	private LevelResult referenceData;
-	private Map<Reactant, String> reactantToDataReference;
+	private SortedMap<Reactant, String> reactantToDataReference; //Sorted to ensure that the ordering of the reactants in the result matrices does not change
 	private int timeTo;
 	private Map<Reaction, Map<String, Integer>> reactionParameterIndices; //Associate a Map to each reaction.
 																		  //The Map gives the integer corresponding to the index of each parameter of this reaction inside the params DenseMatrix64F, which contains all the reaction parameters in one (column)matrix
@@ -52,7 +55,7 @@ public class LevenbergMarquardtFunction implements Function {
 									  Model model,
 									  List<Reaction> reactionsToBeOptimized,
 									  String referenceDataFile,
-									  Map<Reactant, String> reactantToDataCorrespondence,
+									  SortedMap<Reactant, String> reactantToDataCorrespondence,
 									  int timeTo) {
 		this.graph = graph;
 		this.model = model;
@@ -234,7 +237,7 @@ public class LevenbergMarquardtFunction implements Function {
 		
 		reactionsToBeOptimized = new Vector<Reaction>(model.getReactionCollection());
 		referenceDataFile = "/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv";
-		reactantToDataReference = new HashMap<Reactant, String>();
+		reactantToDataReference = new TreeMap<Reactant, String>();
 		reactantToDataReference.put(ERK, "ERK data");
 		reactantToDataReference.put(Frzld, "Frizzled data");
 	}
@@ -472,8 +475,8 @@ public class LevenbergMarquardtFunction implements Function {
 		int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
 		double scale = (double) nMinutesToSimulate / timeTo;
 		SimpleLevelResult result = null;
+		PrintStream sysErr = System.err;
 		try {
-			PrintStream sysErr = System.err;
 			System.setErr(new PrintStream(new OutputStream() {
 			    public void write(int b) {
 			    	//Not interested in UPPAAL analysis output here
@@ -483,9 +486,11 @@ public class LevenbergMarquardtFunction implements Function {
 			for (Reactant r : this.reactantToDataReference.keySet()) {
 				reactantIDs.add(r.getId());
 			}
-			result = (SimpleLevelResult)new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo).filter(reactantIDs);
+			result = new UppaalModelAnalyserSMC(null, null).analyze(model, timeTo);
 			System.setErr(sysErr);
+			result = (SimpleLevelResult)result.filter(reactantIDs); //Cosi' vedo se il result che ho ottenuto era != null
 		} catch (Exception ex) {
+			System.setErr(sysErr);
 			ex.printStackTrace(System.err);
 		}
 		Map<String, String> seriesNameMapping = new HashMap<String, String>();
@@ -553,6 +558,10 @@ public class LevenbergMarquardtFunction implements Function {
 			w = w.getParent();
 		}
 		graph.repaint();
-		y.set(LevenbergMarquardt.levelResultToMatrix(result, scale, timePoints));
+		Vector<String> reactantsOrdered = new Vector<String>();
+		for (Iterator<Reactant> iter = reactantToDataReference.keySet().iterator(); iter.hasNext();) { //The keySet().iterator() of a SortedMap returns the elements in the sorted order
+			reactantsOrdered.add(iter.next().getId()); //We use the IDs here, not the names, because the IDs are the ones used as reference in the model
+		}
+		y.set(LevenbergMarquardt.levelResultToMatrix(result, reactantsOrdered, scale, timePoints));
 	}
 }

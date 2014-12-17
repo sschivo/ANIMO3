@@ -9,7 +9,6 @@ import static org.ejml.ops.CommonOps.subtractEquals;
 import static org.ejml.ops.SpecializedOps.diffNormF;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 import java.util.Vector;
@@ -178,15 +177,15 @@ public class LevenbergMarquardt {
                 if( !solve(A,d,negDelta) ) { //TODO Why is this so bad??
                 	finalCost = minCost;
         			param.set(minimumCostParameters);
-                    //return false;
-        			continue;
+                    return false;
+        			//continue;
                 }
                 // compute the candidate parameters
                 subtract(param, negDelta, tempParam);
 
                 double cost = cost(tempParam,X,Y);
 
-                if (cost < minCost) {
+                if (cost <= minCost) { //I use also the '=' to get the most updated parameter values that gave the minimum cost
                 	minCost = cost;
                 	minimumCostParameters.set(tempParam);
                 }
@@ -207,11 +206,17 @@ public class LevenbergMarquardt {
             			return false;
             		}
                 }
-                if (cost < MIN_COST) {
-                	finalCost = cost;
-                	param.set(tempParam);
-                	return true;
-                }
+//                if (cost < MIN_COST) {
+//                	finalCost = cost;
+//                	param.set(tempParam);
+//                	return true;
+//                }
+//                if (cost <= 0) { //Maybe having a MIN_COST is not that wise, but if we reach a cost = 0 we could think about going home =)
+//                	finalCost = cost;
+//                	param.set(tempParam);
+//                	return true;
+//                }
+                
                 if( cost < prevCost ) {
                     // the candidate parameters produced better results so use it
 //                    foundBetter = true;
@@ -324,9 +329,19 @@ public class LevenbergMarquardt {
      */
     private double cost( DenseMatrix64F param , DenseMatrix64F X , DenseMatrix64F Y)
     {
-        func.compute(param,X, temp0);
-
-        double error = diffNormF(temp0,Y);
+//    	System.err.println("Valuto i parametri");
+//    	printMatrix(param);
+		
+    	for (int i = 0; i < param.getNumRows(); i++) {
+    		if (param.get(i) < 0) { //ANIMO models require parameters to be strictly positive!
+//    			System.err.println("Parametro negativo trovato!");
+    			return Double.POSITIVE_INFINITY;
+    		}
+    	}
+//    	System.err.println();
+        func.compute(param, X, temp0);
+        
+        double error = diffNormF(temp0, Y);
 
         return error*error / (double)X.numRows;
     }
@@ -374,22 +389,36 @@ public class LevenbergMarquardt {
         public void compute( DenseMatrix64F param , DenseMatrix64F x , DenseMatrix64F y );
     }
     
-    public static DenseMatrix64F readCSVtoMatrix(String csvFileName, Collection<String> selectedColumns, double untilTime) throws IOException {
+    public static DenseMatrix64F readCSVtoMatrix(String csvFileName, List<String> selectedColumns, double untilTime) throws IOException {
 		LevelResult levelResult = Graph.readCSVtoLevelResult(csvFileName, selectedColumns, untilTime);
-		return levelResultToMatrix(levelResult);
+		return levelResultToMatrix(levelResult, selectedColumns);
 	}
     
-    public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult) {
-    	return levelResultToMatrix(levelResult, 1.0);
+    public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, List<String> seriesOrder) {
+    	return levelResultToMatrix(levelResult, seriesOrder, 1.0);
     }
     
-    public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, double scaleFactor) {
-    	return levelResultToMatrix(levelResult, 1.0, Collections.<Double>emptyList());
+    public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, List<String> seriesOrder, double scaleFactor) {
+    	return levelResultToMatrix(levelResult, seriesOrder, 1.0, Collections.<Double>emptyList());
     }
 	
-	public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, double scaleFactor, List<Double> timePoints) {
-		Vector<String> columnNames = new Vector<String>();
+	public static DenseMatrix64F levelResultToMatrix(LevelResult levelResult, List<String> seriesOrder, double scaleFactor, List<Double> timePoints) {
+		List<String> columnNames = new Vector<String>();
 		columnNames.addAll(levelResult.getReactantIds());
+		if (!columnNames.containsAll(seriesOrder)) { //We must have the same data indices, of course!
+			System.err.print("The list [");
+			for (String s : columnNames) {
+				System.err.print(s + ", ");
+			}
+			System.err.print("\b\b] does not contain the list [");
+			for (String s : seriesOrder) {
+				System.err.print(s + ", ");
+			}
+			System.err.println("\b\b]!");
+			return null;
+		} else {
+			columnNames = seriesOrder; //This way we keep the correct order
+		}
 		List<Double> timeIndices;
 		if (!timePoints.isEmpty()) {
 			timeIndices = timePoints;

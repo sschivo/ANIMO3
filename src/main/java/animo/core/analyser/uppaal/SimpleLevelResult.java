@@ -96,7 +96,7 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 
 	@Override
 	public LevelResult filter(List<String> acceptedNames) {
-		Map<String, SortedMap<Double, Double>> lev = new HashMap<String, SortedMap<Double, Double>>();
+		SortedMap<String, SortedMap<Double, Double>> lev = new TreeMap<String, SortedMap<Double, Double>>();
 		for (String s : levels.keySet()) {
 			// System.err.print(s);
 			if (!acceptedNames.contains(s)) {

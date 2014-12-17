@@ -13,10 +13,10 @@ import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.Properties;
+import java.util.SortedMap;
+import java.util.TreeMap;
 import java.util.Vector;
 
 import javax.swing.AbstractAction;
@@ -536,7 +536,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					}
 					List<Reaction> reactionsToBeOptimized = new Vector<Reaction>(model.getReactionCollection());
 					String referenceDataFile = "/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv";
-					Map<Reactant, String> reactantToDataCorrespondence = new HashMap<Reactant, String>();
+					SortedMap<Reactant, String> reactantToDataCorrespondence = new TreeMap<Reactant, String>();
 					for (Reactant r : model.getReactantCollection()) {
 						if (r.getName().equals("ERK")) {
 							reactantToDataCorrespondence.put(r, "ERK data");

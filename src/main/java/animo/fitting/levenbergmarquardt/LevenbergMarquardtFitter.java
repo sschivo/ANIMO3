@@ -10,6 +10,8 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Properties;
+import java.util.SortedMap;
+import java.util.Vector;
 import java.util.concurrent.ExecutionException;
 
 import javax.swing.Box;
@@ -36,7 +38,7 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	private Model model = null;
 	private List<Reaction> reactionsToBeOptimized = null;
 	private String referenceDataFile = null;
-	private Map<Reactant, String> reactantToDataCorrespondence = null;
+	private SortedMap<Reactant, String> reactantToDataCorrespondence = null;
 	private int timeTo = -1;
 	private Properties parameters = null;
 	private boolean keepResult = false;
@@ -57,13 +59,14 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	 * @param reactionsToBeOptimized Which reactions we are allowed to change
 	 * @param referenceDataFile The experimental data file (.csv) against which the selected nodes will be compared
 	 * @param reactantToDataCorrespondence Which reactants (in the ANIMO model) correspond to which data series in the reference file.
-	 * 		  The comparison of the model results on those nodes against the corresponding series in the file will give the model fitness to data. 
+	 * 		  The comparison of the model results on those nodes against the corresponding series in the file will give the model fitness to data.
+	 * 		  We require the Map to be sorted so that the couplings in the comparison are kept consistent. 
 	 * @param timeTo Time (in minutes) until which the simulations have to run (should be <= last time point in the reference data file)
 	 */
 	public LevenbergMarquardtFitter(Model model,
 									List<Reaction> reactionsToBeOptimized,
 									String referenceDataFile,
-									Map<Reactant, String> reactantToDataCorrespondence,
+									SortedMap<Reactant, String> reactantToDataCorrespondence,
 									int timeTo,
 									Properties parameters) {
 		this.model = model;
@@ -77,7 +80,17 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	public void performParameterFitting() {
 		DenseMatrix64F experimentalData = null;
 		try {
-			experimentalData = LevenbergMarquardt.readCSVtoMatrix(referenceDataFile, reactantToDataCorrespondence.values(), timeTo);
+			Vector<String> dataVector = new Vector<String>();
+			dataVector.addAll(reactantToDataCorrespondence.values()); //The iterator of values() for a SortedMap gives the sequence corresponding to the ordering of the keys
+			experimentalData = LevenbergMarquardt.readCSVtoMatrix(referenceDataFile, dataVector, timeTo);
+			
+//			System.err.print("Sequenza dei dati sperimentali: ");
+//			LevelResult tmpData = Graph.readCSVtoLevelResult(referenceDataFile, dataVector, timeTo);
+//			for (String dataSeriesName : tmpData.getReactantIds()) {
+//				System.err.print(dataSeriesName + ", ");
+//			}
+//			System.err.println("\b\b");
+			
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
 		}
@@ -151,9 +164,11 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 				//The other default property is "progress", i.e. the progress, and its event is generated every time the setProgress is called in the worker
 				if (!evt.getPropertyName().equals("state") || !worker.getState().equals(SwingWorker.StateValue.DONE)) {
 					if (evt.getPropertyName().equals("progress")) {
+						//System.out.println("Nuovo progresso: " + worker.getProgress());
 						progressBar.setValue(worker.getProgress());
 						if (worker.getProgress() > bestProgressBar.getValue()) { //We show the best progress up to now
 							bestProgressBar.setValue(worker.getProgress());
+							//System.out.println("\t e anche il migliore!");
 						}
 					}
 					return;
@@ -168,25 +183,19 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 				}
 	        	long endTime = System.currentTimeMillis();
 
-//	        	JFrame newFrame = new JFrame("Resulting graph (cost " + lm.getFinalCost() + ")");
 	        	frame.getContentPane().remove(progressBoxHoriz);
 	        	graph.reset();
 	        	function.compute(lm.getParameters(), X, Y);
-	        	frame.setTitle("Best result");
+	        	frame.setTitle("Best result (cost " + lm.getFinalCost() + ")");
 	        	frame.validate();
-//	        	newFrame.getContentPane().add(graph, BorderLayout.CENTER);
-//	        	newFrame.setBounds(frame.getBounds());
-//	        	frame.setVisible(false);
-//	        	frame.dispose();
-//	        	newFrame.setVisible(true); //Show the results, then ask if they want these parameters
 	        	
 	        	int answer = JOptionPane.NO_OPTION;
 	        	keepResult = false;
 	        	finalCost = lm.getFinalCost();
 	        	if (success) {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with " + (finalCost < lm.MIN_COST?"required":"better") + " cost found!", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with best cost found!", JOptionPane.YES_NO_OPTION);
 	        	} else {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nMinimum cost I found: " + finalCost + "\nDo you want to use the parameters that gave the minimum cost?", "No result with required cost found", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nMinimum cost I found: " + finalCost + "\nDo you want to use the parameters that gave the (local) minimum cost?", "No result with best cost found", JOptionPane.YES_NO_OPTION);
 	        	}
 	        	frame.dispose();
 	        	if (answer == JOptionPane.YES_OPTION) {
@@ -336,8 +345,13 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 		protected Boolean doInBackground() throws Exception {
 			this.setProgress(0);
 			lm.setSwingWorker(this);
-			success = lm.optimize(initParam, X, Y);
-			this.setProgress(100);
+			try {
+				success = lm.optimize(initParam, X, Y);
+			} catch (Exception ex) {
+				ex.printStackTrace(System.err);
+				throw ex;
+			}
+			//System.out.println("Il processo ha finito e ritorno il successo " + success);
 			return success;
 		}
 		

@@ -10,7 +10,7 @@ import java.io.Serializable;
  * 
  * @author B. Wanders
  */
-public class Reactant extends Entity implements Serializable {
+public class Reactant extends Entity implements Serializable, Comparable<Reactant> {
 	public enum MoleculeType {
 		CYTOKINE, RECEPTOR, KINASE, PHOSPHATASE, OTHER, MRNA, GENE, DUMMY;
 	}
@@ -74,5 +74,10 @@ public class Reactant extends Entity implements Serializable {
 	@Override
 	public String toString() {
 		return "Reactant '" + this.getId() + "'";
+	}
+	
+	@Override
+	public int compareTo(Reactant other) {
+		return this.getId().compareTo(other.getId());
 	}
 }

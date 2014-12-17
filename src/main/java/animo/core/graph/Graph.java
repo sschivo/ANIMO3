@@ -34,9 +34,8 @@ import java.io.FileWriter;
 import java.io.IOException;
 import java.text.DecimalFormat;
 import java.text.DecimalFormatSymbols;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashMap;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -1390,13 +1389,15 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	}
 
 	
-	/*
+	/**
 	 * Parse a CSV file translating it into LevelResult
-	 * csvFileName is the name of the .csv file. It CANNOT be null/empty.
-	 * selectedColumns contains the columns to be parsed. It can be null: in that case, get all the columns
-	 * untilTime is the time up to which the parsing is done. It can be < 0: in that case, parse until the end
+	 * @param csvFileName is the name of the .csv file. It CANNOT be null/empty.
+	 * @param selectedColumns contains the columns to be parsed. It can be null: in that case, get all the columns.
+	 * 		  Being a List, if it is != null we use it as the required ordering for the reactant IDs in the output LevelResult.
+	 * @param untilTime is the time up to which the parsing is done. It can be < 0: in that case, parse until the end
+	 * @return The LevelResult containing the data from the given CSV file
 	 */
-	public static LevelResult readCSVtoLevelResult(String csvFileName, Collection<String> selectedColumns, double untilTime) throws IOException {
+	public static LevelResult readCSVtoLevelResult(String csvFileName, final List<String> selectedColumns, double untilTime) throws IOException {
 		File f = new File(csvFileName);
 		BufferedReader is = new BufferedReader(new FileReader(f));
 		String firstLine = is.readLine();
@@ -1408,7 +1409,27 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		int nColonne = tritatutto.countTokens();
 		String[] columnNames = new String[nColonne - 1];
 		Vector<Vector<P>> dataSeries = new Vector<Vector<P>>(columnNames.length);
-		Map<String, SortedMap<Double, Double>> levels = new HashMap<String, SortedMap<Double, Double>>();
+		SortedMap<String, SortedMap<Double, Double>> levels = 
+				new TreeMap<String, SortedMap<Double, Double>>(new Comparator<String>() {
+					@Override
+					public int compare(String s1, String s2) {
+						if (selectedColumns != null) {
+							int p1 = selectedColumns.indexOf(s1),
+								p2 = selectedColumns.indexOf(s2);
+							if (p1 == -1 || p2 == -1) { //This shouldn't happen
+								return 0;
+							}
+							if (p1 < p2) {
+								return -1;
+							} else if (p1 > p2) {
+								return 1;
+							}
+							return 0;
+						} else {
+							return s1.compareTo(s2);
+						}
+					}
+				});
 		@SuppressWarnings("unused")
 		String xSeriesName = tritatutto.nextToken().replace('\"', ' '); // il primo e' la X (tempo)
 		boolean mustRescaleYValues = false; //We assume that Y values are in the [0, 100] interval. Otherwise, a column named like animo.core.graph.Graph.MAX_Y_STRING will tell us (in the first value it contains) the maximal Y value on which to rescale (we assume minimum = 0)

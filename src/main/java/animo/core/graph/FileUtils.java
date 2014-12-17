@@ -26,6 +26,12 @@ import animo.cytoscape.Animo;
  */
 public class FileUtils {
 	private static File currentDirectory = null;
+	
+	
+	//Used when we load a new session, so that the open file dialogs will try again to find the correct directory from which to start
+	public static void resetCurrentDirectory() {
+		currentDirectory = null;
+	}
 
 	/**
 	 * Show the File Chooser dialog and return the name of the chosen file. You can choose the file type (ex. ".csv"), the description (ex. "Commma separated files"), and the
@@ -35,6 +41,7 @@ public class FileUtils {
 	 *            The file type (ex. ".png")
 	 * @param description
 	 *            The file type description (ex. "Image file")
+	 * @param dialogTitle The title for the dialog. If null, the system default will be used
 	 * @param parent
 	 *            The parent Component (typically a window. null is ok)
 	 * @return The complete (absolute) path of the file selected by the user, or null if the user has selected no file/closed the dialog

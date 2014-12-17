@@ -63,6 +63,7 @@ import org.w3c.dom.CDATASection;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
 
+import animo.core.graph.FileUtils;
 import animo.core.model.Model;
 
 public class EventListener implements AddedEdgesListener, AddedNodesListener, SessionAboutToBeSavedListener,
@@ -188,6 +189,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	 */
 	@Override
 	public void handleEvent(SessionLoadedEvent sessionEvent) {
+		FileUtils.resetCurrentDirectory(); //The next time we use an open dialog, it will try to start from the directory where the session file was found
 		List<File> files = sessionEvent.getLoadedSession().getAppFileListMap().get(Animo.APP_NAME);
 		if (files == null) {
 			files = sessionEvent.getLoadedSession().getAppFileListMap().get("InatPlugin"); //Try the old name before abandoning all hope
