@@ -417,7 +417,7 @@ public class Model implements Serializable {
 				if (d == null) {
 					Animo.setRowValue(currentNetwork.getRow(edge), param, Double.class,
 							scenario.getDefaultParameterValue(param));
-				} else if (d <= 0) { //We only accept strictly positive parameters!
+				} else if (d < 0) { //We only accept non-negative parameters!
 					throw new AnimoException("Reaction " + edgeName + " with parameter " + param + " = " + animo.util.Utilities.roundToSignificantFigures(d, 4) + " <= 0.\n" + Animo.APP_NAME + " accepts only STRICTLY POSITIVE parameter values: please change it accordingly.");
 				}
 			}
