@@ -35,6 +35,7 @@ import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.exceptions.AnimoException;
 import animo.network.UPPAALClient;
+import animo.util.Utilities;
 import animo.util.XmlConfiguration;
 
 /**
@@ -403,7 +404,7 @@ public class RunAction extends AnimoActionTask {
 			public void allFinished(FinishStatus status) {
 				long endTime = System.currentTimeMillis();
 
-				System.err.println("Time taken: " + timeDifferenceFormat(startTime, endTime));
+				System.err.println("Time taken: " + Utilities.timeDifferenceFormat(startTime, endTime));
 				System.err.flush();
 				System.setErr(oldErr);
 				if (logStream != null) {

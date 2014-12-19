@@ -140,6 +140,8 @@ public class LevenbergMarquardt {
         // save the cost of the initial parameters so that it knows if it improves or not
         minCost = initialCost = cost(param,X,Y);
         minimumCostParameters = new DenseMatrix64F(initParam); //Keep a copy of the initial parameters: it will be updated if parameters with better cost are found (the cost will be saved in minCost)
+        
+        updateProgress(initialCost);
 
 //        // iterate until the difference between the costs is insignificant
 //        // or it iterates too many times
@@ -151,6 +153,20 @@ public class LevenbergMarquardt {
         return adjustParam(X, Y, initialCost);
 
 //        return true;
+    }
+    
+    private void updateProgress(double cost) {
+    	if (swingWorker != null) {
+	    	int progresso = (int)Math.round(100.0 - 100.0 * cost / initialCost);
+			if (progresso < 0) {
+				progresso = 0;
+			}
+			if (progresso > 100) {
+				progresso = 100;
+			}
+			swingWorker.setCost(cost);
+			swingWorker.setProgresso(new Integer(progresso));
+    	}
     }
 
     /**
@@ -190,16 +206,9 @@ public class LevenbergMarquardt {
                 	minimumCostParameters.set(tempParam);
                 }
                 
-                if (swingWorker != null) {
-            		int progresso = (int)Math.round(100.0 - 100.0 * cost / initialCost);
-            		if (progresso < 0) {
-            			progresso = 0;
-            		}
-            		if (progresso > 100) {
-            			progresso = 100;
-            		}
-            		swingWorker.setProgresso(new Integer(progresso));
+                updateProgress(cost);
                 
+                if (swingWorker != null) {
             		if (swingWorker.getMustTerminate()) { //We must end before completing the computation: return the best result up to now (stored in minimumCostParameters, with cost minCost)
             			finalCost = minCost;
             			param.set(minimumCostParameters);
@@ -285,10 +294,10 @@ public class LevenbergMarquardt {
      */
     private void computeDandH( DenseMatrix64F param , DenseMatrix64F x , DenseMatrix64F y )
     {
-        func.compute(param,x, tempDH);
+        func.compute(param,x, tempDH, false); //TODO: we don't check for negative parameters here!
         subtractEquals(tempDH, y);
 
-        computeNumericalJacobian(param,x,jacobian);
+        computeNumericalJacobian(param,x,jacobian); //TODO: func.compute is called also from here, and we don't check for negative parameters here either
 
         int numParam = param.getNumElements();
         int length = x.getNumElements();
@@ -339,7 +348,7 @@ public class LevenbergMarquardt {
     		}
     	}
 //    	System.err.println();
-        func.compute(param, X, temp0);
+        func.compute(param, X, temp0, true);
         
         double error = diffNormF(temp0, Y);
 
@@ -359,13 +368,13 @@ public class LevenbergMarquardt {
     {
         double invDelta = 1.0/DELTA;
 
-        func.compute(param,pt, temp0);
+        func.compute(param,pt, temp0, false);
 
         // compute the jacobian by perturbing the parameters slightly
         // then seeing how it effects the results.
         for( int i = 0; i < param.numRows; i++ ) {
             param.data[i] += DELTA;
-            func.compute(param,pt, temp1);
+            func.compute(param,pt, temp1, false);
             // compute the difference between the two parameters and divide by the delta
             add(invDelta,temp1,-invDelta,temp0,temp1);
             // copy the results into the jacobian matrix
@@ -385,8 +394,9 @@ public class LevenbergMarquardt {
          * @param param The parameter for the function.
          * @param x the input points.
          * @param y the resulting output.
+         * @param showResult If the result of the computation should be shown to the user
          */
-        public void compute( DenseMatrix64F param , DenseMatrix64F x , DenseMatrix64F y );
+        public void compute(DenseMatrix64F param, DenseMatrix64F x, DenseMatrix64F y, boolean showResult);
     }
     
     public static DenseMatrix64F readCSVtoMatrix(String csvFileName, List<String> selectedColumns, double untilTime) throws IOException {

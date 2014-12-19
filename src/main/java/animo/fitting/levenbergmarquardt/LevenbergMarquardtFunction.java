@@ -296,6 +296,10 @@ public class LevenbergMarquardtFunction implements Function {
 				setParameter(r, paramName, paramValue);
 			}
 		}
+		//TODO: here we should have the model check itself:
+		//if there are time bounds that would exceed the allowed UPPAAL integer bounds,
+		//the model should change the time scale accordingly.
+		//A bit of refactoring with the model to avoid duplicating the checks
 	}
 	
 	private void setParameter(Reaction reaction, String parName, double parValue) {
@@ -468,8 +472,10 @@ public class LevenbergMarquardtFunction implements Function {
 	}
 	
 	@Override
-	public void compute(DenseMatrix64F param, DenseMatrix64F x, DenseMatrix64F y) {
-		contaTentativi++;
+	public void compute(DenseMatrix64F param, DenseMatrix64F x, DenseMatrix64F y, boolean showResult) {
+		if (showResult) {
+			contaTentativi++;
+		}
 		updateParameters(param);
 		int nMinutesToSimulate = this.timeTo; //240;
 		int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
@@ -497,67 +503,90 @@ public class LevenbergMarquardtFunction implements Function {
 		for (Reactant r : this.reactantToDataReference.keySet()) { //Mapping from the IDs we read from the verifyta result (i.e., ANIMO IDs such as R1, R2, ...) to the names displayed on the nodes in the Cytoscape network
 			seriesNameMapping.put(r.getId(), r.getName());
 		}
-		graph.reset();
-		graph.parseLevelResult(result, seriesNameMapping, scale);
-		int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
-		graph.declareMaxYValue(nLevels);
-		double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size() - 1);
+		
 		List<Double> timePoints = null;
 		if (this.referenceData != null) { //Maybe this way we avoid to read the csv file every time
 			timePoints = referenceData.getTimeIndices();
-			seriesNameMapping = new HashMap<String, String>();
-			for (String name : this.reactantToDataReference.values()) {
-				seriesNameMapping.put(name, name); //Identity mapping: we want the column names as they appear in the csv file
-			}
-			List<String> listOfNames = new Vector<String>(reactantToDataReference.values());
-			listOfNames.addAll(graph.getSeriesNames());
-			graph.parseLevelResult(referenceData, seriesNameMapping, graph.getScale().getXScale(), listOfNames);
 		} else {
-			try {
-				//TODO: certainly this is not as it should be done!!!
-				System.err.print("I am setting a most-probably-useless time series: ");
-				timePoints = Arrays.asList(0.0, 30.0, 60.0, 120.0, 240.0);
-				for (double d : timePoints) {
-					System.err.print(d + ", ");
+			//TODO: certainly this is not as it should be done!!!
+			System.err.print("I am setting a most-probably-useless time series: ");
+			timePoints = Arrays.asList(0.0, 30.0, 60.0, 120.0, 240.0);
+			for (double d : timePoints) {
+				System.err.print(d + ", ");
+			}
+			System.err.println("\b\b");
+		}
+		
+		if (showResult) {
+			graph.reset();
+			graph.parseLevelResult(result, seriesNameMapping, scale);
+			int nLevels = model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).as(Integer.class);
+			graph.declareMaxYValue(nLevels);
+			double maxTime = scale * result.getTimeIndices().get(result.getTimeIndices().size() - 1);
+			if (this.referenceData != null) { //Maybe this way we avoid to read the csv file every time
+				seriesNameMapping = new HashMap<String, String>();
+				for (String name : this.reactantToDataReference.values()) {
+					seriesNameMapping.put(name, name); //Identity mapping: we want the column names as they appear in the csv file
 				}
-				System.err.println("\b\b");
-				graph.parseCSV(referenceDataFile, new Vector<String>(reactantToDataReference.values()));
-			} catch (FileNotFoundException e) {
-				e.printStackTrace(System.err);
-			} catch (IOException e) {
-				e.printStackTrace(System.err);
+				List<String> listOfNames = new Vector<String>(reactantToDataReference.values());
+				listOfNames.addAll(graph.getSeriesNames());
+				graph.parseLevelResult(referenceData, seriesNameMapping, graph.getScale().getXScale(), listOfNames);
+			} else {
+				try {
+					graph.parseCSV(referenceDataFile, new Vector<String>(reactantToDataReference.values()));
+				} catch (FileNotFoundException e) {
+					e.printStackTrace(System.err);
+				} catch (IOException e) {
+					e.printStackTrace(System.err);
+				}
+			}
+			
+			//Reassign colors so that it is easier to guess which series are connected
+			Vector<String> seriesNames = graph.getSeriesNames();
+			Color colors[] = graph.getAvailableColors();
+			int colorIdx = 0;
+			for (Reactant r : reactantToDataReference.keySet()) {
+				int idx = seriesNames.lastIndexOf(r.getName());
+				if (idx != -1) {
+					graph.setSeriesColor(idx, colors[colorIdx]);
+					idx = seriesNames.lastIndexOf(reactantToDataReference.get(r));
+					if (idx != -1) {
+						graph.setSeriesColor(idx, colors[colorIdx].darker());
+					}
+					colorIdx++;
+					if (colorIdx >= colors.length) {
+						colorIdx = 0;
+					}
+				}
+			}
+			graph.setDrawArea(0, maxTime, 0, nLevels);
+			Component w = graph.getParent();
+			while (w != null) {
+				if (w instanceof JFrame) {
+					JFrame f = (JFrame)w;
+					f.setTitle("Attempt nr. " + contaTentativi);
+					break;
+				}
+				w = w.getParent();
+			}
+			graph.repaint();
+		} else {
+			Component w = graph.getParent();
+			while (w != null) {
+				if (w instanceof JFrame) {
+					JFrame f = (JFrame)w;
+					String title = f.getTitle();
+					if (title.startsWith("Attempt")) {
+						f.setTitle("Choosing parameters");
+					} else {
+						f.setTitle(title + ".");
+					}
+					break;
+				}
+				w = w.getParent();
 			}
 		}
 		
-		//Reassign colors so that it is easier to guess which series are connected
-		Vector<String> seriesNames = graph.getSeriesNames();
-		Color colors[] = graph.getAvailableColors();
-		int colorIdx = 0;
-		for (Reactant r : reactantToDataReference.keySet()) {
-			int idx = seriesNames.lastIndexOf(r.getName());
-			if (idx != -1) {
-				graph.setSeriesColor(idx, colors[colorIdx]);
-				idx = seriesNames.lastIndexOf(reactantToDataReference.get(r));
-				if (idx != -1) {
-					graph.setSeriesColor(idx, colors[colorIdx].darker());
-				}
-				colorIdx++;
-				if (colorIdx >= colors.length) {
-					colorIdx = 0;
-				}
-			}
-		}
-		graph.setDrawArea(0, maxTime, 0, nLevels);
-		Component w = graph.getParent();
-		while (w != null) {
-			if (w instanceof JFrame) {
-				JFrame f = (JFrame)w;
-				f.setTitle("Attempt nr. " + contaTentativi);
-				break;
-			}
-			w = w.getParent();
-		}
-		graph.repaint();
 		Vector<String> reactantsOrdered = new Vector<String>();
 		for (Iterator<Reactant> iter = reactantToDataReference.keySet().iterator(); iter.hasNext();) { //The keySet().iterator() of a SortedMap returns the elements in the sorted order
 			reactantsOrdered.add(iter.next().getId()); //We use the IDs here, not the names, because the IDs are the ones used as reference in the model

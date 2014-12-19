@@ -11,6 +11,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.KeyEvent;
+import java.awt.event.KeyListener;
 import java.io.File;
 import java.text.DecimalFormat;
 import java.util.List;
@@ -287,7 +289,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		// }
 
 		// The "Analyse network" button: perform the requested analysis on the current network with the given parameters
-		JButton runButton = new JButton(new RunAction(remoteUppaal, serverName, serverPort, smcUppaal, timeTo,
+		final JButton runButton = new JButton(new RunAction(remoteUppaal, serverName, serverPort, smcUppaal, timeTo,
 				nSimulationRuns, computeAvgStdDev, overlayPlot, smcFormula));
 		Box runButtonBox = new Box(BoxLayout.X_AXIS);
 		runButtonBox.add(Box.createGlue());
@@ -300,6 +302,24 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 
 		buttons.add(buttonsBox, new GridBagConstraints(0, yPositionCounter++, 1, 1, 0, 0, GridBagConstraints.CENTER,
 				GridBagConstraints.NONE, new Insets(0, 0, 0, 0), 0, 0));
+		
+
+		timeTo.addKeyListener(new KeyListener() {
+			@Override
+			public void keyTyped(KeyEvent e) {
+				if (e.getKeyChar() == KeyEvent.VK_ENTER) { //Pressing enter when editing the "time to" text box makes the simulation start
+					runButton.doClick();
+				}
+			}
+
+			@Override
+			public void keyPressed(KeyEvent e) {
+			}
+
+			@Override
+			public void keyReleased(KeyEvent e) {
+			}
+		});
 		
 		colorsLegend = new ColorsLegend();
 		shapesLegend = new ShapesLegend();

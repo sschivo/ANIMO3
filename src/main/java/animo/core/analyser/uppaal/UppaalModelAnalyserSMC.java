@@ -31,7 +31,7 @@ import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.cytoscape.Animo;
 import animo.cytoscape.AnimoActionTask;
-import animo.cytoscape.RunAction;
+import animo.util.Utilities;
 import animo.util.XmlConfiguration;
 
 /**
@@ -549,7 +549,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 					if (!line.contains(objectiveAlternative1) && !line.contains(objectiveAlternative2)) {
 						continue;
 					}
-					System.err.println(" took " + RunAction.timeDifferenceFormat(startTime, System.currentTimeMillis()));
+					System.err.println(" took " + Utilities.timeDifferenceFormat(startTime, System.currentTimeMillis()));
 					boolean boolResult = true;
 					if (line.contains("NOT")) {
 						boolResult = false;
@@ -701,7 +701,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			while ((line = br.readLine()) != null && !line.contains("is satisfied"));
 			
 			long endTime = System.currentTimeMillis();
-			System.err.println(" took " + RunAction.timeDifferenceFormat(startTime, endTime));
+			System.err.println(" took " + Utilities.timeDifferenceFormat(startTime, endTime));
 			
 			return analyseFromStream(m, br, timeTo);
 		}
@@ -818,7 +818,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			//}
 			
 			endTime = System.currentTimeMillis();
-			System.err.println("\tParsing the result produced by UPPAAL took " + RunAction.timeDifferenceFormat(startTime, endTime));
+			System.err.println("\tParsing the result produced by UPPAAL took " + Utilities.timeDifferenceFormat(startTime, endTime));
 			
 			return new SimpleLevelResult(maxNumberOfLevels, levels);
 		}
@@ -1209,7 +1209,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			//}
 			
 			long endTime = System.currentTimeMillis();
-			System.err.println("\tParsing the result produced by UPPAAL took " + RunAction.timeDifferenceFormat(startTime, endTime));
+			System.err.println("\tParsing the result produced by UPPAAL took " + Utilities.timeDifferenceFormat(startTime, endTime));
 			
 			return new SimpleLevelResult(maxNumberOfLevels, levels);
 			

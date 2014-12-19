@@ -33,6 +33,7 @@ import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.model.Model;
 import animo.cytoscape.modelchecking.PathFormula;
 import animo.exceptions.AnimoException;
+import animo.util.Utilities;
 import animo.util.XmlConfiguration;
 
 public class ModelCheckAction extends AnimoActionTask {
@@ -184,7 +185,7 @@ public class ModelCheckAction extends AnimoActionTask {
 			@Override
 			public void allFinished(FinishStatus s) {
 				long endTime = System.currentTimeMillis();
-				System.err.println("Time taken: " + AnimoActionTask.timeDifferenceFormat(startTime, endTime));
+				System.err.println("Time taken: " + Utilities.timeDifferenceFormat(startTime, endTime));
 				System.err.flush();
 				System.setErr(oldErr);
 				if (logStream != null) {

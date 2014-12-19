@@ -29,9 +29,9 @@ import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.cytoscape.Animo;
-import animo.cytoscape.RunAction;
 import animo.fitting.ParameterFitter;
 import animo.fitting.levenbergmarquardt.LevenbergMarquardt.Function;
+import animo.util.Utilities;
 
 public class LevenbergMarquardtFitter extends ParameterFitter {
 	
@@ -98,11 +98,13 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 		final Graph graph = new Graph();
     	final JFrame frame = new JFrame();
     	frame.getContentPane().add(graph, BorderLayout.CENTER);
+    	final String CURRENT_FITNESS = "Current fitness",
+    				 BEST_FITNESS = "Best fitness up to now";
     	final JProgressBar progressBar = new JProgressBar(0, 100),
     					   bestProgressBar = new JProgressBar(0, 100);
-    	progressBar.setString("Current fitness");
+    	progressBar.setString(CURRENT_FITNESS);
     	progressBar.setStringPainted(true);
-    	bestProgressBar.setString("Best fitness up to now");
+    	bestProgressBar.setString(BEST_FITNESS);
     	bestProgressBar.setStringPainted(true);
     	final Box progressBox = new Box(BoxLayout.Y_AXIS);
     	progressBox.add(progressBar);
@@ -164,11 +166,17 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 				//The other default property is "progress", i.e. the progress, and its event is generated every time the setProgress is called in the worker
 				if (!evt.getPropertyName().equals("state") || !worker.getState().equals(SwingWorker.StateValue.DONE)) {
 					if (evt.getPropertyName().equals("progress")) {
-						//System.out.println("Nuovo progresso: " + worker.getProgress());
-						progressBar.setValue(worker.getProgress());
-						if (worker.getProgress() > bestProgressBar.getValue()) { //We show the best progress up to now
-							bestProgressBar.setValue(worker.getProgress());
-							//System.out.println("\t e anche il migliore!");
+						int progress = worker.getProgress();
+						double cost = Utilities.roundToSignificantFigures(worker.getCost(), 4);
+						if (Double.isNaN(cost)) {
+							return;
+						}
+						progressBar.setValue(progress);
+						progressBar.setString(CURRENT_FITNESS + ": " + cost);
+						if (progress > bestProgressBar.getValue()) { //We show the best progress up to now
+							bestProgressBar.setValue(progress);
+							bestProgressBar.setString(BEST_FITNESS + ": " + cost);
+							bestProgressBar.validate();
 						}
 					}
 					return;
@@ -185,7 +193,7 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 
 	        	frame.getContentPane().remove(progressBoxHoriz);
 	        	graph.reset();
-	        	function.compute(lm.getParameters(), X, Y);
+	        	function.compute(lm.getParameters(), X, Y, true);
 	        	frame.setTitle("Best result (cost " + lm.getFinalCost() + ")");
 	        	frame.validate();
 	        	
@@ -193,9 +201,9 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	        	keepResult = false;
 	        	finalCost = lm.getFinalCost();
 	        	if (success) {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with best cost found!", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with best cost found!", JOptionPane.YES_NO_OPTION);
 	        	} else {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nMinimum cost I found: " + finalCost + "\nDo you want to use the parameters that gave the (local) minimum cost?", "No result with best cost found", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nMinimum cost I found: " + finalCost + "\nDo you want to use the parameters that gave the (local) minimum cost?", "No result with best cost found", JOptionPane.YES_NO_OPTION);
 	        	}
 	        	frame.dispose();
 	        	if (answer == JOptionPane.YES_OPTION) {
@@ -236,11 +244,14 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
     	final Graph graph = new Graph();
     	final JFrame frame = new JFrame();
     	frame.getContentPane().add(graph, BorderLayout.CENTER);
-    	final JProgressBar progressBar = new JProgressBar(0, 100),
-    					   bestProgressBar = new JProgressBar(0, 100);
-    	progressBar.setString("Current fitness");
+    	final JProgressBar progressBar = new JProgressBar(0, 100);
+    	
+    	final JProgressBar bestProgressBar = new JProgressBar(0, 100);
+    	final String CURRENT_FITNESS = "Current fitness",
+    				 BEST_FITNESS = "Best fitness up to now";
+    	progressBar.setString(CURRENT_FITNESS);
     	progressBar.setStringPainted(true);
-    	bestProgressBar.setString("Best fitness up to now");
+    	bestProgressBar.setString(BEST_FITNESS);
     	bestProgressBar.setStringPainted(true);
     	Box progressBox = new Box(BoxLayout.Y_AXIS);
     	progressBox.add(progressBar);
@@ -275,9 +286,11 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 				//The other default property is "progress", i.e. the progress, and its event is generated every time the setProgress is called in the worker
 				if (!evt.getPropertyName().equals("state") || !worker.getState().equals(SwingWorker.StateValue.DONE)) {
 					if (evt.getPropertyName().equals("progress")) {
-						progressBar.setValue(worker.getProgress());
-						if (worker.getProgress() > bestProgressBar.getValue()) { //We show the best progress up to now
-							bestProgressBar.setValue(worker.getProgress());
+						int progress = worker.getProgress();
+						progressBar.setValue(progress);
+						progressBar.validate();
+						if (progress > bestProgressBar.getValue()) { //We show the best progress up to now
+							bestProgressBar.setValue(progress);
 						}
 					}
 					return;
@@ -294,16 +307,16 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 
 	        	JFrame newFrame = new JFrame("Resulting graph (cost " + lm.getFinalCost() + ")");
 	        	graph.reset();
-	        	function.compute(lm.getParameters(), X, Y);
+	        	function.compute(lm.getParameters(), X, Y, true);
 	        	newFrame.getContentPane().add(graph, BorderLayout.CENTER);
 	        	newFrame.setBounds(frame.getBounds());
 	        	frame.setVisible(false);
 	        	frame.dispose();
 	        	
 	        	if (success) {
-	        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + lm.getFinalCost() + "\nParameters: " + lm.getParameters(), "Good result found!", JOptionPane.INFORMATION_MESSAGE);
+	        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nFinal cost: " + lm.getFinalCost() + "\nParameters: " + lm.getParameters(), "Good result found!", JOptionPane.INFORMATION_MESSAGE);
 	        	} else {
-	        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + RunAction.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + lm.getFinalCost() + "\nParameters with that cost: " + lm.getParameters(), "No good result found!", JOptionPane.ERROR_MESSAGE);
+	        		JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nMinimum cost found: " + lm.getFinalCost() + "\nParameters with that cost: " + lm.getParameters(), "No good result found!", JOptionPane.ERROR_MESSAGE);
 	        	}
 	        	
 	        	newFrame.setVisible(true);
@@ -321,6 +334,7 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 		private boolean mustTerminate = false;
 		private LevenbergMarquardt lm;
 		private DenseMatrix64F X, Y, initParam;
+		private double cost = -1;
 		
 		public LMSwingWorker(LevenbergMarquardt lm, DenseMatrix64F X, DenseMatrix64F Y, DenseMatrix64F initParam) {
 			this.lm = lm;
@@ -339,6 +353,14 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 		
 		public void setProgresso(Integer progress) {
 			this.setProgress(progress);
+		}
+		
+		public void setCost(double cost) {
+			this.cost = cost;
+		}
+		
+		public double getCost() {
+			return this.cost;
 		}
 		
 		@Override

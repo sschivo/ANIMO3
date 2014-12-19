@@ -67,7 +67,6 @@ import animo.core.model.Scenario;
 import animo.cytoscape.Animo;
 import animo.cytoscape.ComponentTitledBorder;
 import animo.cytoscape.LabelledField;
-import animo.cytoscape.RunAction;
 import animo.exceptions.AnimoException;
 import animo.fitting.AcceptableConfiguration;
 import animo.fitting.BoxAutoenabler;
@@ -79,6 +78,7 @@ import animo.fitting.ScenarioFitting;
 import animo.fitting.multithread.ThreadPool;
 import animo.util.Pair;
 import animo.util.Table;
+import animo.util.Utilities;
 import animo.util.XmlConfiguration;
 
 public class BruteforceParameterFitter {
@@ -1149,10 +1149,10 @@ public class BruteforceParameterFitter {
 	public void stampaRapporto(double a, double b) {
 		if (a < b) {
 			long estimation = (long)((System.currentTimeMillis() - startTime) / (a + 1) * (b - a - 1));
-			progress.setToolTipText("Estimated remaining time: " + RunAction.timeDifferenceFormat(estimation / 1000));
+			progress.setToolTipText("Estimated remaining time: " + Utilities.timeDifferenceFormat(estimation / 1000));
 		} else {
 			long duration = System.currentTimeMillis() - startTime;
-			progress.setToolTipText("Process completed in " + RunAction.timeDifferenceFormat(duration / 1000));
+			progress.setToolTipText("Process completed in " + Utilities.timeDifferenceFormat(duration / 1000));
 		}
 		progress.setValue(progress.getMinimum() + (int)(a / b * (progress.getMaximum() - progress.getMinimum())));
 		NumberFormat formatter = new DecimalFormat("#,###");
