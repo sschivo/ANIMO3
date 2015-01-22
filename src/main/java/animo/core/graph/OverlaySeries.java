@@ -31,4 +31,13 @@ public class OverlaySeries extends Series {
 			s.setEnabled(enabled);
 		}
 	}
+	
+	@Override
+	public P[] getData() { //TODO: To plot an overlay series as one single series, we behave like the first of our (internal) series. This is not very elegant, but at least you see something when using the heatmap graph 
+		if (allSeries.size() > 0) {
+			return this.allSeries.firstElement().getData();
+		} else {
+			return null;
+		}
+	}
 }

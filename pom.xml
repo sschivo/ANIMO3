@@ -10,7 +10,7 @@
 
 	<modelVersion>4.0.0</modelVersion>
 	<artifactId>animo</artifactId>
-	<version>3.0.4</version>
+	<version>3.0.5</version>
 
 	<name>ANIMO</name>
 
@@ -37,7 +37,7 @@
 			                <goal>copy-resources</goal>
 			            </goals>
 			            <configuration>
-			                <outputDirectory>/Users/stefano/CytoscapeConfiguration/3/apps/installed</outputDirectory>
+			                <outputDirectory>/local/schivos/CytoscapeConfiguration/3/apps/installed</outputDirectory>
 			                <resources>
 			                    <resource>
 			                        <directory>${project.build.directory}</directory>

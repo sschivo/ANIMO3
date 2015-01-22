@@ -537,12 +537,17 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			SMCResult res;
 			
 			if (br.markSupported()) {
-				br.mark(1024);
+				try {
+					br.mark(1024);
+				} catch (Exception ex) {
+					System.err.println("(Exception trying to set mark: " + ex + ")");
+					ex.printStackTrace(System.err);
+				}
 			}
 			
 			String line = null;
-			String objectiveAlternative1 = "-- Property is",
-				   objectiveAlternative2 = "-- Formula is"; //The latest versions of UPPAAL nicely changed this sentence...
+			String objectiveAlternative1 = "-- Property ",
+				   objectiveAlternative2 = "-- Formula "; //The latest versions of UPPAAL nicely changed this sentence...
 			
 			try {
 				while ((line = br.readLine()) != null) {
@@ -555,6 +560,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 						boolResult = false;
 					}
 					line = br.readLine();
+					
 					if (line == null) { //Property is just true or false
 						res = new SMCResult(boolResult, findConfidence(line, br));
 						br.close();
@@ -588,7 +594,12 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 							res = new SMCResult(lowerBound, upperBound, findConfidence(line, br));
 							
 							if (br.markSupported()) {
-								br.reset();
+								try {
+									br.reset();
+								} catch (Exception ex) {
+									System.err.println("(Exception trying to reset marker: " + ex + ")");
+									ex.printStackTrace(System.err);
+								}
 								System.err.println("All the result obtained from UPPAAL:\n" + readTheRest("", br));
 							}
 							
@@ -604,7 +615,12 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			}
 			
 			if (br.markSupported()) {
-				br.reset();
+				try {
+					br.reset();
+				} catch (Exception ex) {
+					System.err.println("(Exception trying to reset marker: " + ex + ")");
+					ex.printStackTrace(System.err);
+				}
 			}
 			throw new Exception("Unable to understand UPPAAL SMC output: " + readTheRest(line, br));
 		}

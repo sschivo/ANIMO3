@@ -415,18 +415,20 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 						new GridBagConstraints(0, 1, 1, 1, 1.0, 0.5, GridBagConstraints.CENTER,
 								GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
-				final String reactionCenteredTitle = "Reaction-centered model",
-							 reactionCenteredTablesTitle = "Reaction-centered model with tables",
-							 reactantCenteredTitle = "Reactant-centered model",
+				final String reactionCenteredTitle = "Reaction-centered model without pre-computed tables",
+							 reactionCenteredTablesTitle = "Reaction-centered model with pre-computed tables",
+							 reactantCenteredTitle = "Reactant-centered model (recommended)",
 							 reactantCenteredOpaalTitle = "Reactant-centered for multi-core analysis";
 				final JRadioButton useReactionCentered = new JRadioButton(reactionCenteredTitle),
 								   useReactionCenteredTables = new JRadioButton(reactionCenteredTablesTitle),
 								   useReactantCentered = new JRadioButton(reactantCenteredTitle),
 								   useReactantCenteredOpaal = new JRadioButton(reactantCenteredOpaalTitle);
-				useReactionCentered.setToolTipText("Advised when the network is not reaction-heavy");
-				useReactionCenteredTables
-						.setToolTipText("Advised when the network is not reaction-heavy. Also, tends to use more memory.");
-				useReactantCentered.setToolTipText("Advised when the network is reaction-heavy (experimental)");
+//				useReactionCentered.setToolTipText("Advised when the network is not reaction-heavy. (generally NOT recommended)");
+//				useReactionCenteredTables.setToolTipText("Advised when the network is not reaction-heavy. It is slower and uses more memory. (NOT recommended)");
+//				useReactantCentered.setToolTipText("Faster method, especially with reaction-heavy networks (recommended)");
+				useReactionCentered.setToolTipText("Proof of concept, NOT recommended");
+				useReactionCenteredTables.setToolTipText("Slow and uses more memory than reactant-centered. NOT recommended");
+				useReactantCentered.setToolTipText("Fast and uses little memory. Recommended");
 				useReactantCenteredOpaal
 						.setToolTipText("Reactant-centered model for use the generated model with opaal and ltsmin");
 				final ButtonGroup reactionCenteredGroup = new ButtonGroup();
@@ -462,15 +464,15 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					useReactantCentered.setSelected(true);
 					useReactantCenteredOpaal.setSelected(false);
 				}
-				JPanel modelTypePanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
-				modelTypePanel.add(useReactionCentered);
-				if (areWeTheDeveloper) {
-					modelTypePanel.add(useReactionCenteredTables);
-				}
+				Box modelTypePanel = new Box(BoxLayout.Y_AXIS);//new JPanel(new FlowLayout(FlowLayout.LEFT));
 				modelTypePanel.add(useReactantCentered);
 				if (areWeTheDeveloper) {
 					modelTypePanel.add(useReactantCenteredOpaal);
 				}
+				modelTypePanel.add(useReactionCentered);
+//				if (areWeTheDeveloper) {
+					modelTypePanel.add(useReactionCenteredTables);
+//				}
 				content.add(new LabelledField("Model type", modelTypePanel), new GridBagConstraints(0, 2, 1, 1, 1.0,
 						0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 

@@ -8,7 +8,7 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.PrintStream;
-import java.util.Calendar;
+import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import javax.swing.Box;
@@ -22,7 +22,6 @@ import org.cytoscape.work.AbstractTask;
 import org.cytoscape.work.FinishStatus;
 import org.cytoscape.work.ObservableTask;
 import org.cytoscape.work.TaskIterator;
-import org.cytoscape.work.TaskManager;
 import org.cytoscape.work.TaskMonitor;
 import org.cytoscape.work.TaskObserver;
 
@@ -82,10 +81,13 @@ public class ModelCheckAction extends AnimoActionTask {
 
 		@Override
 		public void run(final TaskMonitor monitor) throws AnalysisException, AnimoException {
-			EventQueue.invokeLater(new Runnable() {
-				@Override
-				public void run() {
+//			EventQueue.invokeLater(new Runnable() {
+//				@Override
+//				public void run() {
 					needToStop = false;
+					
+					monitor.setTitle(Animo.APP_NAME + " - UPPAAL model checking");
+					
 					monitor.setStatusMessage("Creating model representation");
 					monitor.setProgress(0);
 
@@ -110,8 +112,8 @@ public class ModelCheckAction extends AnimoActionTask {
 					} catch (AnalysisException e) {
 						e.printStackTrace(System.err);
 					}
-				}
-			});
+//				}
+//			});
 		}
 
 	}
@@ -119,7 +121,7 @@ public class ModelCheckAction extends AnimoActionTask {
 	private static final long serialVersionUID = 1147435660037202034L;
 	private PathFormula formulaToCheck;
 
-	private PrintStream logStream;
+//	private PrintStream logStream;
 	private ModelCheckAction modelCheckAction;
 
 	public ModelCheckAction() {
@@ -133,24 +135,64 @@ public class ModelCheckAction extends AnimoActionTask {
 
 		final long startTime = System.currentTimeMillis();
 		Date now = new Date(startTime);
-		Calendar nowCal = Calendar.getInstance();
+//		Calendar nowCal = Calendar.getInstance();
 		File logFile = null;
 		final PrintStream oldErr = System.err;
+		final PrintStream logStream;
+		PrintStream tmpLogStream = null;
 		try {
-			if (UppaalModelAnalyserSMC.areWeUnderWindows()) {
-				logFile = File.createTempFile(
-						Animo.APP_NAME + "_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
-								+ nowCal.get(Calendar.DAY_OF_MONTH) + "_" + nowCal.get(Calendar.HOUR_OF_DAY) + "-"
-								+ nowCal.get(Calendar.MINUTE) + "-" + nowCal.get(Calendar.SECOND), ".log"); // windows doesn't like long file names..
-			} else {
-				logFile = File.createTempFile(Animo.APP_NAME + " run " + now.toString(), ".log");
-			}
+//			if (UppaalModelAnalyserSMC.areWeUnderWindows()) {
+//				logFile = File.createTempFile(
+//						Animo.APP_NAME + "_run_" + nowCal.get(Calendar.YEAR) + "-" + nowCal.get(Calendar.MONTH) + "-"
+//								+ nowCal.get(Calendar.DAY_OF_MONTH) + "_" + nowCal.get(Calendar.HOUR_OF_DAY) + "-"
+//								+ nowCal.get(Calendar.MINUTE) + "-" + nowCal.get(Calendar.SECOND), ".log"); // windows doesn't like long file names..
+//			} else {
+//				logFile = File.createTempFile(Animo.APP_NAME + " run " + now.toString(), ".log");
+//			}
+			logFile = File.createTempFile(Animo.APP_NAME + "_run_" + new SimpleDateFormat("dd-MMM-yyyy_HH.mm.ss_").format(now), ".log");
 			logFile.deleteOnExit();
-			logStream = new PrintStream(new FileOutputStream(logFile));
-			System.setErr(logStream);
+			tmpLogStream = new PrintStream(new FileOutputStream(logFile));
+			System.setErr(tmpLogStream);
 		} catch (IOException ex) {
 			// We have no log file, bad luck: we will have to use System.err.
 		}
+		logStream = tmpLogStream;
+		
+		//Check to see if the uncertainty is currently set to 0. If it is not, suggest to the user that 0 is a good idea to get model checking answers
+		final XmlConfiguration configuration = AnimoBackend.get().configuration();
+		String uncertaintyStr = configuration.get(XmlConfiguration.UNCERTAINTY_KEY);
+		double uncertainty = -1;
+		boolean saveUncertainty = false;
+		if (uncertaintyStr != null) {
+			try {
+				uncertainty = Double.parseDouble(uncertaintyStr);
+			} catch (NumberFormatException ex) {
+				System.err.println("Couldn't read uncertainty setting \"" + uncertaintyStr + "\"!");
+				ex.printStackTrace(System.err);
+			}
+		}
+		if (uncertainty < 0) { //Either it was not set or it was not read correctly (wrong format/whatever)
+			uncertainty = Double.parseDouble(XmlConfiguration.DEFAULT_UNCERTAINTY);
+			configuration.set(XmlConfiguration.UNCERTAINTY_KEY, XmlConfiguration.DEFAULT_UNCERTAINTY);
+			saveUncertainty = true;
+		}
+		if (uncertainty > 0) {
+			int response = JOptionPane.NO_OPTION;
+			response = JOptionPane.showConfirmDialog(Animo.getCytoscape().getJFrame(), "The uncertainty level for interaction durations is currently " + uncertainty + "%\n(i.e., an interaction can take between " + (100 - uncertainty) + "% and " + (100 + uncertainty) + "% of its\nexact time defined by the scenario choice and parameter k)\nHowever, we recommend setting it to 0 in order to obtain\nmodel checking results in reasonable times.\n\nDo you want to set uncertainty to 0?", "Suggestion: set uncertainty to 0?", JOptionPane.YES_NO_OPTION, JOptionPane.QUESTION_MESSAGE);
+			if (response == JOptionPane.YES_OPTION) {
+				configuration.set(XmlConfiguration.UNCERTAINTY_KEY, "0");
+				saveUncertainty = true;
+			}
+		}
+		if (saveUncertainty) {
+			try {
+				configuration.writeConfigFile();
+			} catch (Exception ex) {
+				System.err.println("Couldn't save the uncertainty setting");
+				ex.printStackTrace(System.err);
+			}
+		}
+		
 
 		formulaToCheck = null;
 		final JDialog dialog = new JDialog(Animo.getCytoscape().getJFrame(), "Model checking templates",
@@ -180,7 +222,7 @@ public class ModelCheckAction extends AnimoActionTask {
 			return; // If the user simply closed the window, the analysis is cancelled
 		System.err.println("Checking formula " + formulaToCheck.toHumanReadable());
 
-		TaskObserver taskObserver = new TaskObserver() {
+		TaskObserver finalizer = new TaskObserver() {
 
 			@Override
 			public void allFinished(FinishStatus s) {
@@ -201,7 +243,8 @@ public class ModelCheckAction extends AnimoActionTask {
 		};
 		
 		// Execute Task in New Thread; pops open JTask Dialog Box.
-		TaskManager<?, ?> taskManager = Animo.getCytoscapeApp().getTaskManager();
-		taskManager.execute(new TaskIterator(task), taskObserver);
+//		TaskManager<?, ?> taskManager = Animo.getCytoscapeApp().getTaskManager();
+//		taskManager.execute(new TaskIterator(task), taskObserver);
+		Animo.getCytoscapeApp().getTaskManager().execute(new TaskIterator(task), finalizer);
 	}
 }

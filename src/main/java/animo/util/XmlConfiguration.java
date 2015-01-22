@@ -52,17 +52,17 @@ public class XmlConfiguration {
 	 * Path to the verifyta tool to simulate and check Timed Automata models.
 	 */
 	public static final String VERIFY_KEY = "/" + Animo.APP_NAME + "/UppaalInvoker/verifyta";
-	private static final String DEFAULT_VERIFY = "\\uppaal-4.1.11\\bin-Win32\\verifyta.exe";
+	public static final String DEFAULT_VERIFY = "\\uppaal-4.1.11\\bin-Win32\\verifyta.exe";
 
 	/**
 	 * Are we the developer? If so, enable more options and more debugging
 	 */
 	public static final String DEVELOPER_KEY = "/" + Animo.APP_NAME + "/Developer";
-	private static final String DEFAULT_DEVELOPER = Boolean.FALSE.toString();
+	public static final String DEFAULT_DEVELOPER = Boolean.FALSE.toString();
 
 	// The value for uncertainty in the reaction parameters
 	public static final String UNCERTAINTY_KEY = "/" + Animo.APP_NAME + "/Uncertainty";
-	private static final String DEFAULT_UNCERTAINTY = "0";
+	public static final String DEFAULT_UNCERTAINTY = "5"; //Default to 5, but we propose to set it to 0 when asked to perform model checking
 
 	// We can use reaction-centered model (default), reaction-centered with tables, and reactant-centered.
 	public static final String MODEL_TYPE_KEY = "/" + Animo.APP_NAME + "/ModelType";

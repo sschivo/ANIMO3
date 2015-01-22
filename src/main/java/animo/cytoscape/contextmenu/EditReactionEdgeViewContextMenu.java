@@ -27,7 +27,7 @@ public class EditReactionEdgeViewContextMenu implements CyEdgeViewContextMenuFac
 
 	@Override
 	public CyMenuItem createMenuItem(CyNetworkView netView, View<CyEdge> edgeView) {
-		JMenuItem menuItem = new JMenuItem("Edit reaction...");
+		JMenuItem menuItem = new JMenuItem("Edit interaction...");
 		menuItem.addActionListener(this);
 		CyMenuItem cyMenuItem = new CyMenuItem(menuItem, 3);
 		this.edgeView = edgeView;

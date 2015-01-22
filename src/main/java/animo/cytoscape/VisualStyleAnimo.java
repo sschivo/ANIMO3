@@ -403,6 +403,7 @@ public class VisualStyleAnimo {
 		//currentNetworkView.updateView();
 		visualMappingManager.setVisualStyle(currentVisualStyle, currentNetworkView);
 		visualMappingManager.setCurrentVisualStyle(currentVisualStyle);
+		updateLegends();
 	}
 
 	// If the style has been changed, we wan to reflect the change in the legend panel

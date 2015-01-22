@@ -667,7 +667,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			while (increase * scaleY < fm.getHeight()) { // Qui succede qualcosa di grave
 				increase = increase * 2;
 			}
-			for (int i = increase; i < maxY; i += increase) {
+			for (int i = increase; i <= maxY; i += increase) { //Please note that I use <= here instead of < because I want to show also the maximum of the scale
 				yTick = (int) (bounds.y + bounds.height - scaleY * (i - minY));
 				if (yTick > bounds.y + bounds.height)
 					continue;
@@ -1521,13 +1521,13 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 		String[] graphNames = result.getReactantIds().toArray(new String[] { "" });
 		int nColonne = graphNames.length;
-		if (nColonne <= 10) {
-			useHeatMap = false;
-			heatMapGraph.setSelected(false);
-		} else {
-			useHeatMap = true;
-			heatMapGraph.setSelected(true);
-		}
+//		if (nColonne <= 10) { //We do this check after removing the redundant names for overlay series. Otherwise, if one does an overlay plot of only one series but with >10 simulations, a heatmap graph will be shown. Because that would be considered only one series, it makes more sense to show the normal graph instead
+//			useHeatMap = false;
+//			heatMapGraph.setSelected(false);
+//		} else {
+//			useHeatMap = true;
+//			heatMapGraph.setSelected(true);
+//		}
 		Vector<Vector<P>> grafici = new Vector<Vector<P>>(nColonne);
 		xSeriesName = null;
 		for (int i = 0; i < nColonne; i++) {
@@ -1584,6 +1584,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			}
 		}
 
+		boolean thereAreOverlaySeries = false; //To immediately see whether we have overlay series: in that case, we always show the normal graph type
 		boolean doneWithOverlays = false;
 		while (!doneWithOverlays) {
 			Series seriesToBeInOverlay = null;
@@ -1606,10 +1607,21 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 					data.remove(s);
 				}
 				data.add(new OverlaySeries(baseName, overlay, this.scale));
+				thereAreOverlaySeries = true;
 				doneWithOverlays = false;
 			} else {
 				doneWithOverlays = true;
 			}
+		}
+		
+		//Now we see each overlay series as one unique series, so we have the right number of series to decide whether to show a heatmap graph
+		//Also, we automatically show the normal graph type if there are any overlay series in the data: it would make little sense to show overlay series as heatmap, even if that now "sort of" works (the first series of the overlay is displayed)
+		if (data.size() <= 10 || thereAreOverlaySeries) {
+			useHeatMap = false;
+			heatMapGraph.setSelected(false);
+		} else {
+			useHeatMap = true;
+			heatMapGraph.setSelected(true);
 		}
 
 		for (Series s : data) {
