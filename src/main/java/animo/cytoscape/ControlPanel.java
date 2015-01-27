@@ -15,11 +15,6 @@ import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
 import java.text.DecimalFormat;
-import java.util.List;
-import java.util.Properties;
-import java.util.SortedMap;
-import java.util.TreeMap;
-import java.util.Vector;
 
 import javax.swing.AbstractAction;
 import javax.swing.Box;
@@ -46,11 +41,7 @@ import org.cytoscape.model.CyNetwork;
 import animo.core.AnimoBackend;
 import animo.core.analyser.uppaal.UppaalModelAnalyserSMC;
 import animo.core.graph.FileUtils;
-import animo.core.model.Model;
-import animo.core.model.Reactant;
-import animo.core.model.Reaction;
 import animo.fitting.bruteforce.BruteforceParameterFitter;
-import animo.fitting.levenbergmarquardt.LevenbergMarquardtFitter;
 import animo.util.XmlConfiguration;
 
 public class ControlPanel extends JPanel implements CytoPanelComponent {
@@ -538,45 +529,45 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 		buttons.add(options, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
 				GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
 		
-		if (areWeTheDeveloper) {
-			JButton bottoneDeiParametri = new JButton("Test Levenberg-Marquardt method");
-			bottoneDeiParametri.addActionListener(new ActionListener() {
-				@Override
-				public void actionPerformed(ActionEvent e) {
-					//new LevenbergMarquardtFitter().vai();
-					CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
-					if (currentNetwork == null) {
-						return;
-					}
-					int timeTo = 240;
-					Model model = null;
-					try {
-						model = Model.generateModelFromCurrentNetwork(null, timeTo, false);
-					} catch (Exception ex) {
-						ex.printStackTrace(System.err);
-						return;
-					}
-					List<Reaction> reactionsToBeOptimized = new Vector<Reaction>(model.getReactionCollection());
-					String referenceDataFile = "/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv";
-					SortedMap<Reactant, String> reactantToDataCorrespondence = new TreeMap<Reactant, String>();
-					for (Reactant r : model.getReactantCollection()) {
-						if (r.getName().equals("ERK")) {
-							reactantToDataCorrespondence.put(r, "ERK data");
-						}
-						if (r.getName().equals("Frzld")) {
-							reactantToDataCorrespondence.put(r, "Frizzled data");
-						}
-					}
-					Properties parameters = new Properties();
-					parameters.setProperty(LevenbergMarquardtFitter.MIN_COST_KEY, "0.5");
-					parameters.setProperty(LevenbergMarquardtFitter.DELTA_KEY, "0.0001");
-					LevenbergMarquardtFitter fitter = new LevenbergMarquardtFitter(model, reactionsToBeOptimized, referenceDataFile, reactantToDataCorrespondence, timeTo, parameters);
-					fitter.performParameterFitting();
-				}
-			});
-			buttons.add(bottoneDeiParametri, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
-					GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
-		}
+//		if (areWeTheDeveloper) {
+//			JButton bottoneDeiParametri = new JButton("Test Levenberg-Marquardt method");
+//			bottoneDeiParametri.addActionListener(new ActionListener() {
+//				@Override
+//				public void actionPerformed(ActionEvent e) {
+//					//new LevenbergMarquardtFitter().vai();
+//					CyNetwork currentNetwork = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+//					if (currentNetwork == null) {
+//						return;
+//					}
+//					int timeTo = 240;
+//					Model model = null;
+//					try {
+//						model = Model.generateModelFromCurrentNetwork(null, timeTo, false);
+//					} catch (Exception ex) {
+//						ex.printStackTrace(System.err);
+//						return;
+//					}
+//					List<Reaction> reactionsToBeOptimized = new Vector<Reaction>(model.getReactionCollection());
+//					String referenceDataFile = "/Users/stefano/Documents/Lavoro/Prometheus/Data_Wnt_0-240_erk-frzld.csv";
+//					SortedMap<Reactant, String> reactantToDataCorrespondence = new TreeMap<Reactant, String>();
+//					for (Reactant r : model.getReactantCollection()) {
+//						if (r.getName().equals("ERK")) {
+//							reactantToDataCorrespondence.put(r, "ERK data");
+//						}
+//						if (r.getName().equals("Frzld")) {
+//							reactantToDataCorrespondence.put(r, "Frizzled data");
+//						}
+//					}
+//					Properties parameters = new Properties();
+//					parameters.setProperty(LevenbergMarquardtFitter.MIN_COST_KEY, "0.5");
+//					parameters.setProperty(LevenbergMarquardtFitter.DELTA_KEY, "0.0001");
+//					LevenbergMarquardtFitter fitter = new LevenbergMarquardtFitter(model, reactionsToBeOptimized, referenceDataFile, reactantToDataCorrespondence, timeTo, parameters);
+//					fitter.performParameterFitting();
+//				}
+//			});
+//			buttons.add(bottoneDeiParametri, new GridBagConstraints(0, yPositionCounter++, 1, 1, 1, 0, GridBagConstraints.CENTER,
+//					GridBagConstraints.HORIZONTAL, new Insets(0, 0, 0, 0), 0, 0));
+//		}
 		
 		this.setVisible(true);
 		this.repaint();

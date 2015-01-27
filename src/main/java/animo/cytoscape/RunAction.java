@@ -234,6 +234,7 @@ public class RunAction extends AnimoActionTask {
 		public void run(TaskMonitor monitor) throws AnimoException, NumberFormatException, NotBoundException,
 				IOException {
 			needToStop = false;
+			monitor.setTitle(Animo.APP_NAME + " - UPPAAL model analysis");
 			monitor.setStatusMessage("Creating model representation");
 			monitor.setProgress(0);
 			
@@ -258,16 +259,16 @@ public class RunAction extends AnimoActionTask {
 
 			final int nMinutesToSimulate2 = nMinutesToSimulate;
 			Model model = null;
-			try {
+//			try {
 				if (smcUppaal.isSelected()) {
 					model = Model.generateModelFromCurrentNetwork(null, null, generateTables);
 				} else {
 					model = Model.generateModelFromCurrentNetwork(null, nMinutesToSimulate2, generateTables);
 				}
-			} catch (Exception ex) {
-				ex.printStackTrace(System.err);
-				return;
-			}
+//			} catch (Exception ex) {
+//				ex.printStackTrace(System.err);
+//				return;
+//			}
 			this.model = model;
 
 			model.getProperties().let(Model.Properties.MODEL_CHECKING_TYPE)

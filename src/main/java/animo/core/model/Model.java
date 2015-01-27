@@ -353,16 +353,17 @@ public class Model implements Serializable {
 
 		Iterator<CyEdge> edges = currentNetwork.getEdgeList().iterator();
 		for (CyEdge edge : currentNetwork.getEdgeList()) {
-			Boolean enabled = currentNetwork.getRow(edge).get(Model.Properties.ENABLED, Boolean.class);
+			CyRow edgeRow = currentNetwork.getRow(edge);
+			Boolean enabled = edgeRow.get(Model.Properties.ENABLED, Boolean.class);
 			if (enabled == null) {
-				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.ENABLED, Boolean.class, true);
+				Animo.setRowValue(edgeRow, Model.Properties.ENABLED, Boolean.class, true);
 				enabled = true;
 			}
 
 			if (!enabled)
 				continue;
 
-			Integer increment = currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class);
+			Integer increment = edgeRow.get(Model.Properties.INCREMENT, Integer.class);
 			if (increment == null) {
 				if (edge.getSource().equals(edge.getTarget())) {
 					increment = -1;
@@ -395,10 +396,10 @@ public class Model implements Serializable {
 			String edgeName = EdgeDialog.getEdgeName(currentNetwork, edge);
 
 			// Check that the edge has a selected scenario
-			Integer scenarioIdx = currentNetwork.getRow(edge).get(Model.Properties.SCENARIO, Integer.class);
+			Integer scenarioIdx = edgeRow.get(Model.Properties.SCENARIO, Integer.class);
 			if (scenarioIdx == null) {
 				scenarioIdx = 0;
-				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
+				Animo.setRowValue(edgeRow, Model.Properties.SCENARIO, Integer.class, scenarioIdx);
 			}
 			// Check that the edge has the definition of all parameters requested by the selected scenario
 			// otherwise set the parameters to their default values
@@ -407,50 +408,50 @@ public class Model implements Serializable {
 				scenario = Scenario.THREE_SCENARIOS[scenarioIdx];
 			} else {
 				scenarioIdx = 0;
-				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.SCENARIO, Integer.class, scenarioIdx);
+				Animo.setRowValue(edgeRow, Model.Properties.SCENARIO, Integer.class, scenarioIdx);
 				throw new AnimoException("The reaction " + edgeName + " has an invalid scenario setting ("
 						+ scenarioIdx + "). Now I set it to the first available: please set the correct parameters.");
 			}
 			String[] paramNames = scenario.listVariableParameters();
 			for (String param : paramNames) {
-				Double d = currentNetwork.getRow(edge).get(param, Double.class);
+				Double d = edgeRow.get(param, Double.class);
 				if (d == null) {
-					Animo.setRowValue(currentNetwork.getRow(edge), param, Double.class,
+					Animo.setRowValue(edgeRow, param, Double.class,
 							scenario.getDefaultParameterValue(param));
 				} else if (d < 0) { //We only accept non-negative parameters!
-					throw new AnimoException("Reaction " + edgeName + " with parameter " + param + " = " + animo.util.Utilities.roundToSignificantFigures(d, 4) + " <= 0.\n" + Animo.APP_NAME + " accepts only STRICTLY POSITIVE parameter values: please change it accordingly.");
+					throw new AnimoException("Reaction " + edgeName + " with parameter " + param + " = " + animo.util.Utilities.roundToSignificantFigures(d, 4) + " < 0.\n" + Animo.APP_NAME + " accepts only STRICTLY POSITIVE parameter values: please change it accordingly.");
 				}
 			}
 
-			if (currentNetwork.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class) == null) {
-				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.UNCERTAINTY, Integer.class, 0);
-			}
+//			if (currentNetwork.getRow(edge).get(Model.Properties.UNCERTAINTY, Integer.class) == null) {
+//				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.UNCERTAINTY, Integer.class, 0);
+//			}
 
-			if (currentNetwork.getRow(edge).get(Model.Properties.INCREMENT, Integer.class) == null) {
-				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.INCREMENT, Integer.class, 1);
+			if (edgeRow.get(Model.Properties.INCREMENT, Integer.class) == null) {
+				Animo.setRowValue(edgeRow, Model.Properties.INCREMENT, Integer.class, 1);
 			}
 
 			if (scenarioIdx == 2) {
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E1)) {
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E1, Long.class,
+				if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
+					Animo.setRowValue(edgeRow, Model.Properties.REACTANT_ID_E1, Long.class,
 							edge.getSource().getSUID());
 				}
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1)) {
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
+				if (!edgeRow.isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1)) {
+					Animo.setRowValue(edgeRow, Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1,
 							Boolean.class, true);
 				}
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_ID_E2)) {
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_ID_E2, Long.class,
+				if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E2)) {
+					Animo.setRowValue(edgeRow, Model.Properties.REACTANT_ID_E2, Long.class,
 							edge.getTarget().getSUID());
 				}
-				if (!currentNetwork.getRow(edge).isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2)) {
-					Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
+				if (!edgeRow.isSet(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2)) {
+					Animo.setRowValue(edgeRow, Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2,
 							Boolean.class, true);
 				}
 				
 				StringBuilder nameBuilder = new StringBuilder();
-				CyNode e1 = currentNetwork.getNode(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E1, Long.class)),
-					   e2 = currentNetwork.getNode(currentNetwork.getRow(edge).get(Model.Properties.REACTANT_ID_E2, Long.class));
+				CyNode e1 = currentNetwork.getNode(edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class)),
+					   e2 = currentNetwork.getNode(edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class));
 				
 				if (currentNetwork.getRow(e1).isSet(Model.Properties.CANONICAL_NAME)) {
 					nameBuilder.append(currentNetwork.getRow(e1).get(Model.Properties.CANONICAL_NAME, String.class));
@@ -475,74 +476,76 @@ public class Model implements Serializable {
 				edgeName = nameBuilder.toString();
 			}
 
+
+			CyRow targetRow = currentNetwork.getRow(edge.getTarget());
+			Boolean targetEnabled = targetRow.get(Model.Properties.ENABLED, Boolean.class);
+			String targetName = currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class);
+			
 			switch (scenarioIdx) {
 			case 0:
 			case 1:
-				CyRow source = currentNetwork.getRow(edge.getSource());
-				CyRow target = currentNetwork.getRow(edge.getTarget());
-				if (!source.get(Model.Properties.ENABLED, Boolean.class)
-						&& target.get(Model.Properties.ENABLED, Boolean.class)) {
+				CyRow sourceRow = currentNetwork.getRow(edge.getSource());
+				Boolean sourceEnabled = sourceRow.get(Model.Properties.ENABLED, Boolean.class);
+				String sourceName = sourceRow.get(Model.Properties.CANONICAL_NAME, String.class);
+				if (!sourceEnabled && targetEnabled) {
 					throw new AnimoException("Please check that reactant \""
-							+ source.get(Model.Properties.CANONICAL_NAME, String.class)
+							+ sourceName
 							+ "\" is enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
-				} else if (!source.get(Model.Properties.ENABLED, Boolean.class)
-						&& !target.get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (!sourceEnabled && !targetEnabled) {
 					throw new AnimoException("Please check that both reactants \""
-							+ source.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ target.get(Model.Properties.CANONICAL_NAME, String.class)
+							+ sourceName + "\" and \""
+							+ targetName
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
-				} else if (source.get(Model.Properties.ENABLED, Boolean.class)
-						&& !target.get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (sourceEnabled && !targetEnabled) {
 					throw new AnimoException("Please check that reactant \""
-							+ target.get(Model.Properties.CANONICAL_NAME, String.class)
+							+ targetName
 							+ "\" is enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
 				} else {
 					// They are both enabled: all is good
 				}
 				break;
 			case 2:
-				CyRow e1 = currentNetwork.getRow(edge.getSource());
-				CyRow e2 = currentNetwork.getRow(edge.getTarget());
-				if (!e1.get(Model.Properties.ENABLED, Boolean.class) && e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+				Long e1Id = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class),
+					 e2Id = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
+				CyRow e1Row = currentNetwork.getRow(currentNetwork.getNode(e1Id));
+				CyRow e2Row = currentNetwork.getRow(currentNetwork.getNode(e2Id));
+				Boolean e1Enabled = e1Row.get(Model.Properties.ENABLED, Boolean.class),
+						e2Enabled = e2Row.get(Model.Properties.ENABLED, Boolean.class);
+				String e1Name = e1Row.get(Model.Properties.CANONICAL_NAME, String.class),
+					   e2Name = e2Row.get(Model.Properties.CANONICAL_NAME, String.class);
+				if (!e1Enabled && e2Enabled && targetEnabled) {
 					throw new AnimoException("Please check that reactant \""
-							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\" is enabled, or reaction \""
+							+ e1Name + "\" is enabled, or reaction \""
 							+ edgeName + "\" cannot stay enabled.");
-				} else if (!e1.get(Model.Properties.ENABLED, Boolean.class)
-						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (!e1Enabled && !e2Enabled && targetEnabled) {
 					throw new AnimoException("Please check that both reactants \""
-							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" are enabled, or reaction \""
+							+ e1Name + "\" and \""
+							+ e2Name + "\" are enabled, or reaction \""
 							+ edgeName + "\" cannot stay enabled.");
-				} else if (e1.get(Model.Properties.ENABLED, Boolean.class)
-						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (e1Enabled && !e2Enabled && targetEnabled) {
 					throw new AnimoException("Please check that reactant \""
-							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" is enabled, or reaction \""
+							+ e2Name + "\" is enabled, or reaction \""
 							+ edgeName + "\" cannot stay enabled.");
-				} else if (!e1.get(Model.Properties.ENABLED, Boolean.class)
-						&& e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& !currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (!e1Enabled && e2Enabled && !targetEnabled) {
 					throw new AnimoException("Please check that both reactants \""
-							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
+							+ e1Name + "\" and \""
+							+ targetName
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
-				} else if (!e1.get(Model.Properties.ENABLED, Boolean.class)
-						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& !currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (!e1Enabled && !e2Enabled && !targetEnabled) {
 					throw new AnimoException("Please check that reactants \""
-							+ e1.get(Model.Properties.CANONICAL_NAME, String.class) + "\", \""
-							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
+							+ e1Name + "\", \""
+							+ e2Name + "\" and \""
+							+ targetName
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
-				} else if (e1.get(Model.Properties.ENABLED, Boolean.class)
-						&& !e2.get(Model.Properties.ENABLED, Boolean.class)
-						&& !currentNetwork.getRow(edge.getTarget()).get(Model.Properties.ENABLED, Boolean.class)) {
+				} else if (e1Enabled && !e2Enabled && !targetEnabled) {
 					throw new AnimoException("Please check that both reactants \""
-							+ e2.get(Model.Properties.CANONICAL_NAME, String.class) + "\" and \""
-							+ currentNetwork.getRow(edge.getTarget()).get(Model.Properties.CANONICAL_NAME, String.class)
+							+ e2Name + "\" and \""
+							+ targetName
 							+ "\" are enabled, or reaction \"" + edgeName + "\" cannot stay enabled.");
+				} else if (e1Enabled && e2Enabled && !targetEnabled) {
+					throw new AnimoException("Please check that reactant \""
+							+ targetName + "\" is enabled, or reaction \""
+							+ edgeName + "\" cannot stay enabled.");
 				} else {
 					// They are both enabled: all is good
 				}
@@ -551,7 +554,7 @@ public class Model implements Serializable {
 				break;
 			}
 
-			Integer tempScaleUpstream = currentNetwork.getRow(edge).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+			Integer tempScaleUpstream = edgeRow.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
 			if (tempScaleUpstream != null) {
 				Double scaleUpstream = tempScaleUpstream.doubleValue();
 				scaleUpstream /= 15.0;
@@ -560,7 +563,7 @@ public class Model implements Serializable {
 						scaleUpstream);
 				Animo.setRowValue(currentNetwork.getRow(edge.getTarget()), Model.Properties.LEVELS_SCALE_FACTOR, Double.class,
 						scaleUpstream);
-				Animo.setRowValue(currentNetwork.getRow(edge), Model.Properties.LEVELS_SCALE_FACTOR, Double.class, null);
+				Animo.setRowValue(edgeRow, Model.Properties.LEVELS_SCALE_FACTOR, Double.class, null);
 			}
 		}
 

@@ -254,6 +254,9 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 					System.err.println("E1 Traduco un modello 3.x in 3.x");
 					for (CyEdge edge : network.getEdgeList()) {
 						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+						if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
+							continue;
+						}
 						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class);
 						CyNode foundNode = session.getObject(oldId, CyNode.class);
 						if (foundNode == null) {
@@ -308,6 +311,9 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 					System.err.println("E2 Traduco un modello 3.x in 3.x");
 					for (CyEdge edge : network.getEdgeList()) {
 						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+						if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
+							continue;
+						}
 						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
 						CyNode foundNode = session.getObject(oldId, CyNode.class);
 						if (foundNode == null) {

@@ -51,7 +51,7 @@ public class EdgeOptimizeKContextMenu implements CyEdgeViewContextMenuFactory, A
 		Model model = null;
 		try {
 			model = Model.generateModelFromCurrentNetwork(null, timeTo, false);
-		} catch (Exception ex) {
+		} catch (Exception ex) { //TODO: THIS IS WRONG! We should show the exception to the user! The exceptions raised here are errors for the user!
 			ex.printStackTrace(System.err);
 			return;
 		}
