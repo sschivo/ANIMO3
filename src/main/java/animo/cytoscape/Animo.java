@@ -42,6 +42,7 @@ import animo.cytoscape.contextmenu.EditReactionEdgeViewContextMenu;
 import animo.cytoscape.contextmenu.EnableDisableEdgeViewContextMenu;
 import animo.cytoscape.contextmenu.EnableDisableNodeMenu;
 import animo.cytoscape.contextmenu.NodeDoubleClickTaskFactory;
+import animo.cytoscape.contextmenu.NodeRescaleNLevelsContextMenu;
 import animo.cytoscape.contextmenu.PlotHideNodeMenu;
 import animo.exceptions.AnimoException;
 import animo.util.XmlConfiguration;
@@ -189,6 +190,14 @@ public class Animo extends AbstractCyActivator {
 		rescaleEdgesProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
 		rescaleEdgesProps.put(ServiceProperties.MENU_GRAVITY, "2");
 		registerAllServices(bc, rescaleEdges, rescaleEdgesProps);
+		
+		if (areWeTheDeveloper()) {
+			NodeRescaleNLevelsContextMenu rescaleNLevels = new NodeRescaleNLevelsContextMenu();
+			Properties rescaleNLevelsProps = new Properties();
+			rescaleNLevelsProps.put(ServiceProperties.PREFERRED_MENU, APP_NAME);
+			rescaleNLevelsProps.put(ServiceProperties.MENU_GRAVITY, "2.6");
+			registerAllServices(bc, rescaleNLevels, rescaleNLevelsProps);
+		}
 		
 		if (areWeTheDeveloper()) { //TODO Add this normally when it is well tested
 			EdgeOptimizeKContextMenu optimizeEdges = new EdgeOptimizeKContextMenu();

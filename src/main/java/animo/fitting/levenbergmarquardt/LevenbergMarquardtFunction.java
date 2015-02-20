@@ -299,6 +299,7 @@ public class LevenbergMarquardtFunction implements Function {
 		//TODO: here we should have the model check itself:
 		//if there are time bounds that would exceed the allowed UPPAAL integer bounds,
 		//the model should change the time scale accordingly.
+		//Negative parameters should give some sort of error.
 		//A bit of refactoring with the model to avoid duplicating the checks
 	}
 	
@@ -481,7 +482,7 @@ public class LevenbergMarquardtFunction implements Function {
 		int timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(Model.Properties.SECONDS_PER_POINT).as(Double.class));
 		double scale = (double) nMinutesToSimulate / timeTo;
 		SimpleLevelResult result = null;
-		PrintStream sysErr = System.err;
+		final PrintStream sysErr = System.err;
 		try {
 			System.setErr(new PrintStream(new OutputStream() {
 			    public void write(int b) {

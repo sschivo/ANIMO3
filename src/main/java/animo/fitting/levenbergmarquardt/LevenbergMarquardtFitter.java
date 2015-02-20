@@ -62,6 +62,8 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	 * 		  The comparison of the model results on those nodes against the corresponding series in the file will give the model fitness to data.
 	 * 		  We require the Map to be sorted so that the couplings in the comparison are kept consistent. 
 	 * @param timeTo Time (in minutes) until which the simulations have to run (should be <= last time point in the reference data file)
+	 * @param parameters A Properties map giving additional parameters for the L&M fitting algorithm. It's basically the DELTA parameter only,
+	 * 		  as the MIN_COST is not actually used.
 	 */
 	public LevenbergMarquardtFitter(Model model,
 									List<Reaction> reactionsToBeOptimized,
@@ -201,9 +203,9 @@ public class LevenbergMarquardtFitter extends ParameterFitter {
 	        	keepResult = false;
 	        	finalCost = lm.getFinalCost();
 	        	if (success) {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nFinal cost: " + finalCost + "\nDo you want to keep the new parameters?", "Result with best cost found!", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + Utilities.roundToSignificantFigures(lm.getInitialCost(), 5) + "\nFinal cost: " + Utilities.roundToSignificantFigures(finalCost, 5) + "\nDo you want to keep the new parameters?", "Result with best cost found!", JOptionPane.YES_NO_OPTION);
 	        	} else {
-	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + lm.getInitialCost() + "\nMinimum cost I found: " + finalCost + "\nDo you want to use the parameters that gave the (local) minimum cost?", "No result with best cost found", JOptionPane.YES_NO_OPTION);
+	        		answer = JOptionPane.showConfirmDialog(frame, "Done in " + Utilities.timeDifferenceShortFormat(startTime, endTime) + ".\nInitial cost: " + Utilities.roundToSignificantFigures(lm.getInitialCost(), 5) + "\nMinimum cost I found: " + Utilities.roundToSignificantFigures(finalCost, 5) + "\nDo you want to use the parameters that gave the (local) minimum cost?", "No result with best cost found", JOptionPane.YES_NO_OPTION);
 	        	}
 	        	frame.dispose();
 	        	if (answer == JOptionPane.YES_OPTION) {

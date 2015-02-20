@@ -180,19 +180,27 @@ public class LevenbergMarquardt {
         // the difference between the current and previous cost
         double difference = 1000;
 
-        for( int iter = 0; iter < 20 && difference > 1e-6 ; iter++ ) {
-            // compute some variables based on the gradient
-            computeDandH(param,X,Y);
+        boolean updateJacobian = true;
+        int iter;
+        for(iter = 0; iter < 50 && difference > 1e-6 ; iter++ ) {
+//        	System.err.println("iter: " + iter + ", diff: " + difference + ", lambda: " + lambda);
+        	
+        	if (updateJacobian) {
+	            // compute some variables based on the gradient
+	            computeDandH(param,X,Y);
+        	}
 
             // try various step sizes and see if any of them improve the
             // results over what has already been done
-//            boolean foundBetter = false;
-            for( int i = 0; i < 5; i++ ) {
+            boolean foundBetter = false;
+//            lambda = initialLambda;
+//            for( int i = 0; i < 5; i++ ) {
                 computeA(A,H,lambda);
 
                 if( !solve(A,d,negDelta) ) { //TODO Why is this so bad??
                 	finalCost = minCost;
         			param.set(minimumCostParameters);
+//        			System.err.println("Non ho potuto risolvere non so esattamente cosa");
                     return false;
         			//continue;
                 }
@@ -212,6 +220,7 @@ public class LevenbergMarquardt {
             		if (swingWorker.getMustTerminate()) { //We must end before completing the computation: return the best result up to now (stored in minimumCostParameters, with cost minCost)
             			finalCost = minCost;
             			param.set(minimumCostParameters);
+//            			System.err.println("Termino secondo richiesta");
             			return false;
             		}
                 }
@@ -228,21 +237,26 @@ public class LevenbergMarquardt {
                 
                 if( cost < prevCost ) {
                     // the candidate parameters produced better results so use it
-//                    foundBetter = true;
-                    param.set(tempParam);
-                    difference = prevCost - cost;
-                    prevCost = cost;
+                	foundBetter = true;
+                	param.set(tempParam);
+                	difference = prevCost - cost;
+                	prevCost = cost;
                     lambda /= 10.0;
+                    updateJacobian = true;
                 } else {
                     lambda *= 10.0;
+                    updateJacobian = false;
                 }
-            }
+//            }
 
             //I think it works better if we comment the check below
 //            // it reached a point where it can't improve so exit
-//            if( !foundBetter )
+            if( !foundBetter && lambda > 1e15 ) {
+            	lambda = initialLambda; //This lambda tends to go to high without any appreciable effect apart the waste of time, so I reset it when it is too high and we are going nowhere 
 //                break;
+            }
         }
+//        System.err.println("Come sono uscito dal for? iter: " + iter + ", diff: " + difference + ", lambda: " + lambda);
 //        finalCost = prevCost;
         
         //Instead of stopping at the last state, we return the state with the minimum cost
@@ -298,6 +312,9 @@ public class LevenbergMarquardt {
         subtractEquals(tempDH, y);
 
         computeNumericalJacobian(param,x,jacobian); //TODO: func.compute is called also from here, and we don't check for negative parameters here either
+        //Apparently, the Jacobian matrix is a thing that gives a linear approximation of a function
+        //(in this case, it's probably the function that gives the "cost", or maybe error, or the difference between the data output by my model and
+        //the experimental data I want to fit it to)
 
         int numParam = param.getNumElements();
         int length = x.getNumElements();

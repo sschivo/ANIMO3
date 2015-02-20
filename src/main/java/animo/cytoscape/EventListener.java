@@ -17,6 +17,7 @@ import java.util.List;
 import java.util.Map;
 
 import javax.imageio.ImageIO;
+import javax.swing.JOptionPane;
 import javax.swing.SwingUtilities;
 import javax.xml.bind.DatatypeConverter;
 import javax.xml.parsers.DocumentBuilderFactory;
@@ -204,6 +205,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			//Use the Cytoscape ID mapping service provided by the session to translate an ANIMO 2.x model into a new one (just the SUIDs referred in the edges table)
 			//For ANIMO 3.x models, change the references to node/edge SUIDs from the previous session to the current, to make sure that they still refer to existing objects
 			CySession session = sessionEvent.getLoadedSession();
+			boolean translatedOld2xToNew3x = false;
 			for (CyNetwork network : session.getNetworks()) {
 				CyTable edgesTable = network.getDefaultEdgeTable(),
 						nodesTable = network.getDefaultNodeTable();
@@ -250,6 +252,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 						Long nodeId = node.getSUID();
 						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E1, nodeId);
 					}
+					translatedOld2xToNew3x = true;
 				} else if (e1IDColumn != null && e1IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model: map the saved node SUIDs to current SUIDs
 					System.err.println("E1 Traduco un modello 3.x in 3.x");
 					for (CyEdge edge : network.getEdgeList()) {
@@ -307,6 +310,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 						Long nodeId = node.getSUID();
 						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E2, nodeId);
 					}
+					translatedOld2xToNew3x = true;
 				} else if (e2IDColumn != null && e2IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model
 					System.err.println("E2 Traduco un modello 3.x in 3.x");
 					for (CyEdge edge : network.getEdgeList()) {
@@ -323,6 +327,13 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 						edgeRow.set(Model.Properties.REACTANT_ID_E2, foundNode.getSUID());
 					}
 				}
+			}
+			if (translatedOld2xToNew3x) { //If we translated an old 2.x model into the new version (String IDs to Long IDs), we need to warn the user that saving this model will make it unreadable for older versions of ANIMO
+				SwingUtilities.invokeLater(new Runnable() {
+					public void run() {
+						JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "If you save this model, you will not be able to open it\nwith an old version of ANIMO (Cytoscape 2.8.x)", "Old model converted to new", JOptionPane.WARNING_MESSAGE);
+					}
+				});
 			}
 		} catch (Exception ex) {
 			ex.printStackTrace(System.err);
