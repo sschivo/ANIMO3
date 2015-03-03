@@ -736,7 +736,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						}
 					}
 					CyNetworkViewFactory netViewFactory = Animo.getCyServiceRegistrar().getService(CyNetworkViewFactory.class);
-					CyNetwork recoveredNetwork = rootNetworkManager.getRootNetwork(savedNetwork).addSubNetwork(savedNodesList, savedEdgesList);
+					CySubNetwork recoveredNetwork = rootNetworkManager.getRootNetwork(savedNetwork).addSubNetwork(savedNodesList, savedEdgesList);
 					//Recover the network attributes
 					try {
 						Map<String, Object> savedRow = savedNetwork.getTable(CyNetwork.class, CyNetwork.LOCAL_ATTRS).getRow(savedNetwork.getSUID()).getAllValues();
@@ -758,11 +758,13 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Y_LOCATION, netCenterY);
 					recoveredNetView.setVisualProperty(BasicVisualLexicon.NETWORK_CENTER_Z_LOCATION, netCenterZ);
 					eventHelper.flushPayloadEvents();
+					CyTable nodeTable = recoveredNetwork.getRootNetwork().getBaseNetwork().getDefaultNodeTable(); //We use the tables of the network on which the subnetwork is based, because WE can check only the columns of the local table, but should we not find a column there and try to create it, we would get an exception because the column IS there in the base network (!!). So just use the base network and avoid these problems
 					for (CyNode node : savedNodeAttributes.keySet()) {
+						CyRow nodeRow = nodeTable.getRow(node.getSUID());
 						for (String k : savedNodeAttributes.get(node).keySet()) {
 							Object val = savedNodeAttributes.get(node).get(k);
 							if (val != null) {
-								Animo.setRowValue(recoveredNetwork.getRow(node), k, val.getClass(), val);
+								Animo.setRowValue(nodeRow, k, val.getClass(), val);
 							}
 						}
 					}
@@ -770,15 +772,18 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 						node.setVisualProperty(BasicVisualLexicon.NODE_X_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_X));
 						node.setVisualProperty(BasicVisualLexicon.NODE_Y_LOCATION, (Double)savedNodeAttributes.get(node.getModel()).get(PROP_POSITION_Y));
 					}				
+					CyTable edgeTable = recoveredNetwork.getRootNetwork().getBaseNetwork().getDefaultEdgeTable(); //Same here: use the table from the base network: it's safer (Cytoscape uses that to check the existence of columns anyway, for a reason I cannot fathom)
 					for (CyEdge edge : savedEdgeAttributes.keySet()) {
+						CyRow edgeRow = edgeTable.getRow(edge.getSUID());
 						for (String k : savedEdgeAttributes.get(edge).keySet()) {
 							Object val = savedEdgeAttributes.get(edge).get(k);
 							if (val != null) {
-								Animo.setRowValue(recoveredNetwork.getRow(edge), k, val.getClass(), val);
+								Animo.setRowValue(edgeRow, k, val.getClass(), val);
 							}
 						}
 					}
 					EventListener.setListenerStatus(true);
+					
 					//NodeDialog.tryNetworkViewUpdate();
 				}
 			});

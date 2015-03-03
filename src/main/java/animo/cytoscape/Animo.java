@@ -14,6 +14,7 @@ import org.cytoscape.application.swing.CytoPanelComponent;
 import org.cytoscape.application.swing.CytoPanelName;
 import org.cytoscape.application.swing.events.CytoPanelComponentSelectedListener;
 import org.cytoscape.model.CyRow;
+import org.cytoscape.model.CyTable;
 import org.cytoscape.model.events.AddedEdgesListener;
 import org.cytoscape.model.events.AddedNodesListener;
 import org.cytoscape.model.events.NetworkAddedListener;
@@ -117,8 +118,8 @@ public class Animo extends AbstractCyActivator {
 
 	public static void setRowValue(CyRow row, String columnName, Class<?> type, Object value) {
 		if (row.getTable().getColumn(columnName) == null) {
-			row.getTable().createColumn(columnName, type, false); //Simulazione da una rete ripristinata: Perche' mi dice che la colonna esiste gia'?? Ho appena controllato e non c'era!!
-
+			CyTable table = row.getTable();
+			table.createColumn(columnName, type, false);
 		}
 		row.set(columnName, value);
 
