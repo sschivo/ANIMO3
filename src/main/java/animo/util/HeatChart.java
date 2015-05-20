@@ -596,7 +596,7 @@ public class HeatChart {
 
 	private Color getCellColor(double value) {
 		VisualMappingManager vizMap = Animo.getCytoscapeApp().getVisualMappingManager();
-		VisualStyle visualStyle = vizMap.getDefaultVisualStyle();
+		VisualStyle visualStyle = vizMap.getCurrentVisualStyle(); //Why, o gods, why was it getDefaultVisualStyle here????
 		@SuppressWarnings("unchecked")
 		VisualMappingFunction<Double, Paint> colorMapping = (VisualMappingFunction<Double, Paint>)visualStyle.getVisualMappingFunction(BasicVisualLexicon.NODE_FILL_COLOR);
 		

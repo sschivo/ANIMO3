@@ -11,6 +11,7 @@ import java.awt.geom.Rectangle2D;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import javax.swing.Icon;
 import javax.swing.JPanel;
@@ -115,8 +116,14 @@ public class ShapesLegend extends JPanel {
 		float x = rectangle.x + rectangle.width / 2 - maxStrLength / 2.0f, y = rectangle.y;
 
 		if (nameOrder == null) {
-			nameOrder = new ArrayList<String>();
-			nameOrder.addAll(shapes.keySet());
+			List<String> orderedNames = VisualStyleAnimo.getDefaultMolecularTypes();
+			Set<String> availableNames = shapes.keySet();
+			if (orderedNames.containsAll(availableNames) && availableNames.containsAll(orderedNames)) {
+				nameOrder = orderedNames;
+			} else {
+				nameOrder = new ArrayList<String>();
+				nameOrder.addAll(availableNames);
+			}
 		}
 		for (String moleculeType : nameOrder) {
 			NodeShape shape = shapes.get(moleculeType);

@@ -766,6 +766,53 @@ public class VariablesModelReactantCentered extends VariablesModel {
 							break;
 					}
 				}
+				
+				for (Reaction re : influencingReactions) { //Now we put the code to check that we are not on a border case. In such case, the downstream reactant (called "R" in this automaton template) is also involved in the computation of the reaction rate (so we look at scenario 2 or 3), and the value of R is the only reason why the reaction is not performed (the other influencing reactant is fine). In that case, we want to keep considering the reaction as active, to (approximatively: in truth we should deal with infinitesimals) counterbalance any other possible reaction that may otherwise define the total rate like it was the only one actually present. We want to avoid performing a step with significant imprecision because of this.
+					int scenario = re.get(SCENARIO).as(Integer.class);
+					boolean activeR1, activeR2;
+					if (scenario == 0 || scenario == 1) {
+						activeR1 = true;
+						if (re.get(INCREMENT).as(Integer.class) >= 0) {
+							activeR2 = false;
+						} else {
+							activeR2 = true;
+						}
+					} else if (scenario == 2) {
+						activeR1 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E1).as(Boolean.class);
+						activeR2 = re.get(Model.Properties.REACTANT_IS_ACTIVE_INPUT_E2).as(Boolean.class);
+					} else {
+						//TODO: this should never happen, because we have already made these checks
+						activeR1 = activeR2 = true;
+					}
+					switch (scenario) {
+						case 0:
+							//Nothing to worry about
+							break;
+						case 1: case 2:
+							String reactionID = re.getId(),
+								   r2ID = m.getReactant(re.get(Model.Properties.REACTANT).as(String.class)).getId(),
+								   r1ID = m.getReactant(re.get(Model.Properties.CATALYST).as(String.class)).getId(),
+								   rOutputID = m.getReactant(re.get(Model.Properties.OUTPUT_REACTANT).as(String.class)).getId();
+							String rNotOutputID; //The reactant that needs to be working (e.g. if it is r1, it must be active if r1Active is true) while the downstream is at the limit (that's the only case we want to consider: when the reaction rate results to be 0 because the reaction is already "done" but if there was more substrate it could still occur)
+							boolean activityNotOutput;
+							if (rOutputID.equals(r1ID)) {
+								rNotOutputID = r2ID;
+								activityNotOutput = activeR2;
+							} else {
+								rNotOutputID = r1ID;
+								activityNotOutput = activeR1;
+							}
+							//Check whether the downstream reactant is involved in the computation: in that case, we want to "declare" the rate as we were still one step from completing the reaction
+							if (rOutputID.equals(r1ID) || rOutputID.equals(r2ID)) {
+								template.append("\tif (" + reactionID + "_r.b == 0 &amp;&amp; " + rNotOutputID + (activityNotOutput?" > 0":" < " + rNotOutputID + "Levels") + ") { //If the downstream reactant (R) is the only reason for the inactivity of the reaction " + reactionID + " (note that R is actually " + rOutputID + "), consider the reaction as still available (recomputing the rate as the one closest to the current situation), to avoid significant errors in performing the next update to R. We want to avoid considering any other reaction active on R as the only one possible during the whole next delta increment to R.\n\t\t//Using the following rate is not very precise, but makes for a much more precise total rate than we would get if considering the reaction as inactive (especially with low levels of granularity for R, i.e. small values of MAX)\n\t\t" + reactionID + "_r = scenario2_3(k_" + reactionID + ", int_to_double(" + ((r2ID.equals(rOutputID) && activeR2)?"1":((r2ID.equals(rOutputID) && !activeR2)?r2ID + "Levels - 1":r2ID)) + "), int_to_double(" + r2ID + "Levels), " + activeR2 + ", int_to_double(" + ((r1ID.equals(rOutputID) && activeR1)?"1":((r1ID.equals(rOutputID) && !activeR1)?r1ID + "Levels - 1":r1ID)) + "), int_to_double(" + r1ID + "Levels), " + activeR1 + ");\n\t}\n");
+							}
+							break;
+						default:
+							break;
+					}
+				}
+				
+				//Finally compute the total rate
 				template.append("\ttotalRate = ");
 				if (influencingReactions.size() == 1) {
 					Reaction re = influencingReactions.get(0);

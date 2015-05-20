@@ -66,6 +66,7 @@ import org.cytoscape.model.CyNetworkManager;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
 import org.cytoscape.model.CyTable;
+import org.cytoscape.model.SavePolicy;
 import org.cytoscape.model.subnetwork.CyRootNetwork;
 import org.cytoscape.model.subnetwork.CyRootNetworkManager;
 import org.cytoscape.model.subnetwork.CySubNetwork;
@@ -945,7 +946,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			}
 			savedEdgeAttributes.put(edge, attributes);
 		}
-		savedNetwork = Animo.getCyServiceRegistrar().getService(CyRootNetworkManager.class).getRootNetwork(originalNetwork).addSubNetwork(savedNodesList, savedEdgesList);
+		savedNetwork = Animo.getCyServiceRegistrar().getService(CyRootNetworkManager.class).getRootNetwork(originalNetwork).addSubNetwork(savedNodesList, savedEdgesList, SavePolicy.DO_NOT_SAVE);
 		savedNetwork.getRow(savedNetwork).set(CyNetwork.NAME, this.getTitle() + " - Network");
 		Animo.getCyServiceRegistrar().getService(CyNetworkManager.class).addNetwork(savedNetwork);
 		CyTable originalTable = originalNetwork.getTable(CyNetwork.class, CyRootNetwork.LOCAL_ATTRS);
@@ -1247,10 +1248,10 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					  sourceRow = net.getRow(edge.getSource()),
 					  targetRow = net.getRow(edge.getTarget());
 				if (t == 0) {
-					Animo.setRowValue(edgeRow, Model.Properties.SHOWN_LEVEL, Double.class, 0.25);
+					Animo.setRowValue(edgeRow, Model.Properties.SHOWN_LEVEL, Double.class, 0.25); //This is supposed to be the "normal" edge width
 				} else {
 					int scenario = edgeRow.get(Model.Properties.SCENARIO, Integer.class);
-					double concentration = this.result.getConcentration(r, t);
+					double concentration = this.result.getConcentration(r, t); //"Activity level" of the reaction
 					boolean candidate = false;
 					switch (scenario) {
 						case 0:

@@ -40,6 +40,10 @@ public class VisualStyleAnimo {
 	private CyNetworkView currentNetworkView;
 	public static final String ANIMO_NORMAL_VISUAL_STYLE = Animo.APP_NAME + "_VisualStyle",
 			ANIMO_DIFF_VISUAL_STYLE = Animo.APP_NAME + "_difference_Visual_Style";
+	private static final List<String> defaultMolecularTypes = Arrays.asList(new String[] { Model.Properties.TYPE_CYTOKINE,
+			Model.Properties.TYPE_RECEPTOR, Model.Properties.TYPE_KINASE, Model.Properties.TYPE_PHOSPHATASE,
+			Model.Properties.TYPE_TRANSCRIPTION_FACTOR, Model.Properties.TYPE_GENE, Model.Properties.TYPE_MRNA,
+			Model.Properties.TYPE_DUMMY, Model.Properties.TYPE_OTHER });
 
 	VisualStyleAnimo(VisualMappingManager vmmServiceRef, VisualStyleFactory visualStyleFactoryServiceRef,
 			VisualMappingFunctionFactory vmfFactoryC, VisualMappingFunctionFactory vmfFactoryD,
@@ -51,6 +55,10 @@ public class VisualStyleAnimo {
 		this.vmFactoryPassthrough = vmfFactoryP;
 		this.colorsLegend = colorsLegend;
 		this.shapesLegend = shapesLegend;
+	}
+	
+	public static List<String> getDefaultMolecularTypes() {
+		return defaultMolecularTypes;
 	}
 
 	private void addVisMapEdgesEnabled() {
@@ -486,10 +494,7 @@ public class VisualStyleAnimo {
 	}
 
 	private void setShapesLegendNameOrder() {
-		List<String> orderedNames = Arrays.asList(new String[] { Model.Properties.TYPE_CYTOKINE,
-				Model.Properties.TYPE_RECEPTOR, Model.Properties.TYPE_KINASE, Model.Properties.TYPE_PHOSPHATASE,
-				Model.Properties.TYPE_TRANSCRIPTION_FACTOR, Model.Properties.TYPE_GENE, Model.Properties.TYPE_MRNA,
-				Model.Properties.TYPE_DUMMY, Model.Properties.TYPE_OTHER });
+		List<String> orderedNames = defaultMolecularTypes;
 		shapesLegend.setNameOrder(orderedNames);
 	}
 }
