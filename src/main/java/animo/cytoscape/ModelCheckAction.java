@@ -94,7 +94,7 @@ public class ModelCheckAction extends AnimoActionTask {
 					boolean generateTables = false;
 					XmlConfiguration configuration = AnimoBackend.get().configuration();
 					String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
-					if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
+					if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES) || modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
 						generateTables = true;
 					}
 					Model model = null;

@@ -68,7 +68,10 @@ public class XmlConfiguration {
 	public static final String MODEL_TYPE_KEY = "/" + Animo.APP_NAME + "/ModelType";
 	public static final String MODEL_TYPE_REACTION_CENTERED = "ReactionCentered",
 			MODEL_TYPE_REACTION_CENTERED_TABLES = "ReactionCenteredTables",
+			MODEL_TYPE_REACTION_CENTERED_TABLES_OLD = "ReactionCenteredTablesOld",
 			MODEL_TYPE_REACTANT_CENTERED = "ReactantCentered",
+			MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE = "ReactantCenteredMorePrecise",
+			MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW = "ReactantCenteredMorePreciseNew",
 			MODEL_TYPE_REACTANT_CENTERED_OPAAL = "ReactantCenteredOpaal";
 	public static final String DEFAULT_MODEL_TYPE = MODEL_TYPE_REACTANT_CENTERED;
 

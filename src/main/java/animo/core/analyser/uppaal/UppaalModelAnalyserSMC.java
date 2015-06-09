@@ -83,8 +83,14 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
 			if (modelType == null || modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED)) {
 				variablesModel = new VariablesModelReactantCentered(); //Reactant-centered model
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE)) {
+				variablesModel = new VariablesModelReactantCenteredMorePrecise(); //Reactant-centered model, "more precise" version (model "B")
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW)) {
+				variablesModel = new VariablesModelReactantCenteredMorePreciseNew(); //Reactant-centered model, "more precise" version (model "Q", different approach)
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
 				variablesModel = new VariablesModelReactionCenteredTables(); //Reaction-centered with tables
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
+				variablesModel = new VariablesModelReactionCenteredTablesOld(); //Reaction-centered with tables, oldest version (BIBE 2012 paper)
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED)) {
 				variablesModel = new VariablesModelReactionCentered(); //Reaction-centered model
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL)) {
@@ -305,8 +311,14 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
 			if (modelType == null || modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED)) {
 				variablesModel = new VariablesModelReactantCentered(); //Reactant-centered model
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE)) {
+				variablesModel = new VariablesModelReactantCenteredMorePrecise(); //Reactant-centered model, "more precise" version (model "B")
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW)) {
+				variablesModel = new VariablesModelReactantCenteredMorePreciseNew(); //Reactant-centered model, "more precise" version (model "Q", different approach)
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
 				variablesModel = new VariablesModelReactionCenteredTables(); //Reaction-centered with tables
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
+				variablesModel = new VariablesModelReactionCenteredTablesOld(); //Reaction-centered with tables, oldest version (BIBE 2012 paper)
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED)) {
 				variablesModel = new VariablesModelReactionCentered(); //Reaction-centered model
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL)) {
@@ -324,8 +336,10 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 					build.append(r.getId() + ", ");
 				}
 			}
-			for (Reaction r : m.getReactionCollection()) {
-				build.append(r.getId() + dot + "T, ");
+			if (!modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) { //That model is so old that it doesn't even output the dot + "T" for the reaction times
+				for (Reaction r : m.getReactionCollection()) {
+					build.append(r.getId() + dot + "T, ");
+				}
 			}
 			build.setCharAt(build.length() - 2, ' '); //We check when controling the model integrity that at least one reactant is enabled, so we are sure to delete a ", " here
 			build.setCharAt(build.length() - 1, '}');

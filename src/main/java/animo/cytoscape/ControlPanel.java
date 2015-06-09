@@ -408,27 +408,42 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 
 				final String reactionCenteredTitle = "Reaction-centered model without pre-computed tables",
 							 reactionCenteredTablesTitle = "Reaction-centered model with pre-computed tables",
-							 reactantCenteredTitle = "Reactant-centered model (recommended)",
+							 reactionCenteredTablesOldTitle = "Reaction-centered model with pre-computed tables, old version",
+							 reactantCenteredTitle = "Reactant-centered model (less precise)",
+							 reactantCenteredMorePreciseTitle = "Reactant-centered model (recommended)", // (model B)
+							 reactantCenteredMorePreciseNewTitle = "Reactant-centered model, more precise  (model Q)",
 							 reactantCenteredOpaalTitle = "Reactant-centered for multi-core analysis";
 				final JRadioButton useReactionCentered = new JRadioButton(reactionCenteredTitle),
 								   useReactionCenteredTables = new JRadioButton(reactionCenteredTablesTitle),
+								   useReactionCenteredTablesOld = new JRadioButton(reactionCenteredTablesOldTitle),
 								   useReactantCentered = new JRadioButton(reactantCenteredTitle),
+								   useReactantCenteredMorePrecise = new JRadioButton(reactantCenteredMorePreciseTitle),
+								   useReactantCenteredMorePreciseNew = new JRadioButton(reactantCenteredMorePreciseNewTitle),
 								   useReactantCenteredOpaal = new JRadioButton(reactantCenteredOpaalTitle);
 //				useReactionCentered.setToolTipText("Advised when the network is not reaction-heavy. (generally NOT recommended)");
 //				useReactionCenteredTables.setToolTipText("Advised when the network is not reaction-heavy. It is slower and uses more memory. (NOT recommended)");
 //				useReactantCentered.setToolTipText("Faster method, especially with reaction-heavy networks (recommended)");
 				useReactionCentered.setToolTipText("Proof of concept, NOT recommended");
 				useReactionCenteredTables.setToolTipText("Slow and uses more memory than reactant-centered. NOT recommended");
-				useReactantCentered.setToolTipText("Fast and uses little memory. Recommended");
+				useReactionCenteredTablesOld.setToolTipText("Even worse than the one with plain tables. Definitely NOT recommended");
+				useReactantCentered.setToolTipText("Fast and uses little memory. Experimental");
+				useReactantCenteredMorePrecise.setToolTipText("Fast and uses little memory. More precise, recommended");
+				useReactantCenteredMorePreciseNew.setToolTipText("Fast and uses little memory. More precise (different approach), experimental");
 				useReactantCenteredOpaal
 						.setToolTipText("Reactant-centered model for use the generated model with opaal and ltsmin");
 				final ButtonGroup reactionCenteredGroup = new ButtonGroup();
 				reactionCenteredGroup.add(useReactionCentered);
 				reactionCenteredGroup.add(useReactionCenteredTables);
+				reactionCenteredGroup.add(useReactionCenteredTablesOld);
 				reactionCenteredGroup.add(useReactantCentered);
+				reactionCenteredGroup.add(useReactantCenteredMorePrecise);
+				reactionCenteredGroup.add(useReactantCenteredMorePreciseNew);
 				reactionCenteredGroup.add(useReactantCenteredOpaal);
 				String modelType = null;
 				modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY);
+				useReactionCenteredTablesOld.setSelected(false);
+				useReactantCenteredMorePrecise.setSelected(false);
+				useReactantCenteredMorePreciseNew.setSelected(false);
 				if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED)) {
 					useReactionCentered.setSelected(true);
 					useReactionCenteredTables.setSelected(false);
@@ -439,10 +454,28 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					useReactionCenteredTables.setSelected(true);
 					useReactantCentered.setSelected(false);
 					useReactantCenteredOpaal.setSelected(false);
+				}  else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactionCenteredTablesOld.setSelected(true);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredOpaal.setSelected(false);
 				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED)) {
 					useReactionCentered.setSelected(false);
 					useReactionCenteredTables.setSelected(false);
 					useReactantCentered.setSelected(true);
+					useReactantCenteredOpaal.setSelected(false);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredMorePrecise.setSelected(true);
+					useReactantCenteredOpaal.setSelected(false);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredMorePreciseNew.setSelected(true);
 					useReactantCenteredOpaal.setSelected(false);
 				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL)) {
 					useReactionCentered.setSelected(false);
@@ -456,14 +489,19 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					useReactantCenteredOpaal.setSelected(false);
 				}
 				Box modelTypePanel = new Box(BoxLayout.Y_AXIS);//new JPanel(new FlowLayout(FlowLayout.LEFT));
-				modelTypePanel.add(useReactantCentered);
+				modelTypePanel.add(useReactantCenteredMorePrecise);
 				if (areWeTheDeveloper) {
+					modelTypePanel.add(useReactantCentered);
+					modelTypePanel.add(useReactantCenteredMorePreciseNew);
 					modelTypePanel.add(useReactantCenteredOpaal);
 				}
 				modelTypePanel.add(useReactionCentered);
 //				if (areWeTheDeveloper) {
 					modelTypePanel.add(useReactionCenteredTables);
 //				}
+				if (areWeTheDeveloper) {
+					modelTypePanel.add(useReactionCenteredTablesOld);
+				}
 				content.add(new LabelledField("Model type", modelTypePanel), new GridBagConstraints(0, 2, 1, 1, 1.0,
 						0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
 
@@ -493,8 +531,14 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTION_CENTERED;
 						} else if (useReactionCenteredTables.isSelected()) {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES;
+						} else if (useReactionCenteredTablesOld.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD;
 						} else if (useReactantCentered.isSelected()) {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED;
+						} else if (useReactantCenteredMorePrecise.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE;
+						} else if (useReactantCenteredMorePreciseNew.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW;
 						} else if (useReactantCenteredOpaal.isSelected()) {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL;
 						} else {

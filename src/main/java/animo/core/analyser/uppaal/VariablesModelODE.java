@@ -15,13 +15,11 @@ import javax.xml.transform.stream.StreamResult;
 
 import org.w3c.dom.Document;
 
-import animo.core.AnimoBackend;
 import animo.core.model.Model;
 import animo.core.model.Reactant;
 import animo.core.model.Reaction;
-import animo.util.XmlConfiguration;
 
-public class VariablesModelReactantCentered extends VariablesModel {
+public class VariablesModelODE extends VariablesModel {
 
 	private static final String REACTANT_INDEX = Model.Properties.REACTANT_INDEX,
 								OUTPUT_REACTANT = Model.Properties.OUTPUT_REACTANT,
@@ -47,53 +45,19 @@ public class VariablesModelReactantCentered extends VariablesModel {
 		out.append(newLine);
 		out.append("clock globalTime;");
 		out.append(newLine);
-		out.append("const int INFINITE_TIME = " + INFINITE_TIME + ";");
-		out.append(newLine);
-		int countReactants = 0;
-		for (Reactant r : m.getReactantCollection()) {
-			if (r.get(ENABLED).as(Boolean.class)) {
-				countReactants++;
-			}
-		}
-		out.append("const int N_REACTANTS = " + countReactants + ";");
-		out.append(newLine);
-		out.append("broadcast chan reacting[N_REACTANTS];");
-		out.append(newLine);
-		
-		dAlternating = false;
-		if (m.getProperties().has("deltaAlternating") && m.getProperties().get("deltaAlternating").as(Boolean.class)) {
-			dAlternating = true;
-		}
-		
-		useOldResetting = true;
-		if (m.getProperties().has("useOldResetting") && !m.getProperties().get("useOldResetting").as(Boolean.class)) {
-			useOldResetting = false;
-		}
-		
-		//TODO Not only are channel priorities unsupported by the statistical model checking engine, but they also appear to reduce performances (!) of the normal engine
-		if (m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE) != null && m.getProperties().get(Model.Properties.MODEL_CHECKING_TYPE).as(Integer.class) == Model.Properties.NORMAL_MODEL_CHECKING) {
-			useOldResetting = true;
-		}
-//			normalModelChecking = true;
-//			out.append("broadcast chan sequencer[N_REACTANTS];");
-//			out.append(newLine);
-//			if (countReactants > 1) {
-//				out.append("chan priority ");
-//				for (int i=0;i<countReactants-1;i++) {
-//					out.append("reacting[" + i + "] &lt; ");
-//				}
-//				out.append("reacting[" + (countReactants-1) + "];");
-//				out.append(newLine);
-//				out.append("chan priority ");
-//				for (int i=0;i<countReactants-1;i++) {
-//					out.append("sequencer[" + i + "] &lt; ");
-//				}
-//				out.append("sequencer[" + (countReactants-1) + "];");
-//				out.append(newLine);
+//		out.append("const int INFINITE_TIME = " + INFINITE_TIME + ";");
+//		out.append(newLine);
+//		int countReactants = 0;
+//		for (Reactant r : m.getReactantCollection()) {
+//			if (r.get(ENABLED).as(Boolean.class)) {
+//				countReactants++;
 //			}
-//		} else {
-			normalModelChecking = false;
 //		}
+//		out.append("const int N_REACTANTS = " + countReactants + ";");
+//		out.append(newLine);
+//		out.append("broadcast chan reacting[N_REACTANTS];");
+//		out.append(newLine);
+		
 		out.append(newLine);
 		
 		int reactantIndex = 0;
@@ -105,547 +69,11 @@ public class VariablesModelReactantCentered extends VariablesModel {
 		}
 		
 		
-		//The encoding of double numbers with integer variables (exponential notation with 3 significant figures)
-		out.append(newLine);
-		out.append("typedef struct {");
-		out.append(newLine);
-		out.append("\tint[-99980001, 99980001] b;"); //99980001 = 9999 * 9999, i.e. the maximum result of a multiplication between two .b of double numbers
-		out.append(newLine);
-		out.append("\tint e;");
-		out.append(newLine);
-		out.append("} double_t;");
-		out.append(newLine);
-		out.append(newLine);
-		out.append("const double_t zero = {0, 0};");
-		out.append(newLine);
-		out.append("const double_t INFINITE_TIME_DOUBLE = {-1000, -3}; //INFINITE_TIME (-1) translated into double");
-		out.append(newLine);
-		uncertainty = 0;
-		XmlConfiguration configuration = AnimoBackend.get().configuration();
-		String uncertaintyStr = configuration.get(XmlConfiguration.UNCERTAINTY_KEY, null);
-		if (uncertaintyStr != null) {
-			try {
-				uncertainty = Integer.parseInt(uncertaintyStr);
-			} catch (Exception ex) {
-				uncertainty = 0;
-			}
-		} else {
-			uncertainty = 0;
-		}
-		if (uncertainty != 0) {
-			double lowerUnc = (100.0 - uncertainty) / 100.0,
-				   upperUnc = (100.0 + uncertainty) / 100.0;
-			out.append("const double_t LOWER_UNC = " + formatDouble(lowerUnc) + ", //Lower and upper scale factors to apply uncertainty. E.g. for +/- 5% uncertainty, we have lower uncertainty = 0.95, upper uncertainty = 1.05");
-			out.append(newLine);
-			out.append("             UPPER_UNC = " + formatDouble(upperUnc) + ";");
-			out.append(newLine);
-		}
-		out.append(newLine);
-		out.append("typedef int[-1, 1073741822] time_t;"); //The type for time values
-		out.append(newLine);
-		out.append(newLine);
-		//In order to still show the reaction activity ratio we use the original time bounds
-		out.append("typedef struct {");
-		out.append(newLine);
-		out.append("\ttime_t T;");
-		out.append(newLine);
-		out.append("} timeActivity;");
-		out.append(newLine);
-		out.append(newLine);
-		
 		for (Reaction r : m.getReactionCollection()) { //The time tables (filled by the rates, not times)
 			if (!r.get(ENABLED).as(Boolean.class)) continue;
 			this.appendReactionTables(out, m, r);
 		}
-		out.append(newLine);
-		out.append(newLine);
-		out.append("double_t subtract(double_t a, double_t b) { // a - b"); // Subtraction
-		out.append(newLine);
-		out.append("\tdouble_t r = {-1000, -1000};");
-		out.append(newLine);
-		out.append("\tif (a.b == 0) {");
-		out.append(newLine);
-		out.append("\t\tr.b = -b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t\treturn r;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.b == 0) {");
-		out.append(newLine);
-		out.append("\t\treturn a;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif ((a.e - b.e) &gt;= 4) return a;");
-		out.append(newLine);
-		out.append("\tif ((b.e - a.e) &gt;= 4) {");
-		out.append(newLine);
-		out.append("\t\tr.b = -b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t\treturn r;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e == b.e) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b - b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e - b.e == 1) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b - b.b/10;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e - b.e == 2) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b - b.b/100;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e - b.e == 3) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b - b.b/1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.e - a.e == 1) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b/10 - b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.e - a.e == 2) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b/100 - b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.e - a.e == 3) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b/1000 - b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif ((r.b &gt; 0 &amp;&amp; r.b &lt; 10) || (r.b &lt; 0 &amp;&amp; r.b &gt; -10)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 3;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 100) || (r.b &lt; 0 &amp;&amp; r.b &gt; -100)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 100;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 2;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 1000) || (r.b &lt; 0 &amp;&amp; r.b &gt; -1000)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 10;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 1;");
-		out.append(newLine);
-		out.append("\t} else if (r.b &gt; 9999 || r.b &lt; -9999) {");
-		out.append(newLine);
-        out.append("\t\tr.b = r.b / 10;");
-		out.append(newLine);
-        out.append("\t\tr.e = r.e + 1;");
-		out.append(newLine);
-    	out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn r;");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("double_t add(double_t a, double_t b) { // a + b"); // Addition
-		out.append(newLine);
-		out.append("\tdouble_t r = {-1000,-1000};");
-		out.append(newLine);
-		out.append("\tif (a.b == 0) {");
-		out.append(newLine);
-		out.append("\t\treturn b;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.b == 0) {");
-		out.append(newLine);
-		out.append("\t\treturn a;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif ((a.e - b.e) &gt;= 4) return a;");
-		out.append(newLine);
-		out.append("\tif ((b.e - a.e) &gt;= 4) return b;");
-		out.append(newLine);
-		out.append("\tif (a.e == b.e) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b + b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e - b.e == 1) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b + b.b/10;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e - b.e == 2) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b + b.b/100;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e - b.e == 3) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b + b.b/1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = a.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.e - a.e == 1) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b/10 + b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.e - a.e == 2) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b/100 + b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (b.e - a.e == 3) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a.b/1000 + b.b;");
-		out.append(newLine);
-		out.append("\t\tr.e = b.e;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif ((r.b &gt; 0 &amp;&amp; r.b &lt; 10) || (r.b &lt; 0 &amp;&amp; r.b &gt; -10)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 3;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 100) || (r.b &lt; 0 &amp;&amp; r.b &gt; -100)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 100;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 2;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 1000) || (r.b &lt; 0 &amp;&amp; r.b &gt; -1000)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 10;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 1;");
-		out.append(newLine);
-		out.append("\t} else if (r.b &gt; 9999 || r.b &lt; -9999) {");
-		out.append(newLine);
-        out.append("\t\tr.b = r.b / 10;");
-		out.append(newLine);
-        out.append("\t\tr.e = r.e + 1;");
-		out.append(newLine);
-    	out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn r;");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("double_t multiply(double_t a, double_t b) { // a * b"); // Multiplication
-		out.append(newLine);
-		out.append("\tdouble_t r;");
-		out.append(newLine);
-		out.append("\tr.b = a.b * b.b;");
-		out.append(newLine);
-		out.append("\tif (r.b % 1000 &lt; 500) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b / 1000;");
-		out.append(newLine);
-		out.append("\t} else {");
-		out.append(newLine);
-		out.append("\t\tr.b = 1 + r.b / 1000;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tr.e = a.e + b.e + 3;");
-		out.append(newLine);
-		out.append("\tif ((r.b &gt; 0 &amp;&amp; r.b &lt; 10) || (r.b &lt; 0 &amp;&amp; r.b &gt; -10)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 3;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 100) || (r.b &lt; 0 &amp;&amp; r.b &gt; -100)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 100;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 2;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 1000) || (r.b &lt; 0 &amp;&amp; r.b &gt; -1000)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 10;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 1;");
-		out.append(newLine);
-		out.append("\t} else if (r.b &gt; 9999 || r.b &lt; -9999) {");
-		out.append(newLine);
-        out.append("\t\tr.b = r.b / 10;");
-		out.append(newLine);
-        out.append("\t\tr.e = r.e + 1;");
-		out.append(newLine);
-    	out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn r;");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("double_t inverse(double_t a) { // 1 / a"); // Inverse
-		out.append(newLine);
-		out.append("\tdouble_t r;");
-		out.append(newLine);
-		out.append("\tif (a.b == 0 || a.e &lt; -9) { // 1 / 1e-9 is still ok, but 1 / 1e-10 is too large (&gt; 2&#94;30 - 2, the largest allowed constant for guards/invariants)");
-		out.append(newLine);
-		out.append("\t\treturn INFINITE_TIME_DOUBLE;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tr.b = 1000000 / a.b;");
-		out.append(newLine);
-		out.append("\tr.e = -6 - a.e;");
-		out.append(newLine);
-		out.append("\tif ((r.b &gt; 0 &amp;&amp; r.b &lt; 10) || (r.b &lt; 0 &amp;&amp; r.b &gt; -10)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 3;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 100) || (r.b &lt; 0 &amp;&amp; r.b &gt; -100)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 100;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 2;");
-		out.append(newLine);
-		out.append("\t} else if ((r.b &gt; 0 &amp;&amp; r.b &lt; 1000) || (r.b &lt; 0 &amp;&amp; r.b &gt; -1000)) {");
-		out.append(newLine);
-		out.append("\t\tr.b = r.b * 10;");
-		out.append(newLine);
-		out.append("\t\tr.e = r.e - 1;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn r;");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("time_t power(int a, int b) { // a ^ b (b &gt;= 0)"); // Integer power
-		out.append(newLine);
-		out.append("\ttime_t r = 1;");
-		out.append(newLine);
-		out.append("\twhile (b &gt; 0) {");
-		out.append(newLine);
-		out.append("\t\tr = r * a;");
-		out.append(newLine);
-		out.append("\t\tb = b - 1;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn r;");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("time_t round(double_t a) { // double --&gt; integer"); // Round
-		out.append(newLine);
-		out.append("\tif (a == INFINITE_TIME_DOUBLE) { // Don't need to translate literally if we have infinite");
-		out.append(newLine);
-		out.append("\t\treturn INFINITE_TIME;");
-		out.append(newLine);
-	    out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e &lt; -3) {");
-		out.append(newLine);
-		out.append("\t\tif (a.b &lt; 5000) return 0;");
-		out.append(newLine);
-		out.append("\t\telse return 1;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e == -1) {");
-		out.append(newLine);
-		out.append("\t\tif (a.b % 10 &lt; 5) {");
-		out.append(newLine);
-		out.append("\t\t\treturn a.b / 10;");
-		out.append(newLine);
-		out.append("\t\t} else {");
-		out.append(newLine);
-		out.append("\t\t\treturn 1 + a.b / 10;");
-		out.append(newLine);
-		out.append("\t\t}");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e == -2) {");
-		out.append(newLine);
-		out.append("\t\tif (a.b % 100 &lt; 50) {");
-		out.append(newLine);
-		out.append("\t\t\treturn a.b / 100;");
-		out.append(newLine);
-		out.append("\t\t} else {");
-		out.append(newLine);
-		out.append("\t\t\treturn 1 + a.b / 100;");
-		out.append(newLine);
-		out.append("\t\t}");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (a.e == -3) {");
-		out.append(newLine);
-		out.append("\t\tif (a.b % 1000 &lt; 500) {");
-		out.append(newLine);
-		out.append("\t\t\treturn a.b / 1000;");
-		out.append(newLine);
-		out.append("\t\t} else {");
-		out.append(newLine);
-		out.append("\t\t\treturn 1 + a.b / 1000;");
-		out.append(newLine);
-		out.append("\t\t}");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn a.b * power(10, a.e);");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append(newLine);
-		out.append("double_t scenario1(double_t k, double_t r1, double_t r1Levels, bool r1Active) {"); // Scenario 1
-		out.append(newLine);
-		out.append("\tdouble_t E;");
-		out.append(newLine);
-		out.append("\tif (r1Active) { //If we depend on active R1, the level of activity is the value of E");
-		out.append(newLine);
-		out.append("\t\tE = r1;");
-		out.append(newLine);
-		out.append("\t} else { //otherwise we find the inactivity level via the total number of levels");
-		out.append(newLine);
-		out.append("\t\tE = subtract(r1Levels, r1);");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn multiply(k, E);");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("double_t scenario2_3(double_t k, double_t r2, double_t r2Levels, bool r2Active, double_t r1, double_t r1Levels, bool r1Active) {"); // Scenarios 2 and 3
-		out.append(newLine);
-		out.append("\tdouble_t E, S;");
-		out.append(newLine);
-		out.append("\tif (r1Active) { //If we depend on active R1, the level of activity is the value of E");
-		out.append(newLine);
-		out.append("\t\tE = r1;");
-		out.append(newLine);
-		out.append("\t} else { //otherwise we find the inactivity level via the total number of levels");
-		out.append(newLine);
-		out.append("\t\tE = subtract(r1Levels, r1);");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\tif (r2Active) { //Same for R2");
-		out.append(newLine);
-		out.append("\t\tS = r2;");
-		out.append(newLine);
-		out.append("\t} else {");
-		out.append(newLine);
-		out.append("\t\tS = subtract(r2Levels, r2);");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn multiply(k, multiply(E, S));");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("");
-		out.append(newLine);
-		out.append("double_t int_to_double(int a) { //Used to translate an activity level into double."); // Translate an int to double
-		out.append(newLine);
-		out.append("\tdouble_t r;");
-		out.append(newLine);
-		out.append("\tif (a &lt; 10) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a * 1000;");
-		out.append(newLine);
-		out.append("\t\tr.e = -3;");
-		out.append(newLine);
-		out.append("\t} else if (a &lt; 100) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a * 100;");
-		out.append(newLine);
-		out.append("\t\tr.e = -2;");
-		out.append(newLine);
-		out.append("\t} else if (a &lt; 1000) {");
-		out.append(newLine);
-		out.append("\t\tr.b = a * 10;");
-		out.append(newLine);
-		out.append("\t\tr.e = -1;");
-		out.append(newLine);
-		out.append("\t} else if (a &lt; 10000) { //Our model supports up to 100 levels, so this should be the most it makes sense to check");
-		out.append(newLine);
-		out.append("\t\tr.b = a;");
-		out.append(newLine);
-		out.append("\t\tr.e = 0;");
-		out.append(newLine);
-		out.append("\t}");
-		out.append(newLine);
-		out.append("\treturn r;");
-		out.append(newLine);
-		out.append("}");
-		out.append(newLine);
+		
 		
 		out.append("</declaration>");
 		
@@ -699,11 +127,11 @@ public class VariablesModelReactantCentered extends VariablesModel {
 		String r2Id = r.get(REACTANT).as(String.class);
 		String rOutput = r.get(Model.Properties.OUTPUT_REACTANT).as(String.class);
 		out.append("//Reaction " + r1Id + " (" + m.getReactant(r1Id).get(Model.Properties.ALIAS).as(String.class) + ") " + (!r2Id.equals(rOutput)?("AND " + r2Id + " (" + m.getReactant(r2Id).get(Model.Properties.ALIAS).as(String.class) + ") "):"") + (r.get(INCREMENT).as(Integer.class)>0?"-->":"--|") + " " + (r2Id.equals(rOutput)?(r2Id + " (" + m.getReactant(r2Id).get(Model.Properties.ALIAS).as(String.class) + ")"):(rOutput + " (" + m.getReactant(rOutput).get(Model.Properties.ALIAS).as(String.class) + ")")));
-		out.append(newLine);
+		//out.append(newLine);
 		
-		out.append("timeActivity " + r.getId() + ";");
+		//out.append("timeActivity " + r.getId() + ";");
 		out.append(newLine);
-		out.append("const double_t k_" + r.getId() + " = " + formatDouble(r.get(Model.Properties.SCENARIO_PARAMETER_K).as(Double.class) / (m.getProperties().get(Model.Properties.SECS_POINT_SCALE_FACTOR).as(Double.class) * r.get(Model.Properties.LEVELS_SCALE_FACTOR + "_reaction").as(Double.class))) + ";");
+		out.append("const double k_" + r.getId() + " = " + (r.get(Model.Properties.SCENARIO_PARAMETER_K).as(Double.class) / (m.getProperties().get(Model.Properties.SECS_POINT_SCALE_FACTOR).as(Double.class) * r.get(Model.Properties.LEVELS_SCALE_FACTOR + "_reaction").as(Double.class))) + ";");
 		out.append(newLine);
 		out.append(newLine);
 		
@@ -721,9 +149,12 @@ public class VariablesModelReactantCentered extends VariablesModel {
 			tra.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
 			tra.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
 			
+			StringBuilder template = new StringBuilder("<template><name x=\"5\" y=\"5\">ODE_Model</name><declaration>");
+			
+			
 			for (Reactant r : m.getSortedReactantList()) {
 				if (!r.get(ENABLED).as(Boolean.class)) continue;
-				outString = new StringWriter();
+//				outString = new StringWriter();
 				Vector<Reaction> influencingReactions = new Vector<Reaction>();
 				for (Reaction re : m.getReactionCollection()) {
 					if (re.get(OUTPUT_REACTANT).as(String.class).equals(r.getId()))  { //If the reactant is downstream of a reaction, count that reaction
@@ -733,11 +164,11 @@ public class VariablesModelReactantCentered extends VariablesModel {
 				
 				if (influencingReactions.size() < 1) {
 					r.let(HAS_INFLUENCING_REACTIONS).be(false);
-					continue;
+//					continue;
 				}
 				r.let(HAS_INFLUENCING_REACTIONS).be(true);
 				
-				StringBuilder template = new StringBuilder("<template><name>Reactant_" + r.getId() + "</name><parameter>int&amp; R, const int MAX</parameter><declaration>int[-1, 1] delta" + (dAlternating?", deltaNew = 0, deltaOld = 0, deltaOldOld = 0, deltaOldOldOld = 0;\nbool deltaAlternating = false":"") + ";\ntime_t tL, tU;\nclock c;\ndouble_t totalRate;\n\n\n" + (dAlternating?"void updateDeltaOld() {\n\tdeltaOldOldOld = deltaOldOld;\n\tdeltaOldOld = deltaOld;\n\tdeltaOld = deltaNew;\n\tdeltaNew = delta;\n\tdeltaAlternating = false;\n\tif (deltaOldOldOld != 0) { //We have updated delta at least 4 times, so we can see whether we have an oscillation\n\t\tif (deltaNew == deltaOldOld &amp;&amp; deltaOld == deltaOldOldOld &amp;&amp; deltaNew != deltaOld) { //Pairwise equal and alternating (e.g. +1, -1, +1, -1): we are oscillating\n\t\t\tdeltaAlternating = true;\n\t\t\tdeltaNew = deltaOld = deltaOldOld = deltaOldOldOld = 0;\n\t\t}\n\t}\n}\n\n":"") + "void update() {\n");
+//				StringBuilder template = new StringBuilder("<template><name>Reactant_" + r.getId() + "</name><parameter>int&amp; R, const int MAX</parameter><declaration>int[-1, 1] delta" + (dAlternating?", deltaNew = 0, deltaOld = 0, deltaOldOld = 0, deltaOldOldOld = 0;\nbool deltaAlternating = false":"") + ";\ntime_t tL, tU;\nclock c;\ndouble_t totalRate;\n\n\n" + (dAlternating?"void updateDeltaOld() {\n\tdeltaOldOldOld = deltaOldOld;\n\tdeltaOldOld = deltaOld;\n\tdeltaOld = deltaNew;\n\tdeltaNew = delta;\n\tdeltaAlternating = false;\n\tif (deltaOldOldOld != 0) { //We have updated delta at least 4 times, so we can see whether we have an oscillation\n\t\tif (deltaNew == deltaOldOld &amp;&amp; deltaOld == deltaOldOldOld &amp;&amp; deltaNew != deltaOld) { //Pairwise equal and alternating (e.g. +1, -1, +1, -1): we are oscillating\n\t\t\tdeltaAlternating = true;\n\t\t\tdeltaNew = deltaOld = deltaOldOld = deltaOldOldOld = 0;\n\t\t}\n\t}\n}\n\n":"") + "void update() {\n");
 				for (Reaction re : influencingReactions) {
 					int scenario = re.get(SCENARIO).as(Integer.class);
 					boolean activeR1, activeR2;
@@ -929,12 +360,20 @@ public class VariablesModelReactantCentered extends VariablesModel {
 					}
 				}
 				template.append("</template>");
-				document = documentBuilder.parse(new ByteArrayInputStream(template.toString().getBytes()));
-				tra.transform(new DOMSource(document), new StreamResult(outString));
-				out.append(outString.toString());
-				out.append(newLine);
-				out.append(newLine);
+//				document = documentBuilder.parse(new ByteArrayInputStream(template.toString().getBytes()));
+//				tra.transform(new DOMSource(document), new StreamResult(outString));
+//				out.append(outString.toString());
+//				out.append(newLine);
+//				out.append(newLine);
 			}
+			
+			document = documentBuilder.parse(new ByteArrayInputStream(template.toString().getBytes()));
+			outString = new StringWriter();
+			tra.transform(new DOMSource(document), new StreamResult(outString));
+			out.append(outString.toString());
+			out.append(newLine);
+			out.append(newLine);
+
 		} catch (Exception e) {
 			System.err.println("Error: " + e);
 			e.printStackTrace();
@@ -950,9 +389,11 @@ public class VariablesModelReactantCentered extends VariablesModel {
 		// outputs the global variables necessary for the given reactant
 		out.append("//" + r.getId() + " = " + r.get(Model.Properties.ALIAS).as(String.class));
 		out.append(newLine);
-		out.append("int " + r.getId() + " := " + r.get(INITIAL_LEVEL).as(Integer.class) + ";");
+		out.append("clock " + r.getId() + ";"); //In the ODE model of UPPAAL, clocks are actually the variables
 		out.append(newLine);
-		out.append("const int " + r.getId() + "Levels := " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ";");
+		out.append("const int " + r.getId() + "Init = " + r.get(INITIAL_LEVEL).as(Integer.class) + ";");
+		out.append(newLine);
+		out.append("const int " + r.getId() + "Levels = " + r.get(NUMBER_OF_LEVELS).as(Integer.class) + ";");
 		out.append(newLine);
 		out.append(newLine);
 	}
