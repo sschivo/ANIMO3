@@ -23,10 +23,14 @@ public abstract class LevelResult {
 	 *            The connection between the IDs used in the model (and result series)
 	 * @param hisMapCytoscapeIDtoModelID
 	 *            The same thing, but to go in subtractFrom from the original Cytoscape id to the corresponding model id
+	 * @param myTimeScale
+	 * 			  The scale for the X axis (time) of the current LevelResult
+	 * @param hisTimeScale
+	 * 			  The scale for the X axis (time) of the subtractFrom LevelResult
 	 * @return
 	 */
 	public abstract LevelResult difference(LevelResult subtractFrom, Map<String, Long> myMapModelIDtoCytoscapeID,
-			Map<Long, String> hisMapCytoscapeIDtoModelID);
+			Map<Long, String> hisMapCytoscapeIDtoModelID, double myTimeScale, double hisTimeScale);
 
 	/**
 	 * Returns a new LevelResult where only the series whose names are in the given List are present. All other series are discarded.

@@ -988,7 +988,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 				}
 
 				SimpleLevelResult diff = (SimpleLevelResult)this.result.difference(differenceWith.result, myMapModelIDtoCytoscapeID,
-						hisMapCytoscapeIDtoModelID);
+						hisMapCytoscapeIDtoModelID, this.scale, differenceWith.scale);
 				if (diff.isEmpty()) {
 					JOptionPane
 							.showMessageDialog(
@@ -1228,8 +1228,13 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			}
 			CyNode node = net.getNode(id);
 			if (node == null) continue; //The node may be null if we are looking at a network where the node does not exist and playing a simulation from another network (where the node existed)
-			final double level = this.result.getConcentration(r, t);
+			final double level;
 			CyRow nodeRow = net.getRow(node);
+			if (t == 0) {
+				level = nodeRow.get(Model.Properties.INITIAL_LEVEL, Integer.class);
+			} else {
+				level = this.result.getConcentration(r, t);
+			}
 			Animo.setRowValue(nodeRow, Model.Properties.SHOWN_LEVEL, Double.class, level / levels);
 		}
 		

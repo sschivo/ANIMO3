@@ -412,14 +412,16 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 							 reactantCenteredTitle = "Reactant-centered model (less precise)",
 							 reactantCenteredMorePreciseTitle = "Reactant-centered model (recommended)", // (model B)
 							 reactantCenteredMorePreciseNewTitle = "Reactant-centered model, more precise  (model Q)",
-							 reactantCenteredOpaalTitle = "Reactant-centered for multi-core analysis";
+							 reactantCenteredOpaalTitle = "Reactant-centered for multi-core analysis",
+							 ODEmodelTitle = "Ordinary Differential Equations (ODEs) for UPPAAL";
 				final JRadioButton useReactionCentered = new JRadioButton(reactionCenteredTitle),
 								   useReactionCenteredTables = new JRadioButton(reactionCenteredTablesTitle),
 								   useReactionCenteredTablesOld = new JRadioButton(reactionCenteredTablesOldTitle),
 								   useReactantCentered = new JRadioButton(reactantCenteredTitle),
 								   useReactantCenteredMorePrecise = new JRadioButton(reactantCenteredMorePreciseTitle),
 								   useReactantCenteredMorePreciseNew = new JRadioButton(reactantCenteredMorePreciseNewTitle),
-								   useReactantCenteredOpaal = new JRadioButton(reactantCenteredOpaalTitle);
+								   useReactantCenteredOpaal = new JRadioButton(reactantCenteredOpaalTitle),
+								   useODEmodel = new JRadioButton(ODEmodelTitle);
 //				useReactionCentered.setToolTipText("Advised when the network is not reaction-heavy. (generally NOT recommended)");
 //				useReactionCenteredTables.setToolTipText("Advised when the network is not reaction-heavy. It is slower and uses more memory. (NOT recommended)");
 //				useReactantCentered.setToolTipText("Faster method, especially with reaction-heavy networks (recommended)");
@@ -431,6 +433,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				useReactantCenteredMorePreciseNew.setToolTipText("Fast and uses little memory. More precise (different approach), experimental");
 				useReactantCenteredOpaal
 						.setToolTipText("Reactant-centered model for use the generated model with opaal and ltsmin");
+				useODEmodel.setToolTipText("Ordinary Differential Equations model (always deterministic!) to be analyzed with UPPAAL's solver");
 				final ButtonGroup reactionCenteredGroup = new ButtonGroup();
 				reactionCenteredGroup.add(useReactionCentered);
 				reactionCenteredGroup.add(useReactionCenteredTables);
@@ -439,11 +442,13 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				reactionCenteredGroup.add(useReactantCenteredMorePrecise);
 				reactionCenteredGroup.add(useReactantCenteredMorePreciseNew);
 				reactionCenteredGroup.add(useReactantCenteredOpaal);
+				reactionCenteredGroup.add(useODEmodel);
 				String modelType = null;
 				modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY);
 				useReactionCenteredTablesOld.setSelected(false);
 				useReactantCenteredMorePrecise.setSelected(false);
 				useReactantCenteredMorePreciseNew.setSelected(false);
+				useODEmodel.setSelected(false);
 				if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED)) {
 					useReactionCentered.setSelected(true);
 					useReactionCenteredTables.setSelected(false);
@@ -482,6 +487,12 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					useReactionCenteredTables.setSelected(false);
 					useReactantCentered.setSelected(false);
 					useReactantCenteredOpaal.setSelected(true);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredOpaal.setSelected(false);
+					useODEmodel.setSelected(true);
 				} else {
 					useReactionCentered.setSelected(false);
 					useReactionCenteredTables.setSelected(false);
@@ -501,6 +512,7 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 //				}
 				if (areWeTheDeveloper) {
 					modelTypePanel.add(useReactionCenteredTablesOld);
+					modelTypePanel.add(useODEmodel);
 				}
 				content.add(new LabelledField("Model type", modelTypePanel), new GridBagConstraints(0, 2, 1, 1, 1.0,
 						0.5, GridBagConstraints.CENTER, GridBagConstraints.BOTH, new Insets(0, 0, 0, 0), 0, 0));
@@ -541,6 +553,8 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW;
 						} else if (useReactantCenteredOpaal.isSelected()) {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL;
+						} else if (useODEmodel.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_ODE;
 						} else {
 							modelTypeValue = XmlConfiguration.DEFAULT_MODEL_TYPE;
 						}

@@ -41,13 +41,15 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 
 	@Override
 	public LevelResult difference(LevelResult subtractFrom_, Map<String, Long> myMapModelIDtoCytoscapeID,
-			Map<Long, String> hisMapCytoscapeIDtoModel) {
+			Map<Long, String> hisMapCytoscapeIDtoModel, double myTimeScale, double hisTimeScale) {
 		SimpleLevelResult subtractFrom = (SimpleLevelResult)subtractFrom_;
 		Map<String, SortedMap<Double, Double>> lev = new HashMap<String, SortedMap<Double, Double>>();
 		// System.err.println("Differenzio tra " + subtractFrom + " (" + subtractFrom.getNumberOfLevels() + " livelli) e " + this + " (" + this.getNumberOfLevels() + " livelli)");
 		int maxNLevels = Math.max(subtractFrom.getNumberOfLevels(), this.getNumberOfLevels());
 		List<Double> idxSub = subtractFrom.getTimeIndices(), idxThis = this.getTimeIndices();
-		double minDuration = Math.min(idxSub.get(idxSub.size() - 1), idxThis.get(idxThis.size() - 1));
+		double timeConversionFactor = hisTimeScale / myTimeScale; //I will always multiply my time values by this factor, to get them in the same scale as the other's
+																  //This also means that the result will be in HIS time scale
+		double minDuration = Math.min(idxSub.get(idxSub.size() - 1), idxThis.get(idxThis.size() - 1) * timeConversionFactor);
 		for (String myKey : levels.keySet()) {
 			if (!myMapModelIDtoCytoscapeID.containsKey(myKey))
 				continue; // Skip the edge identifiers
@@ -77,6 +79,7 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 				}
 			}
 			for (Double k : m2.keySet()) {
+				k = k * timeConversionFactor; //Rescale the time to be at the same scale as his
 				if (k <= minDuration) {
 					mRes.put(
 							k,

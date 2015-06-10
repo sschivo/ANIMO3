@@ -84,6 +84,13 @@ public class RunAction extends AnimoActionTask {
 			monitor.setTitle(Animo.APP_NAME + " - UPPAAL model analysis");
 
 			timeTo = (int) (nMinutesToSimulate * 60.0 / model.getProperties().get(SECONDS_PER_POINT).as(Double.class));
+			//If model type == ODE, avoid using SECONDS_PER_POINT: we don't need it
+			XmlConfiguration configuration = AnimoBackend.get().configuration();
+			String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
+			if (modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) {
+				timeTo = nMinutesToSimulate * 60;
+			}
+			
 			scale = (double) nMinutesToSimulate / timeTo;
 
 			// this.monitor.setStatus("Analyzing model with UPPAAL");

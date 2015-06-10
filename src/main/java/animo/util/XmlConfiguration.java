@@ -72,7 +72,8 @@ public class XmlConfiguration {
 			MODEL_TYPE_REACTANT_CENTERED = "ReactantCentered",
 			MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE = "ReactantCenteredMorePrecise",
 			MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW = "ReactantCenteredMorePreciseNew",
-			MODEL_TYPE_REACTANT_CENTERED_OPAAL = "ReactantCenteredOpaal";
+			MODEL_TYPE_REACTANT_CENTERED_OPAAL = "ReactantCenteredOpaal",
+			MODEL_TYPE_ODE = "ODEforUPPAAL";
 	public static final String DEFAULT_MODEL_TYPE = MODEL_TYPE_REACTANT_CENTERED;
 
 	/**

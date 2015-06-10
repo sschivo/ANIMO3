@@ -96,6 +96,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL)) {
 				variablesModel = new VariablesModelOpaal();
 				dot = "_";
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) {
+				variablesModel = new VariablesModelODE();
 			} else {
 				variablesModel = new VariablesModelReactantCentered(); //Reactant-centered model is the default
 			}
@@ -324,6 +326,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL)) {
 				variablesModel = new VariablesModelOpaal(); //Multi-core reachability analysis
 				dot = "_";
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) {
+				variablesModel = new VariablesModelODE(); //ODE model
 			} else {
 				variablesModel = new VariablesModelReactantCentered(); //Reactant-centered model is the default
 			}
@@ -336,7 +340,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 					build.append(r.getId() + ", ");
 				}
 			}
-			if (!modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) { //That model is so old that it doesn't even output the dot + "T" for the reaction times
+			if (!modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD) //That model is so old that it doesn't even output the dot + "T" for the reaction times
+				&& !modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) { //The ODE model doesn't show the reaction "speeds" (at the moment)
 				for (Reaction r : m.getReactionCollection()) {
 					build.append(r.getId() + dot + "T, ");
 				}
@@ -739,7 +744,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 		private SimpleLevelResult analyseFromStream(Model m, BufferedReader br, int timeTo) throws Exception {
 			long startTime, endTime;
 			String line = null;
-			Pattern simPointPattern = Pattern.compile("\\([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?\\,[0-9]*\\)");
+			Pattern simPointPattern = Pattern.compile("\\([-+]?[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?\\,[0-9]*\\.?[0-9]+([eE][-+]?[0-9]+)?\\)"); //Both the time and the level can be double (at the moment, the level is double only in ODE models)
 			int maxNumberOfLevels = m.getProperties().get(NUMBER_OF_LEVELS).as(Integer.class);
 			HashMap<String, Double> numberOfLevels = new HashMap<String, Double>();
 			Map<String, SortedMap<Double, Double>> levels = new HashMap<String, SortedMap<Double, Double>>();
@@ -782,7 +787,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			
 			while ((line = br.readLine()) != null) {
 				reactantId = line.substring(0, line.indexOf(":"));
-				//System.err.println(reactantId + ": ");
+				System.err.println(reactantId + ": ");
 				line = br.readLine();
 				//System.err.println(line);
 				line = line.substring(line.indexOf(":"));
@@ -801,11 +806,11 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				
 				while (pointMatcher.find()) {
 					String point = pointMatcher.group();
-					//System.err.print(point);
+					System.err.print(point);
 					point = point.substring(1, point.length() - 1);
-					//System.err.println("-->" + point);
+					System.err.println("-->" + point);
 					double time = Double.valueOf(point.substring(0, point.indexOf(",")).trim());
-					double level = Integer.valueOf(point.substring(point.indexOf(",") + 1).trim());
+					double level = Double.valueOf(point.substring(point.indexOf(",") + 1).trim());
 					String chosenMap = reactantId;
 					if (m.getReactant(reactantId) != null) { //it is a reactant, so rescale the value as activity level, using the maximum number of levels
 						if (numberOfLevels.get(reactantId) != maxNumberOfLevels) {
