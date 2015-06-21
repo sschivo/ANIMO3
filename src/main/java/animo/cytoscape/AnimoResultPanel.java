@@ -1231,11 +1231,11 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 			final double level;
 			CyRow nodeRow = net.getRow(node);
 			if (t == 0) {
-				level = nodeRow.get(Model.Properties.INITIAL_LEVEL, Integer.class);
+				level = nodeRow.get(Model.Properties.INITIAL_LEVEL, Integer.class) / nodeRow.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class); //Here the data are taken directly from the network, not from the LevelResult: each node may have a different number of levels
 			} else {
-				level = this.result.getConcentration(r, t);
+				level = this.result.getConcentration(r, t) / levels;
 			}
-			Animo.setRowValue(nodeRow, Model.Properties.SHOWN_LEVEL, Double.class, level / levels);
+			Animo.setRowValue(nodeRow, Model.Properties.SHOWN_LEVEL, Double.class, level);
 		}
 		
 		try {

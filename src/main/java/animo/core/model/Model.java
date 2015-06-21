@@ -764,9 +764,9 @@ public class Model implements Serializable {
 								* (1 + uncertainty / 100.0)));
 			}
 			
-			if (minValueInTables == 0) {
+			if (minValueInTables <= 1) {
 				double proposedSecStep = secPerStep
-						/ (1.1 * minValueRate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0)));
+						/ (4 * minValueRate / (secStepFactor * levelsScaleFactor * (1 - uncertainty / 100.0)));
 				if (proposedSecStep < maxSecStep) {
 					maxSecStep = proposedSecStep;
 				}

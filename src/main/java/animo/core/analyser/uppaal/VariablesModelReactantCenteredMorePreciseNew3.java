@@ -21,7 +21,7 @@ import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.util.XmlConfiguration;
 
-public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
+public class VariablesModelReactantCenteredMorePreciseNew3 extends VariablesModel {
 
 	private static final String REACTANT_INDEX = Model.Properties.REACTANT_INDEX,
 								OUTPUT_REACTANT = Model.Properties.OUTPUT_REACTANT,
@@ -56,6 +56,8 @@ public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
 		out.append("const int N_REACTANTS = " + countReactants + ";");
 		out.append(newLine);
 		out.append("broadcast chan reacting[N_REACTANTS];");
+		out.append(newLine);
+		out.append("clock c[N_REACTANTS];");
 		out.append(newLine);
 				
 		useOldResetting = true;
@@ -732,8 +734,10 @@ public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
 				}
 				r.let(HAS_INFLUENCING_REACTIONS).be(true);
 				
+				int myIndex = r.get(REACTANT_INDEX).as(Integer.class);
+				
 				StringBuilder template = new StringBuilder("<template><name>Reactant_" + r.getId() + "</name><parameter>int&amp; R, const int MAX</parameter>");
-				template.append("<declaration>int[-1, 1] delta = 0, oldDelta = 0;\ntime_t tL, tU, tHalf;\nclock c;\ndouble_t totalRate = INFINITE_TIME_DOUBLE, oldRate = INFINITE_TIME_DOUBLE;\n\n");
+				template.append("<declaration>int[-1, 1] delta = 0, oldDelta = 0;\ntime_t tL, tU, tHalf;\ndouble_t totalRate = INFINITE_TIME_DOUBLE, oldRate = INFINITE_TIME_DOUBLE;\n\n");
 				template.append("\ndouble_t compute_rate() {\n");
 				for (Reaction re : influencingReactions) {
 					int scenario = re.get(SCENARIO).as(Integer.class);
@@ -865,54 +869,23 @@ public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
 				template.append("\tif (tL != INFINITE_TIME &amp;&amp; tL &gt; tU) { //We use rounded things: maybe the difference between tL and tU was not so large, and with some rounding problems we could have this case\n\t\ttL = tU;\n\t}\n}\n\n");
 				template.append("void react() {\n\tif (0 &lt;= R + delta &amp;&amp; R + delta &lt;= MAX) {\n\t\tR = R + delta;\n\t}\n\tupdate();\n}\n\n");
 				template.append("bool rate_significantly_changed(double_t oldRate, double_t newRate) { //True if the new rate is at least double the old one, or if the sign of the rates is different (the reaction changes direction)\n\tdouble_t diff = subtract(multiply(newRate, inverse(oldRate)), TWO);\n\tif ((oldRate.b &lt; 0 &amp;&amp; newRate.b &gt;= 0 || oldRate.b &gt;= 0 &amp;&amp; newRate.b &lt; 0) || diff.b &gt;= 0) {\n\t\treturn true;\n\t}\n\treturn false;\n}\n\n");
-				template.append("void decide_reset() {\n\tif (rate_significantly_changed(oldRate, totalRate)) { //If the updated conditions have significantly changed the rate, restart the reaction from the beginning, without considering the work already done.\n\t\tc = 0;\n\t}\n}\n\n");
-				template.append("void decide_react() {\n\tif (rate_significantly_changed(totalRate, compute_rate())) { //If the update in conditions would significantly change the rate, rush the reaction (we have completed at least 50% of it: see the guard c &gt;= tHalf)\n\t\ttL = 0;\n\t\ttU = 0;\n\t\tc = 0;\n\t}\n}\n\n");
-				//template.append("void doReset() {\n\tdouble_t diff = subtract(multiply(totalRate, inverse(oldRate)), TWO);\n\tif (oldDelta != delta || diff.b >= 0) {\n\t\tc = 0;\n\t}\n}\n\n");
+				template.append("void decide_reset() {\n\tif (rate_significantly_changed(oldRate, totalRate)) { //If the updated conditions have significantly changed the rate, restart the reaction from the beginning, without considering the work already done.\n\t\tc[" + myIndex + "] = 0;\n\t}\n}\n\n");
+				template.append("void decide_react() {\n\tif (rate_significantly_changed(totalRate, compute_rate())) { //If the update in conditions would significantly change the rate, rush the reaction (we have completed at least 50% of it: see the guard c[" + myIndex + "] &gt;= tHalf)\n\t\ttL = 0;\n\t\ttU = 0;\n\t\tc[" + myIndex + "] = 0;\n\t}\n}\n\n");
 				template.append("bool can_react() {\n\treturn (tL != INFINITE_TIME &amp;&amp; ((delta &gt;= 0 &amp;&amp; R &lt; MAX) || (delta &lt; 0 &amp;&amp; R &gt; 0)));\n}\n\n");
 				template.append("bool cant_react() {\n\treturn (tL == INFINITE_TIME || (delta &gt;= 0 &amp;&amp; R == MAX) || (delta &lt; 0 &amp;&amp; R == 0));\n}</declaration>");
-				//template.append("<location id=\"id0\" x=\"-1896\" y=\"-728\"><name x=\"-1960\" y=\"-752\">stubborn</name><committed/></location><location id=\"id1\" x=\"-1528\" y=\"-728\"><committed/></location><location id=\"id6\" x=\"-1256\" y=\"-728\"><name x=\"-1248\" y=\"-752\">start</name><committed/></location><location id=\"id7\" x=\"-1552\" y=\"-856\"><name x=\"-1656\" y=\"-872\">not_reacting</name>" + (useOldResetting?"":"<label kind=\"invariant\" x=\"-1656\" y=\"-856\">c'==0</label>") + "</location><location id=\"id8\" x=\"-1416\" y=\"-728\"><name x=\"-1400\" y=\"-752\">updating</name><committed/></location><location id=\"id9\" x=\"-1664\" y=\"-728\"><name x=\"-1728\" y=\"-744\">waiting</name><label kind=\"invariant\" x=\"-1728\" y=\"-716\">c &lt;= tU</label></location><init ref=\"id6\"/><transition><source ref=\"id1\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-744\">c &lt;= tU</label></transition><transition><source ref=\"id1\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-704\">c &gt; tU</label><label kind=\"assignment\" x=\"-1608\" y=\"-688\">c := tU</label><nail x=\"-1528\" y=\"-688\"/><nail x=\"-1608\" y=\"-688\"/></transition><transition><source ref=\"id0\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1816\" y=\"-632\">c &lt; tHalf</label><label kind=\"assignment\" x=\"-1832\" y=\"-616\">update(), doReset()</label><nail x=\"-1848\" y=\"-616\"/><nail x=\"-1464\" y=\"-616\"/></transition><transition><source ref=\"id0\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1820\" y=\"-696\">c &gt;= tHalf</label><label kind=\"synchronisation\" x=\"-1824\" y=\"-680\">reacting[" + r.get(REACTANT_INDEX).as(Integer.class) + "]!</label><label kind=\"assignment\" x=\"-1832\" y=\"-664\">react(), c := 0</label><nail x=\"-1840\" y=\"-664\"/><nail x=\"-1472\" y=\"-664\"/></transition><transition><source ref=\"id6\"/><target ref=\"id8\"/><label kind=\"assignment\" x=\"-1344\" y=\"-728\">update()</label></transition>");
+				//template.append("bool someone_is_reacting() .... 
 				template.append("<location id=\"id0\" x=\"-1896\" y=\"-728\"><name x=\"-1960\" y=\"-752\">stubborn</name><committed/></location>");
 				template.append("<location id=\"id1\" x=\"-1528\" y=\"-728\"><committed/></location><location id=\"id6\" x=\"-1256\" y=\"-728\"><name x=\"-1248\" y=\"-752\">start</name><committed/></location>");
 				template.append("<location id=\"id7\" x=\"-1552\" y=\"-856\"><name x=\"-1656\" y=\"-872\">not_reacting</name>" + (useOldResetting?"":"<label kind=\"invariant\" x=\"-1656\" y=\"-856\">c'==0</label>") + "</location>");
 				template.append("<location id=\"id8\" x=\"-1416\" y=\"-728\"><name x=\"-1400\" y=\"-752\">updating</name><committed/></location>");
-				template.append("<location id=\"id9\" x=\"-1664\" y=\"-728\"><name x=\"-1728\" y=\"-744\">waiting</name><label kind=\"invariant\" x=\"-1728\" y=\"-716\">c &lt;= tU</label></location>");
+				template.append("<location id=\"id9\" x=\"-1664\" y=\"-728\"><name x=\"-1728\" y=\"-744\">waiting</name><label kind=\"invariant\" x=\"-1728\" y=\"-716\">c[" + myIndex + "] &lt;= tU</label></location>");
 				template.append("<init ref=\"id6\"/>");
-				template.append("<transition><source ref=\"id1\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-744\">c &lt;= tU</label></transition>");
-				template.append("<transition><source ref=\"id1\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-704\">c &gt; tU</label><label kind=\"assignment\" x=\"-1608\" y=\"-688\">c := tU</label><nail x=\"-1528\" y=\"-688\"/><nail x=\"-1608\" y=\"-688\"/></transition>");
-				template.append("<transition><source ref=\"id0\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1816\" y=\"-632\">c &lt; tHalf</label><label kind=\"assignment\" x=\"-1832\" y=\"-616\">update(), decide_reset()</label><nail x=\"-1848\" y=\"-616\"/><nail x=\"-1464\" y=\"-616\"/></transition>");
-				template.append("<transition><source ref=\"id0\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1820\" y=\"-680\">c &gt;= tHalf</label><label kind=\"assignment\" x=\"-1832\" y=\"-664\">decide_react()</label><nail x=\"-1840\" y=\"-664\"/><nail x=\"-1744\" y=\"-664\"/></transition>");
+				template.append("<transition><source ref=\"id1\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-744\">c[" + myIndex + "] &lt;= tU</label></transition>");
+				template.append("<transition><source ref=\"id1\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1608\" y=\"-704\">c[" + myIndex + "] &gt; tU</label><label kind=\"assignment\" x=\"-1608\" y=\"-688\">c[" + myIndex + "] := tU</label><nail x=\"-1528\" y=\"-688\"/><nail x=\"-1608\" y=\"-688\"/></transition>");
+				template.append("<transition><source ref=\"id0\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1816\" y=\"-632\">c[" + myIndex + "] &lt; tHalf</label><label kind=\"assignment\" x=\"-1832\" y=\"-616\">update(), decide_reset()</label><nail x=\"-1848\" y=\"-616\"/><nail x=\"-1464\" y=\"-616\"/></transition>");
+				template.append("<transition><source ref=\"id0\"/><target ref=\"id9\"/><label kind=\"guard\" x=\"-1820\" y=\"-680\">c[" + myIndex + "] &gt;= tHalf</label><label kind=\"assignment\" x=\"-1832\" y=\"-664\">decide_react()</label><nail x=\"-1840\" y=\"-664\"/><nail x=\"-1744\" y=\"-664\"/></transition>");
 				template.append("<transition><source ref=\"id6\"/><target ref=\"id8\"/><label kind=\"assignment\" x=\"-1344\" y=\"-728\">update()</label></transition>");
-
-//				//Solo unc == 0!!
-//				template.append("<transition><source ref=\"id9\"/><target ref=\"id0\"/><label kind=\"select\" x=\"-1728\" y=\"-832\">i : int[0, N_REACTANTS-1]</label><label kind=\"guard\" x=\"-1728\" y=\"-816\">c &gt;= tL");
-//				for (Reaction re : influencingReactions) {
-//					int scenario = re.get(SCENARIO).as(Integer.class);
-//					Reactant catalyst = m.getReactant(re.get(CATALYST).as(String.class)),
-//							 reactant = m.getReactant(re.get(REACTANT).as(String.class)); //This is not null only when scenario != 0
-//					switch (scenario) {
-//						case 0:
-//							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)) {
-//								template.append(" &amp;&amp; i != " + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class));
-//							}
-//							break;
-//						case 1:
-//						case 2: //In this case, CATALYST = E1, REACTANT = E2 (the two upstream reactants)
-//							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)) {
-//								template.append(" &amp;&amp; i != " + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class));
-//							}
-//							if (reactant.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class)) {
-//								template.append(" &amp;&amp; i != " + m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX).as(Integer.class));
-//							}
-//							break;
-//						default:
-//							break;
-//					}
-//				}
-//				template.append("</label><label kind=\"synchronisation\" x=\"-1728\" y=\"-800\">reacting[i]?</label><label kind=\"assignment\" x=\"-1728\" y=\"-784\">react(), c := 0</label><nail x=\"-1618\" y=\"-800\"/><nail x=\"-1738\" y=\"-800\"/></transition>");
-				
-				
-				
-				
+				template.append("<transition><source ref=\"id9\"/><target ref=\"id9\"/><label kind=\"select\" x=\"-1728\" y=\"-816\">i : int[0, N_REACTANTS-1]</label><label kind=\"guard\" x=\"-1728\" y=\"-816\">c[" + myIndex + "] &gt;= tL</label><label kind=\"synchronisation\" x=\"-1728\" y=\"-800\">reacting[i]?</label><label kind=\"assignment\" x=\"-1728\" y=\"-784\">react(), c[" + myIndex + "] := 0</label><nail x=\"-1738\" y=\"-800\"/><nail x=\"-1718\" y=\"-800\"/></transition>");
 				int y1 = -904,
 					y2 = -888,
 					y3 = -848,
@@ -926,7 +899,7 @@ public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
 						case 0:
 							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(catalyst)) {
 								alreadyOutputReactants.add(catalyst);
-								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update()" + (useOldResetting?", c := 0":"") + "</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
+								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update()" + (useOldResetting?", c[" + myIndex + "] := 0":"") + "</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
 								y1 += incrY;
 								y2 += incrY;
 							}
@@ -935,13 +908,13 @@ public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
 						case 2: //In this case, CATALYST = E1, REACTANT = E2 (the two upstream reactants)
 							if (catalyst.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(catalyst)) {
 								alreadyOutputReactants.add(catalyst);
-								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update()" + (useOldResetting?", c := 0":"") + "</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
+								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(CATALYST).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update()" + (useOldResetting?", c[" + myIndex + "] := 0":"") + "</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
 								y1 += incrY;
 								y2 += incrY;
 							}
 							if (reactant.get(REACTANT_INDEX).as(Integer.class) != r.get(REACTANT_INDEX).as(Integer.class) && !alreadyOutputReactants.contains(reactant)) {
 								alreadyOutputReactants.add(reactant);
-								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update()" + (useOldResetting?", c := 0":"") + "</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
+								template.append("<transition><source ref=\"id7\"/><target ref=\"id8\"/><label kind=\"synchronisation\" x=\"-1512\" y=\"" + y1 + "\">reacting[" + m.getReactant(re.get(REACTANT).as(String.class)).get(REACTANT_INDEX).as(Integer.class) + "]?</label><label kind=\"assignment\" x=\"-1528\" y=\"" + y2 + "\">update()" + (useOldResetting?", c[" + myIndex + "] := 0":"") + "</label><nail x=\"-1552\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y2 + "\"/><nail x=\"-1376\" y=\"" + y3 + "\"/></transition>");
 								y1 += incrY;
 								y2 += incrY;
 							}
@@ -950,7 +923,7 @@ public class VariablesModelReactantCenteredMorePrecise extends VariablesModel {
 							break;
 					}
 				}
-				template.append("<transition><source ref=\"id8\"/><target ref=\"id7\"/><label kind=\"guard\" x=\"-1512\" y=\"-840\">cant_react()</label><nail x=\"-1416\" y=\"-824\"/><nail x=\"-1552\" y=\"-824\"/></transition><transition><source ref=\"id8\"/><target ref=\"id1\"/><label kind=\"guard\" x=\"-1512\" y=\"-744\">can_react()</label></transition><transition><source ref=\"id9\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1576\" y=\"-816\">c &gt;= tL</label><label kind=\"synchronisation\" x=\"-1584\" y=\"-800\">reacting[" + r.get(REACTANT_INDEX).as(Integer.class) + "]!</label><label kind=\"assignment\" x=\"-1592\" y=\"-784\">react(), c := 0</label><nail x=\"-1632\" y=\"-784\"/><nail x=\"-1464\" y=\"-784\"/></transition>");
+				template.append("<transition><source ref=\"id8\"/><target ref=\"id7\"/><label kind=\"guard\" x=\"-1512\" y=\"-840\">cant_react()</label><nail x=\"-1416\" y=\"-824\"/><nail x=\"-1552\" y=\"-824\"/></transition><transition><source ref=\"id8\"/><target ref=\"id1\"/><label kind=\"guard\" x=\"-1512\" y=\"-744\">can_react()</label></transition><transition><source ref=\"id9\"/><target ref=\"id8\"/><label kind=\"guard\" x=\"-1576\" y=\"-816\">c[" + myIndex + "] &gt;= tL</label><label kind=\"synchronisation\" x=\"-1584\" y=\"-800\">reacting[" + myIndex + "]!</label><label kind=\"assignment\" x=\"-1592\" y=\"-784\">react(), c[" + myIndex + "] := 0</label><nail x=\"-1632\" y=\"-784\"/><nail x=\"-1464\" y=\"-784\"/></transition>");
 				y1 = -744;
 				y2 = -728;
 				incrY = -48;

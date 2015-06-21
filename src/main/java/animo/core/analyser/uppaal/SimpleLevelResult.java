@@ -49,12 +49,13 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 		List<Double> idxSub = subtractFrom.getTimeIndices(), idxThis = this.getTimeIndices();
 		double timeConversionFactor = hisTimeScale / myTimeScale; //I will always multiply my time values by this factor, to get them in the same scale as the other's
 																  //This also means that the result will be in HIS time scale
+		System.err.println("His scale: " + hisTimeScale + ", my scale: " + myTimeScale + ", conversion factor: " + timeConversionFactor);
 		double minDuration = Math.min(idxSub.get(idxSub.size() - 1), idxThis.get(idxThis.size() - 1) * timeConversionFactor);
 		for (String myKey : levels.keySet()) {
 			if (!myMapModelIDtoCytoscapeID.containsKey(myKey))
 				continue; // Skip the edge identifiers
 			Long myCytoID = myMapModelIDtoCytoscapeID.get(myKey);
-			// System.err.println(myKey + " --> " + myCytoID + " --> " + hisMapCytoscapeIDtoModel.get(myCytoID));
+			System.err.println(myKey + " --> " + myCytoID + " --> " + hisMapCytoscapeIDtoModel.get(myCytoID));
 			if (!hisMapCytoscapeIDtoModel.containsKey(myCytoID)) {
 				// Skip the nodes that the other does not have
 				continue;
@@ -70,21 +71,26 @@ public class SimpleLevelResult extends LevelResult implements Serializable {
 				// Take first one an then the other as a reference for the X values. Please note: this means that the resulting series will have a number of points that is about as
 				// big as the sum of the two input series, so it would not be ideal to continue to compute differences of differences of differences...
 				if (k <= minDuration) {
+					System.err.println("(" + k + ", " + subtractFrom.getInterpolatedConcentration(hisKey, k)
+							/ subtractFrom.getNumberOfLevels() + ")\t(" + (k / timeConversionFactor) + ", " + this.getInterpolatedConcentration(
+									myKey, k / timeConversionFactor) / this.getNumberOfLevels() + ")");
 					mRes.put(
 							k,
 							maxNLevels
 									* (subtractFrom.getInterpolatedConcentration(hisKey, k)
 											/ subtractFrom.getNumberOfLevels() - this.getInterpolatedConcentration(
-											myKey, k) / this.getNumberOfLevels()));
+											myKey, k / timeConversionFactor) / this.getNumberOfLevels())); //Translate "his" time into "my" time
 				}
 			}
 			for (Double k : m2.keySet()) {
-				k = k * timeConversionFactor; //Rescale the time to be at the same scale as his
-				if (k <= minDuration) {
+				if (k * timeConversionFactor <= minDuration) {
+					System.err.println("(" + (k * timeConversionFactor) + ", " + subtractFrom.getInterpolatedConcentration(hisKey, k * timeConversionFactor)
+							/ subtractFrom.getNumberOfLevels() + ")\t(" + k + ", " + this.getInterpolatedConcentration(
+									myKey, k) / this.getNumberOfLevels() + ")");
 					mRes.put(
-							k,
+							k * timeConversionFactor, //Rescale the time to be at the same scale as his
 							maxNLevels
-									* (subtractFrom.getInterpolatedConcentration(hisKey, k)
+									* (subtractFrom.getInterpolatedConcentration(hisKey, k * timeConversionFactor) //Always translate "my" time into "his" time
 											/ subtractFrom.getNumberOfLevels() - this.getInterpolatedConcentration(
 											myKey, k) / this.getNumberOfLevels()));
 				}

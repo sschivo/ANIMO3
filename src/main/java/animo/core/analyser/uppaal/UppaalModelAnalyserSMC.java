@@ -87,6 +87,14 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				variablesModel = new VariablesModelReactantCenteredMorePrecise(); //Reactant-centered model, "more precise" version (model "B")
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW)) {
 				variablesModel = new VariablesModelReactantCenteredMorePreciseNew(); //Reactant-centered model, "more precise" version (model "Q", different approach)
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW4)) {
+				variablesModel = new VariablesModelReactantCenteredMorePreciseNew4(); //Reactant-centered model, "more precise" version (no idea)
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_SUPER_DETERMINISTIC)) {
+				variablesModel = new VariablesModelReactantCenteredSuperDeterministic(); //Reactant-centered super-deterministic model
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC)) {
+				variablesModel = new VariablesModelReactantCenteredDeterministic(); //Reactant-centered candidate deterministic model
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2)) {
+				variablesModel = new VariablesModelReactantCenteredDeterministic2(); //Reactant-centered candidate deterministic model2
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
 				variablesModel = new VariablesModelReactionCenteredTables(); //Reaction-centered with tables
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
@@ -317,6 +325,14 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				variablesModel = new VariablesModelReactantCenteredMorePrecise(); //Reactant-centered model, "more precise" version (model "B")
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW)) {
 				variablesModel = new VariablesModelReactantCenteredMorePreciseNew(); //Reactant-centered model, "more precise" version (model "Q", different approach)
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW4)) {
+				variablesModel = new VariablesModelReactantCenteredMorePreciseNew4(); //Reactant-centered model, "more precise" version (no idea what it is)
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_SUPER_DETERMINISTIC)) {
+				variablesModel = new VariablesModelReactantCenteredSuperDeterministic(); //Reactant-centered super deterministic
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC)) {
+				variablesModel = new VariablesModelReactantCenteredDeterministic(); //Reactant-centered candidate deterministic
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2)) {
+				variablesModel = new VariablesModelReactantCenteredDeterministic2(); //Reactant-centered candidate deterministic2
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
 				variablesModel = new VariablesModelReactionCenteredTables(); //Reaction-centered with tables
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
@@ -787,7 +803,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			
 			while ((line = br.readLine()) != null) {
 				reactantId = line.substring(0, line.indexOf(":"));
-				System.err.println(reactantId + ": ");
+				//System.err.println(reactantId + ": ");
 				line = br.readLine();
 				//System.err.println(line);
 				line = line.substring(line.indexOf(":"));
@@ -806,9 +822,9 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				
 				while (pointMatcher.find()) {
 					String point = pointMatcher.group();
-					System.err.print(point);
+					//System.err.print(point);
 					point = point.substring(1, point.length() - 1);
-					System.err.println("-->" + point);
+					//System.err.println("-->" + point);
 					double time = Double.valueOf(point.substring(0, point.indexOf(",")).trim());
 					double level = Double.valueOf(point.substring(point.indexOf(",") + 1).trim());
 					String chosenMap = reactantId;

@@ -411,7 +411,11 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 							 reactionCenteredTablesOldTitle = "Reaction-centered model with pre-computed tables, old version",
 							 reactantCenteredTitle = "Reactant-centered model (less precise)",
 							 reactantCenteredMorePreciseTitle = "Reactant-centered model (recommended)", // (model B)
-							 reactantCenteredMorePreciseNewTitle = "Reactant-centered model, more precise  (model Q)",
+							 reactantCenteredMorePreciseNewTitle = "Reactant-centered model, more precise (model Q)",
+							 reactantCenteredMorePreciseNew4Title = "Reactant-centered model, more precise (4th version)",
+							 reactantCenteredSuperDeterministicTitle = "Reactant-centered model, super-deterministic",
+							 reactantCenteredMaybeDeterministicTitle = "Reactant-centered model, candidate-deterministic",
+							 reactantCenteredMaybeDeterministic2Title = "Reactant-centered model, candidate-deterministic 2",
 							 reactantCenteredOpaalTitle = "Reactant-centered for multi-core analysis",
 							 ODEmodelTitle = "Ordinary Differential Equations (ODEs) for UPPAAL";
 				final JRadioButton useReactionCentered = new JRadioButton(reactionCenteredTitle),
@@ -420,6 +424,10 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 								   useReactantCentered = new JRadioButton(reactantCenteredTitle),
 								   useReactantCenteredMorePrecise = new JRadioButton(reactantCenteredMorePreciseTitle),
 								   useReactantCenteredMorePreciseNew = new JRadioButton(reactantCenteredMorePreciseNewTitle),
+								   useReactantCenteredMorePreciseNew4 = new JRadioButton(reactantCenteredMorePreciseNew4Title),								   
+								   useReactantCenteredSuperDeterministic = new JRadioButton(reactantCenteredSuperDeterministicTitle),
+								   useReactantCenteredMaybeDeterministic = new JRadioButton(reactantCenteredMaybeDeterministicTitle),
+								   useReactantCenteredMaybeDeterministic2 = new JRadioButton(reactantCenteredMaybeDeterministic2Title),
 								   useReactantCenteredOpaal = new JRadioButton(reactantCenteredOpaalTitle),
 								   useODEmodel = new JRadioButton(ODEmodelTitle);
 //				useReactionCentered.setToolTipText("Advised when the network is not reaction-heavy. (generally NOT recommended)");
@@ -431,6 +439,10 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				useReactantCentered.setToolTipText("Fast and uses little memory. Experimental");
 				useReactantCenteredMorePrecise.setToolTipText("Fast and uses little memory. More precise, recommended");
 				useReactantCenteredMorePreciseNew.setToolTipText("Fast and uses little memory. More precise (different approach), experimental");
+				useReactantCenteredMorePreciseNew4.setToolTipText("Fast and uses little memory. More precise (different approach, 4th version), experimental");
+				useReactantCenteredSuperDeterministic.setToolTipText("Super deterministic, but requires over-approximations when doing model checking...");
+				useReactantCenteredMaybeDeterministic.setToolTipText("Candidate for complete determinism");
+				useReactantCenteredMaybeDeterministic2.setToolTipText("Candidate for complete determinism 2");
 				useReactantCenteredOpaal
 						.setToolTipText("Reactant-centered model for use the generated model with opaal and ltsmin");
 				useODEmodel.setToolTipText("Ordinary Differential Equations model (always deterministic!) to be analyzed with UPPAAL's solver");
@@ -441,6 +453,10 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				reactionCenteredGroup.add(useReactantCentered);
 				reactionCenteredGroup.add(useReactantCenteredMorePrecise);
 				reactionCenteredGroup.add(useReactantCenteredMorePreciseNew);
+				reactionCenteredGroup.add(useReactantCenteredMorePreciseNew4);
+				reactionCenteredGroup.add(useReactantCenteredSuperDeterministic);
+				reactionCenteredGroup.add(useReactantCenteredMaybeDeterministic);
+				reactionCenteredGroup.add(useReactantCenteredMaybeDeterministic2);
 				reactionCenteredGroup.add(useReactantCenteredOpaal);
 				reactionCenteredGroup.add(useODEmodel);
 				String modelType = null;
@@ -448,6 +464,10 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				useReactionCenteredTablesOld.setSelected(false);
 				useReactantCenteredMorePrecise.setSelected(false);
 				useReactantCenteredMorePreciseNew.setSelected(false);
+				useReactantCenteredMorePreciseNew4.setSelected(false);
+				useReactantCenteredSuperDeterministic.setSelected(false);
+				useReactantCenteredMaybeDeterministic.setSelected(false);
+				useReactantCenteredMaybeDeterministic2.setSelected(false);
 				useODEmodel.setSelected(false);
 				if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED)) {
 					useReactionCentered.setSelected(true);
@@ -482,6 +502,30 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 					useReactantCentered.setSelected(false);
 					useReactantCenteredMorePreciseNew.setSelected(true);
 					useReactantCenteredOpaal.setSelected(false);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW4)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredMorePreciseNew4.setSelected(true);
+					useReactantCenteredOpaal.setSelected(false);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_SUPER_DETERMINISTIC)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredSuperDeterministic.setSelected(true);
+					useReactantCenteredOpaal.setSelected(false);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredMaybeDeterministic.setSelected(true);
+					useReactantCenteredOpaal.setSelected(false);
+				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2)) {
+					useReactionCentered.setSelected(false);
+					useReactionCenteredTables.setSelected(false);
+					useReactantCentered.setSelected(false);
+					useReactantCenteredMaybeDeterministic2.setSelected(true);
+					useReactantCenteredOpaal.setSelected(false);
 				} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL)) {
 					useReactionCentered.setSelected(false);
 					useReactionCenteredTables.setSelected(false);
@@ -504,6 +548,10 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				if (areWeTheDeveloper) {
 					modelTypePanel.add(useReactantCentered);
 					modelTypePanel.add(useReactantCenteredMorePreciseNew);
+					modelTypePanel.add(useReactantCenteredMorePreciseNew4);
+					modelTypePanel.add(useReactantCenteredSuperDeterministic);
+					modelTypePanel.add(useReactantCenteredMaybeDeterministic);
+					modelTypePanel.add(useReactantCenteredMaybeDeterministic2);
 					modelTypePanel.add(useReactantCenteredOpaal);
 				}
 				modelTypePanel.add(useReactionCentered);
@@ -551,6 +599,14 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE;
 						} else if (useReactantCenteredMorePreciseNew.isSelected()) {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW;
+						} else if (useReactantCenteredMorePreciseNew4.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE_NEW4;
+						} else if (useReactantCenteredSuperDeterministic.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_SUPER_DETERMINISTIC;
+						} else if (useReactantCenteredMaybeDeterministic.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC;
+						} else if (useReactantCenteredMaybeDeterministic2.isSelected()) {
+							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2;
 						} else if (useReactantCenteredOpaal.isSelected()) {
 							modelTypeValue = XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_OPAAL;
 						} else if (useODEmodel.isSelected()) {
