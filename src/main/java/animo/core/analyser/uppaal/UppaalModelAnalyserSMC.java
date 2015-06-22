@@ -95,6 +95,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				variablesModel = new VariablesModelReactantCenteredDeterministic(); //Reactant-centered candidate deterministic model
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2)) {
 				variablesModel = new VariablesModelReactantCenteredDeterministic2(); //Reactant-centered candidate deterministic model2
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC3)) {
+				variablesModel = new VariablesModelReactantCenteredDeterministic3(); //Reactant-centered candidate deterministic model3
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
 				variablesModel = new VariablesModelReactionCenteredTables(); //Reaction-centered with tables
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {
@@ -333,6 +335,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				variablesModel = new VariablesModelReactantCenteredDeterministic(); //Reactant-centered candidate deterministic
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2)) {
 				variablesModel = new VariablesModelReactantCenteredDeterministic2(); //Reactant-centered candidate deterministic2
+			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC3)) {
+				variablesModel = new VariablesModelReactantCenteredDeterministic3(); //Reactant-centered candidate deterministic3
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES)) {
 				variablesModel = new VariablesModelReactionCenteredTables(); //Reaction-centered with tables
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD)) {

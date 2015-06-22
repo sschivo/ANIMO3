@@ -76,6 +76,7 @@ public class XmlConfiguration {
 			MODEL_TYPE_REACTANT_CENTERED_SUPER_DETERMINISTIC = "ReactantCenteredSuperDeterministic",
 			MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC = "ReactantCenteredMaybeDeterministic",
 			MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC2 = "ReactantCenteredMaybeDeterministic2",
+			MODEL_TYPE_REACTANT_CENTERED_MAYBE_DETERMINISTIC3 = "ReactantCenteredMaybeDeterministic3",
 			MODEL_TYPE_REACTANT_CENTERED_OPAAL = "ReactantCenteredOpaal",
 			MODEL_TYPE_ODE = "ODEforUPPAAL";
 	public static final String DEFAULT_MODEL_TYPE = MODEL_TYPE_REACTANT_CENTERED;
