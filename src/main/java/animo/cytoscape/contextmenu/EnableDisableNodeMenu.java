@@ -8,7 +8,6 @@ import javax.swing.JMenuItem;
 
 import org.cytoscape.application.swing.CyMenuItem;
 import org.cytoscape.application.swing.CyNodeViewContextMenuFactory;
-import org.cytoscape.model.CyEdge;
 import org.cytoscape.model.CyNetwork;
 import org.cytoscape.model.CyNode;
 import org.cytoscape.model.CyRow;
@@ -35,6 +34,10 @@ public class EnableDisableNodeMenu implements CyNodeViewContextMenuFactory, Acti
 				status = !row.get(Model.Properties.ENABLED, Boolean.class);
 			}
 			row.set(Model.Properties.ENABLED, status);
+			//These further changes (here, and in the case of multiple nodes, and the final check for edges with dangling ends) should NOT be done here!
+			//They were shifted to the EventListener, for the RowsSetEvent, where we do the proper checks once and for all.
+			//The ENABLED property can also be changed in other ways (with the Edit node dialog, or directly changing the property in the Cytoscape table), and
+			//we would still need to perform these updates also in those cases!
 //			for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
 //				CyRow edgeRow = network.getRow(edge);
 //				edgeRow.set(Model.Properties.ENABLED, status);
@@ -49,25 +52,28 @@ public class EnableDisableNodeMenu implements CyNodeViewContextMenuFactory, Acti
 					status = !row.get(Model.Properties.ENABLED, Boolean.class);
 				}
 				row.set(Model.Properties.ENABLED, status);
-				for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
-					CyRow edgeRow = network.getRow(edge);
-					edgeRow.set(Model.Properties.ENABLED, status);
-				}
+				//See above
+//				for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
+//					CyRow edgeRow = network.getRow(edge);
+//					edgeRow.set(Model.Properties.ENABLED, status);
+//				}
 			}
 		}
-		//If one of the two extremities of an edge is disabled, also the edge gets disabled
-		for (CyEdge edge : network.getEdgeList()) {
-			 CyNode source = (CyNode)edge.getSource(),
-					target = (CyNode)edge.getTarget();
-			 CyRow rowSource = network.getRow(source),
-				   rowTarget = network.getRow(target);
-			 if ((rowSource.isSet(Model.Properties.ENABLED) && !rowSource.get(Model.Properties.ENABLED, Boolean.class))
-				|| (rowTarget.isSet(Model.Properties.ENABLED) && !rowTarget.get(Model.Properties.ENABLED, Boolean.class))) {
-				 
-				 CyRow edgeRow = network.getRow(edge);
-				 edgeRow.set(Model.Properties.ENABLED, false);
-			 }
-		}
+		//See above
+//		//If one of the two extremities of an edge is disabled, also the edge gets disabled
+//		for (CyEdge edge : network.getEdgeList()) {
+//			 CyNode source = (CyNode)edge.getSource(),
+//					target = (CyNode)edge.getTarget();
+//			 CyRow rowSource = network.getRow(source),
+//				   rowTarget = network.getRow(target);
+//			 if ((rowSource.isSet(Model.Properties.ENABLED) && !rowSource.get(Model.Properties.ENABLED, Boolean.class))
+//				|| (rowTarget.isSet(Model.Properties.ENABLED) && !rowTarget.get(Model.Properties.ENABLED, Boolean.class))) {
+//				 
+//				 CyRow edgeRow = network.getRow(edge);
+//				 edgeRow.set(Model.Properties.ENABLED, false);
+//				 //System.err.println("Disabilito l'edge da " + rowSource.get(Model.Properties.CANONICAL_NAME, String.class) + " a " + rowTarget.get(Model.Properties.CANONICAL_NAME, String.class));
+//			 }
+//		}
 	}
 
 	@Override

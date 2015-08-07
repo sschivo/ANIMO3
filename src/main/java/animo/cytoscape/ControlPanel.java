@@ -11,6 +11,8 @@ import java.awt.GridBagLayout;
 import java.awt.Insets;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
+import java.awt.event.ItemEvent;
+import java.awt.event.ItemListener;
 import java.awt.event.KeyEvent;
 import java.awt.event.KeyListener;
 import java.io.File;
@@ -383,9 +385,9 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				dim.setSize(dim.getWidth() * 1.5, dim.getHeight());
 				uncertainty.setPreferredSize(dim);
 				useUncertainty.setSelected(true);
-				useUncertainty.addActionListener(new ActionListener() {
+				useUncertainty.addChangeListener(new ChangeListener() {
 					@Override
-					public void actionPerformed(ActionEvent ev) {
+					public void stateChanged(ChangeEvent ev) {
 						uncertainty.setVisible(useUncertainty.isSelected());
 						if (useUncertainty.isSelected()) {
 							useUncertainty.setText(useUncertaintyTitle);
@@ -396,8 +398,8 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				});
 				if (unc == 0) {
 					useUncertainty.setSelected(false);
-					useUncertainty.setText(noUncertaintyTitle);
-					uncertainty.setVisible(useUncertainty.isSelected());
+//					useUncertainty.setText(noUncertaintyTitle);
+//					uncertainty.setVisible(useUncertainty.isSelected());
 				}
 				JPanel uncertaintyPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
 				uncertaintyPanel.add(useUncertainty);
@@ -448,7 +450,27 @@ public class ControlPanel extends JPanel implements CytoPanelComponent {
 				useReactantCenteredMaybeDeterministic3.setToolTipText("Candidate for complete determinism 3");
 				useReactantCenteredOpaal
 						.setToolTipText("Reactant-centered model for use the generated model with opaal and ltsmin");
-				useODEmodel.setToolTipText("Ordinary Differential Equations model (always deterministic!) to be analyzed with UPPAAL's solver");
+				useODEmodel.setToolTipText("Ordinary Differential Equations model (always deterministic) to be analyzed with UPPAAL's solver");
+				useODEmodel.addItemListener(new ItemListener() { //Using this listener allows me to get events ONLY when the state actually changes, and not when the control is clicked (ActionListener) or when it gets mouse over (ChangeListener)
+					private double previousUncertainty = Double.NaN;
+					private boolean wasUncertaintySelected = useUncertainty.isSelected();
+					@Override
+					public void itemStateChanged(ItemEvent ev) {
+						if (ev.getStateChange() == ItemEvent.SELECTED) {
+							wasUncertaintySelected = useUncertainty.isSelected();
+							previousUncertainty = Double.parseDouble(uncertainty.getValue().toString());
+							useUncertainty.setSelected(false);
+							useUncertainty.setEnabled(false);
+						} else if (ev.getStateChange() == ItemEvent.DESELECTED) {
+							useUncertainty.setEnabled(true);
+							if (!Double.isNaN(previousUncertainty)) {
+								useUncertainty.setSelected(wasUncertaintySelected);
+								uncertainty.setValue(previousUncertainty);
+								previousUncertainty = Double.NaN;
+							}
+						}
+					}
+				});
 				final ButtonGroup reactionCenteredGroup = new ButtonGroup();
 				reactionCenteredGroup.add(useReactionCentered);
 				reactionCenteredGroup.add(useReactionCenteredTables);

@@ -344,23 +344,72 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 	//But ONLY if the property actually changed! If it was set to its previous value I don't want to interfere...
 	//Unfortunately, it is not possible to know the previous value of the property, so I have instead done so that I check before setting it in the NodeDialog
 	public void handleEvent(RowsSetEvent ev) {
-		if (!ev.containsColumn(Model.Properties.ENABLED)) {
+		//System.err.println("handleEvent per " + ev.getColumnRecords(Model.Properties.ENABLED).size() + " record!");
+		if (   !ev.containsColumn(Model.Properties.ENABLED)
+			&& !ev.containsColumn(Model.Properties.NUMBER_OF_LEVELS)) {
+			
 			return;
 		}
-		CyNetwork network = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
-		CyTable nodesTable = network.getDefaultNodeTable();
-		for (RowSetRecord rec : ev.getColumnRecords(Model.Properties.ENABLED)) {
-			if (!rec.getRow().getTable().equals(nodesTable)) { //Only look at nodes
-				continue;
+		
+		if (ev.containsColumn(Model.Properties.ENABLED)) { //A node or edge has been enabled/disabled
+			CyNetwork network = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+			CyTable nodesDefaultTable = network.getDefaultNodeTable(),
+					nodesLocalTable = network.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS);
+			for (RowSetRecord rec : ev.getColumnRecords(Model.Properties.ENABLED)) {
+				if (!rec.getRow().getTable().equals(nodesDefaultTable)
+					&& !rec.getRow().getTable().equals(nodesLocalTable)) { //Only look at nodes
+					continue;
+				}
+				Long nodeID = rec.getRow().get(CyNode.SUID, Long.class);
+				if (nodeID == null) continue;
+				CyNode node = network.getNode(nodeID);
+				if (node == null) continue;
+				boolean status = rec.getRow().get(Model.Properties.ENABLED, Boolean.class);
+				//If the node was enabled, we want to enable those of its adjacent edges that connect enabled nodes. If it was disabled, we disable all adjacent edges.
+				for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Look at both incoming and outgoing edges
+					CyNode source = (CyNode)edge.getSource(),
+						   target = (CyNode)edge.getTarget();
+					CyRow rowSource = network.getRow(source),
+						  rowTarget = network.getRow(target),
+						  rowEdge = network.getRow(edge);
+					
+					//Node enabled: only if both source and target are enabled can an edge become enabled
+					if (status
+						&& (rowSource.isSet(Model.Properties.ENABLED) && rowSource.get(Model.Properties.ENABLED, Boolean.class))
+						&& (rowTarget.isSet(Model.Properties.ENABLED) && rowTarget.get(Model.Properties.ENABLED, Boolean.class))) {
+						rowEdge.set(Model.Properties.ENABLED, true);
+					} else if (!status) { //Node disabled: all edges connected to it must be disabled
+						rowEdge.set(Model.Properties.ENABLED, false);
+					}
+				}
 			}
-			Long nodeID = rec.getRow().get(CyNode.SUID, Long.class);
-			if (nodeID == null) continue;
-			CyNode node = network.getNode(nodeID);
-			if (node == null) continue;
-			boolean status = rec.getRow().get(Model.Properties.ENABLED, Boolean.class);
-			for (CyEdge edge : network.getAdjacentEdgeList(node, CyEdge.Type.ANY)) { //Any incoming or outgoing edges get the same enabled state as the current node
-				CyRow edgeRow = network.getRow(edge);
-				edgeRow.set(Model.Properties.ENABLED, status);
+		}
+		
+		if (ev.containsColumn(Model.Properties.NUMBER_OF_LEVELS)) { //See if we need to update the maximum number of levels stored as a network property
+			CyNetwork network = Animo.getCytoscapeApp().getCyApplicationManager().getCurrentNetwork();
+			boolean onlyNetworkChanged = true; //If only the number of levels of the network was changed, take no action (we change it here, so we don't want to react to our own change, but we also want to allow the user to change the number of levels in a network by hand (it nearly only influences the scale of the graphs)
+			CyTable networkDefaultTable = network.getDefaultNetworkTable(),
+					networkLocalTable = network.getTable(CyNetwork.class, CyNetwork.LOCAL_ATTRS);
+			for (RowSetRecord rec : ev.getColumnRecords(Model.Properties.NUMBER_OF_LEVELS)) {
+				if (!rec.getRow().getTable().equals(networkDefaultTable)
+					&& !rec.getRow().getTable().equals(networkLocalTable)) {
+					onlyNetworkChanged = false;
+					break;
+				}
+			}
+			if (!onlyNetworkChanged) {
+				int currentMaxNLevels = 1;
+				for (CyNode n : network.getNodeList()) {
+					int nL = network.getRow(n).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+					if (nL > currentMaxNLevels) {
+						currentMaxNLevels = nL;
+					}
+				}
+				CyRow netRow = network.getRow(network);
+				int currentNetworkLevels = netRow.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
+				if (currentMaxNLevels != currentNetworkLevels) {
+					netRow.set(Model.Properties.NUMBER_OF_LEVELS, currentMaxNLevels);
+				}
 			}
 		}
 	}

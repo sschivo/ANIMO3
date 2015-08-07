@@ -80,18 +80,7 @@ public class NodeRescaleNLevelsContextMenu implements CyNodeViewContextMenuFacto
 						JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "Could not change the number of levels for node " + nodeRow.get(Model.Properties.CANONICAL_NAME, String.class) + ".\nError: " + ex, "Error while updating", JOptionPane.ERROR_MESSAGE);
 					}
 				}
-				currentMaxNLevels = 1; //See if we need to update the maximum number of levels stored as a network property
-				for (CyNode n : network.getNodeList()) {
-					int nL = network.getRow(n).get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
-					if (nL > currentMaxNLevels) {
-						currentMaxNLevels = nL;
-					}
-				}
-				CyRow netRow = network.getRow(network);
-				int currentNetworkLevels = netRow.get(Model.Properties.NUMBER_OF_LEVELS, Integer.class);
-				if (currentMaxNLevels != currentNetworkLevels) {
-					netRow.set(Model.Properties.NUMBER_OF_LEVELS, currentMaxNLevels);
-				}
+				
 				NodeDialog.tryNetworkViewUpdate();
 				JOptionPane.showMessageDialog(Animo.getCytoscape().getJFrame(), "All levels changed successfully to " + nLevels + ".", "Update successful", JOptionPane.INFORMATION_MESSAGE);
 			} catch (Exception ex) {

@@ -168,7 +168,7 @@ public class VariablesModelODE extends VariablesModel {
 				if (influencingReactions.size() < 1) {
 					r.let(HAS_INFLUENCING_REACTIONS).be(false);
 					template.append("\treturn 0;\n}\n\n");
-					template.append("double boundRate" + r.getId() + "() {\n\treturn 0;\n}\n\n");
+					template.append("double boundedRate" + r.getId() + "() {\n\treturn 0;\n}\n\n");
 					continue;
 				}
 				r.let(HAS_INFLUENCING_REACTIONS).be(true);
@@ -305,7 +305,7 @@ public class VariablesModelODE extends VariablesModel {
 				}
 
 				template.append(";\n}\n\n");
-				template.append("double boundRate" + r.getId() + "() {\n");
+				template.append("double boundedRate" + r.getId() + "() {\n");
 				template.append("\tdouble r = rate" + r.getId() + "();\n");
 				template.append("\tif (" + r.getId() + " + r &gt; " + r.getId() + "Levels) {\n");
 				template.append("\t\treturn " + r.getId() + "Levels - " + r.getId() + ";\n");
@@ -409,17 +409,19 @@ public class VariablesModelODE extends VariablesModel {
 			template.append("<location id=\"id0\" x=\"-314\" y=\"-102\"><label kind=\"invariant\" x=\"-324\" y=\"-85\">");
 			boolean first = true;
 			for (Reactant r : m.getSortedReactantList()) {
+				if (!r.get(ENABLED).as(Boolean.class)) continue;
 				if (!first) {
 					template.append("\n&amp;&amp;\n");
 				} else {
 					first = false;
 				}
-				template.append(r.getId() + "' == boundRate" + r.getId() + "()");
+				template.append(r.getId() + "' == boundedRate" + r.getId() + "()");
 			}
 			template.append("</label></location><location id=\"id1\" x=\"-448\" y=\"-102\"><committed/></location><init ref=\"id1\"/>");
 			template.append("<transition><source ref=\"id1\"/><target ref=\"id0\"/><label kind=\"assignment\" x=\"-430\" y=\"-102\">");
 			first = true;
 			for (Reactant r : m.getSortedReactantList()) {
+				if (!r.get(ENABLED).as(Boolean.class)) continue;
 				if (!first) {
 					template.append(",\n");
 				} else {

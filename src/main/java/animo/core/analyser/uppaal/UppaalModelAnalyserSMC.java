@@ -3,6 +3,7 @@ package animo.core.analyser.uppaal;
 
 import java.io.BufferedReader;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.InputStream;
@@ -11,6 +12,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.SortedMap;
+import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
 import java.util.regex.Matcher;
@@ -31,6 +33,7 @@ import animo.core.model.Reactant;
 import animo.core.model.Reaction;
 import animo.cytoscape.Animo;
 import animo.cytoscape.AnimoActionTask;
+import animo.exceptions.AnimoException;
 import animo.util.Utilities;
 import animo.util.XmlConfiguration;
 
@@ -320,7 +323,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 		try {
 			final VariablesModel variablesModel;
 			XmlConfiguration configuration = AnimoBackend.get().configuration();
-			String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
+			final String modelType = configuration.get(XmlConfiguration.MODEL_TYPE_KEY, null);
 			if (modelType == null || modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED)) {
 				variablesModel = new VariablesModelReactantCentered(); //Reactant-centered model
 			} else if (modelType.equals(XmlConfiguration.MODEL_TYPE_REACTANT_CENTERED_MORE_PRECISE)) {
@@ -353,17 +356,20 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			}
 			final String uppaalModel = variablesModel.transform(m);
 			final String uppaalQuery; //"E<> (globalTime > " + timeTo + ")";
+			final Vector<String> outputIDs = new Vector<String>(); //We use this list of reactant IDs to analyse the output of an ODE model simulation with the -F option of verifyta
 			
 			StringBuilder build = new StringBuilder("simulate 1 [<=" + timeTo + "] { ");
 			for (Reactant r : m.getReactantCollection()) {
 				if (r.get(Model.Properties.ENABLED).as(Boolean.class)) {
 					build.append(r.getId() + ", ");
+					outputIDs.add(r.getId());
 				}
 			}
 			if (!modelType.equals(XmlConfiguration.MODEL_TYPE_REACTION_CENTERED_TABLES_OLD) //That model is so old that it doesn't even output the dot + "T" for the reaction times
 				&& !modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) { //The ODE model doesn't show the reaction "speeds" (at the moment)
 				for (Reaction r : m.getReactionCollection()) {
 					build.append(r.getId() + dot + "T, ");
+					//outputIDs.add(r.getId() + dot + "T"); //Again, this was done only for ODE models, and ODE models at the moment don't consider reaction "speeds"
 				}
 			}
 			build.setCharAt(build.length() - 2, ' '); //We check when controling the model integrity that at least one reactant is enabled, so we are sure to delete a ", " here
@@ -371,7 +377,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			
 			uppaalQuery = build.toString();
 			
-			File modelFile = File.createTempFile(Animo.APP_NAME, ".xml");
+			final File modelFile = File.createTempFile(Animo.APP_NAME, ".xml");
 			final String prefix = modelFile.getAbsolutePath().replace(".xml", "");
 			File queryFile = new File(prefix + ".q");
 	
@@ -411,6 +417,9 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				cmd[1] = "-c";
 				cmd[2] = verifytaPath;				
 			}
+			if (modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) {
+				cmd[2] += " -F 1.0";
+			}
 			cmd[2] += " -s \"" + nomeFileModello + "\" \"" + nomeFileQuery + "\" ";
 			//Runtime rt = Runtime.getRuntime();
 			ProcessBuilder pb = new ProcessBuilder(cmd[0], cmd[1], cmd[2]);
@@ -434,7 +443,26 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 							proc.getOutputStream().close();
 							proc.getErrorStream().close();
 						}*/
-						resultVector.add(new UppaalModelAnalyserSMC.VariablesInterpreterConcrete(monitor).analyse(m, inputStream, timeTo));
+						if (modelType.equals(XmlConfiguration.MODEL_TYPE_ODE)) {
+//							try {
+//								proc.waitFor();
+//							} catch (InterruptedException ex){
+//								proc.destroy();
+//								throw new Exception("Interrupted (0)");
+//							}
+							BufferedReader br = null;
+							try {
+								br = new BufferedReader(new InputStreamReader(inputStream));
+								while (br.readLine() != null);
+							} catch (Exception ex) {
+								throw new AnimoException(ex.getMessage());
+							}
+							String nomeFileOutput = System.getProperty("user.dir") + File.separator + "sampling.log";
+							resultVector.add(new UppaalModelAnalyserSMC.VariablesInterpreterConcrete(monitor).analyseODE(m, timeTo, outputIDs, nomeFileOutput));
+							//br.close();
+						} else {
+							resultVector.add(new UppaalModelAnalyserSMC.VariablesInterpreterConcrete(monitor).analyse(m, inputStream, timeTo));
+						}
 					} catch (Exception e) {
 						System.err.println("Eccezione " + e);
 						e.printStackTrace(System.err);
@@ -733,6 +761,102 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			}
 			
 			return confidence;
+		}
+		
+		
+		/**
+		 * Parse the UPPAAL output file containing a simulation run on the given ODE model until the given time
+		 * The trace is the result of one simulation query in the form
+		 * simulate 1 [<=timeTo] { var1, var2, ..., varn }
+		 * and with 1.0 time units between points
+		 * @param m The model on which the trace is based
+		 * @param timeTo The time up to which the simulation trace arrives (or should arrive)
+		 * @param outputIDs The IDs (in the format of the UPPAAL model) of the reactants in the same
+		 * order as they appear in the query: we use it as reference to understand what the columns
+		 * of data in the output file mean
+		 * @param outputFileName The name of the file generated by UPPAAL with the simulation sample (default is "sampling.log")
+		 * @return The SimpleLevelResult containing a series for each of the reactants in the model,
+		 * showing the activity levels of that reactant for each time point of the trace.
+		 * @throws Exception
+		 */
+		public SimpleLevelResult analyseODE(Model m, int timeTo, Vector<String> outputIDs, String outputFileName) throws Exception {
+			long startTime = System.currentTimeMillis();
+			
+			BufferedReader br = new BufferedReader(new InputStreamReader(new FileInputStream(outputFileName)));
+			
+			long endTime = System.currentTimeMillis();
+			System.err.println(" took " + Utilities.timeDifferenceShortFormat(startTime, endTime));
+			
+			int maxNumberOfLevels = m.getProperties().get(NUMBER_OF_LEVELS).as(Integer.class);
+			HashMap<String, Double> numberOfLevels = new HashMap<String, Double>();
+			Map<String, SortedMap<Double, Double>> levels = new HashMap<String, SortedMap<Double, Double>>();
+			
+			for (Reactant r : m.getReactantCollection()) {
+				Integer nLvl = r.get(NUMBER_OF_LEVELS).as(Integer.class);
+				if (nLvl == null) {
+					Property nameO = r.get(ALIAS);
+					String name;
+					if (nameO == null) {
+						name = r.getId();
+					} else {
+						name = nameO.as(String.class);
+					}
+					String inputLevels = JOptionPane.showInputDialog("Missing number of levels for reactant \"" + name + "\" (" + r.getId() + ").\nPlease insert the max number of levels for \"" + name + "\"", maxNumberOfLevels);
+					if (inputLevels != null) {
+						try {
+							nLvl = new Integer(inputLevels);
+						} catch (Exception ex) {
+							nLvl = maxNumberOfLevels;
+						}
+					} else {
+						nLvl = maxNumberOfLevels;
+					}
+				}
+				numberOfLevels.put(r.getId(), (double)nLvl);
+			}
+			
+			for (String id : outputIDs) {
+				levels.put(id, new TreeMap<Double, Double>());
+			}
+			
+			String line = null;
+			
+			while ((line = br.readLine()) != null) {
+//				System.out.println(line);
+				if (line.equals("")) continue;
+				StringTokenizer tok = new StringTokenizer(line, " ");
+				double time = Double.parseDouble(tok.nextToken()),
+					   value;
+				int idx = 0;
+//				System.out.print("t = " + time + ":");
+				while (tok.hasMoreTokens()) {
+					value = Double.parseDouble(tok.nextToken());
+					String reactantId = outputIDs.elementAt(idx);
+					SortedMap<Double, Double> rMap = levels.get(reactantId);
+					if (numberOfLevels.get(reactantId) != maxNumberOfLevels) {
+						value = value / (double)numberOfLevels.get(reactantId) * (double)maxNumberOfLevels;
+					}
+					if (rMap.isEmpty() || timeTo == -1 || (rMap.get(rMap.lastKey()) != value && time <= timeTo)) {
+						rMap.put(time, value);
+//						System.out.print(" " + reactantId + " = " + value);
+					}
+					idx++;
+				}
+//				System.out.println();
+			}
+			br.close();
+			new File(outputFileName).deleteOnExit();
+			
+			if (timeTo != -1) {
+				for (String reactantName : levels.keySet()) {
+					SortedMap<Double, Double> values = levels.get(reactantName);
+//					System.out.println("Metto l'ultimo valore per " + reactantName + ", che ne ha " + values.size());
+					double lastValue = values.get(values.lastKey());
+					values.put((double)timeTo, lastValue);
+				}
+			}
+			
+			return new SimpleLevelResult(maxNumberOfLevels, levels);
 		}
 		
 		
