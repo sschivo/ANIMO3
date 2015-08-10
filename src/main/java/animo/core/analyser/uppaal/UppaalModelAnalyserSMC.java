@@ -8,6 +8,8 @@ import java.io.FileNotFoundException;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
+import java.io.StringWriter;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
@@ -19,8 +21,18 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 import javax.swing.JOptionPane;
+import javax.xml.parsers.DocumentBuilder;
+import javax.xml.parsers.DocumentBuilderFactory;
+import javax.xml.transform.OutputKeys;
+import javax.xml.transform.Transformer;
+import javax.xml.transform.TransformerFactory;
+import javax.xml.transform.dom.DOMSource;
+import javax.xml.transform.stream.StreamResult;
 
 import org.cytoscape.work.TaskMonitor;
+import org.w3c.dom.Document;
+import org.w3c.dom.Element;
+import org.w3c.dom.Node;
 
 import animo.core.AnimoBackend;
 import animo.core.analyser.AnalysisException;
@@ -125,6 +137,34 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			modelFileOut.append(uppaalModel);
 			modelFileOut.close();
 			modelFile.deleteOnExit();
+			
+			
+			//In order to be compatible with the latest versions of UPPAAL, we write the query also in the xml file
+			try {
+				DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+				Document doc = docBuilder.parse(modelFile);
+				Node nta = doc.getElementsByTagName("nta").item(0);
+				Element queries = doc.createElement("queries"),
+						query = doc.createElement("query"),
+						formula = doc.createElement("formula"),
+						comment = doc.createElement("comment");
+				formula.appendChild(doc.createTextNode(probabilisticQuery));
+				comment.appendChild(doc.createTextNode("ANIMO formula")); //We need to add any comment to the formula, or the "artisanal" parser of UPPAAL won't accept the "<comment/>" tag
+				query.appendChild(formula);
+				query.appendChild(comment);
+				queries.appendChild(query);
+				nta.appendChild(queries);
+				TransformerFactory transformerFactory = TransformerFactory.newInstance();
+				Transformer transformer = transformerFactory.newTransformer();
+				DOMSource source = new DOMSource(doc);
+				StreamResult resultingStream = new StreamResult(modelFile);
+				transformer.transform(source, resultingStream);
+			} catch (Exception e) {
+				e.printStackTrace(System.err);
+				throw e;
+			}
+			
 			
 			if (monitor != null) {
 				monitor.setStatusMessage("Model saved in " + modelFile.getAbsolutePath());
@@ -387,6 +427,37 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			modelFileOut.close();
 			modelFile.deleteOnExit();
 			
+			
+			//In order to be compatible with the latest versions of UPPAAL, we write the query also in the xml file
+			try {
+				DocumentBuilderFactory docFactory = DocumentBuilderFactory.newInstance();
+				DocumentBuilder docBuilder = docFactory.newDocumentBuilder();
+				Document doc = docBuilder.parse(modelFile);
+				Node nta = doc.getElementsByTagName("nta").item(0);
+				Element queries = doc.createElement("queries"),
+						query = doc.createElement("query"),
+						formula = doc.createElement("formula"),
+						comment = doc.createElement("comment");
+				formula.appendChild(doc.createTextNode(uppaalQuery));
+				comment.appendChild(doc.createTextNode("ANIMO formula")); //We need to add any comment to the formula, or the "artisanal" parser of UPPAAL won't accept the "<comment/>" tag
+				query.appendChild(formula);
+				query.appendChild(comment);
+				queries.appendChild(query);
+				nta.appendChild(queries);
+				TransformerFactory transformerFactory = TransformerFactory.newInstance();
+				Transformer transformer = transformerFactory.newTransformer();
+				transformer.setOutputProperty(OutputKeys.INDENT, "yes");
+				transformer.setOutputProperty("{http://xml.apache.org/xslt}indent-amount", "2");
+				transformer.setOutputProperty(OutputKeys.OMIT_XML_DECLARATION, "yes");
+				DOMSource source = new DOMSource(doc);
+				StreamResult resultingStream = new StreamResult(modelFile);
+				transformer.transform(source, resultingStream);
+			} catch (Exception e) {
+				e.printStackTrace(System.err);
+				throw e;
+			}
+			
+			
 			if (monitor != null) {
 				monitor.setStatusMessage("Model saved in " + modelFile.getAbsolutePath());
 			}
@@ -459,6 +530,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 							}
 							String nomeFileOutput = System.getProperty("user.dir") + File.separator + "sampling.log";
 							resultVector.add(new UppaalModelAnalyserSMC.VariablesInterpreterConcrete(monitor).analyseODE(m, timeTo, outputIDs, nomeFileOutput));
+							
 							//br.close();
 						} else {
 							resultVector.add(new UppaalModelAnalyserSMC.VariablesInterpreterConcrete(monitor).analyse(m, inputStream, timeTo));
@@ -469,6 +541,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 						System.out.println("Eccezione " + e);
 						e.printStackTrace(System.out);
 						errors.add(e);
+						taskStatus = 3;
 					}
 				}
 			}.start();
@@ -509,6 +582,15 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 					proc.destroy();
 					throw new AnalysisException("User interrupted");
 				}
+				if (taskStatus == 3) {
+					System.err.println(" was interrupted by an error");
+					proc.destroy();
+					if (!errors.isEmpty()) {
+						throw errors.firstElement();
+					} else {
+						throw new AnalysisException("There was a problem in the analysis");
+					}
+				}
 				if (errors.isEmpty()) {
 					while (resultVector.isEmpty()) { //if the verifyta process is completed, we may still need to wait for the analysis thread to complete
 						Thread.sleep(100);
@@ -527,7 +609,7 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			}
 			if (!errors.isEmpty()) {
 				Exception ex = errors.firstElement();
-				throw new AnalysisException("Error during analysis", ex);
+				throw ex; //new AnalysisException("Error during analysis", ex);
 			}
 			//result = resultVector.firstElement();
 			if (proc.exitValue() != 0 && ((result = resultVector.firstElement()) == null || result.isEmpty())) {
@@ -570,7 +652,10 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 			//}
 			
 		} catch (Exception e) {
-			throw new AnalysisException("Error during analysis: " + e.getMessage(), e);
+			StringWriter sw = new StringWriter();
+			PrintWriter pw = new PrintWriter(sw);
+			e.printStackTrace(pw);
+			throw new AnalysisException("Error during analysis: <pre>" + sw.toString() + "</pre>", e);
 		}
 		
 		if (result == null || result.isEmpty()) {

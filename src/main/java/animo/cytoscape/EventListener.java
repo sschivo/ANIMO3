@@ -207,126 +207,240 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			CySession session = sessionEvent.getLoadedSession();
 			boolean translatedOld2xToNew3x = false;
 			for (CyNetwork network : session.getNetworks()) {
+//				System.err.println("Rete " + network.getRow(network).get(CyNetwork.NAME, String.class));
 				CyTable edgesTable = network.getDefaultEdgeTable(),
 						nodesTable = network.getDefaultNodeTable();
 				CyColumn e1IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E1),
-						 e2IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E2);
-				if (e1IDColumn != null && e1IDColumn.getType().equals(String.class)) { //We have an old ANIMO 2.x model: we must convert these node names into SUIDs
-					System.err.println("E1 Traduco un modello 2.x in 3.x");
-					Map<Long, String> savedValues = new HashMap<Long, String>();
-					for (CyEdge edge : network.getEdgeList()) {
-						if (!edgesTable.getRow(edge.getSUID()).isSet(Model.Properties.REACTANT_ID_E1)) {
-							continue;
-						}
-						String oldId = edgesTable.getRow(edge.getSUID()).get(Model.Properties.REACTANT_ID_E1, String.class);
-						if (oldId == null) {
-							continue;
-						}
-						savedValues.put(edge.getSUID(), oldId);
+						 e2IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E2),
+						 outputIDColumn = edgesTable.getColumn(Model.Properties.OUTPUT_REACTANT);
+				String colNames[] = new String[] {
+									   Model.Properties.REACTANT_ID_E1,
+									   Model.Properties.REACTANT_ID_E2,
+									   Model.Properties.OUTPUT_REACTANT };
+				CyColumn columns[] = new CyColumn[] {
+										e1IDColumn,
+										e2IDColumn,
+										outputIDColumn };
+				
+				boolean areAllColumnsString = true,
+						areAllColumnsLong = true;
+				for (CyColumn column : columns) {
+					if (column == null) {
+						areAllColumnsLong = areAllColumnsString = false;
+						break;
 					}
-					edgesTable.deleteColumn(Model.Properties.REACTANT_ID_E1);
-					edgesTable.createColumn(Model.Properties.REACTANT_ID_E1, Long.class, false);
-					for (CyEdge edge : network.getEdgeList()) {
-						String oldId = savedValues.get(edge.getSUID());
-						if (oldId == null) { //Not all edges have scenario[2], of course
-							continue;
-						}
-						CyNode node = session.getObject(oldId, CyNode.class);
-						if (node == null) { //If I can't find the node by looking at its name, I can't do much more
-							System.err.println("E1 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
-							Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
-							if (matchingRows.size() != 1) {
-								System.err.println("E1 Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
-								continue;
-							}
-							try {
-								node = network.getNode(matchingRows.iterator().next().get(CyNode.SUID, Long.class));
-							} catch (Exception ex) {
-								node = null;
-							}
-							if (node == null) {
-								System.err.println("E1 Non sono riuscito a trovarlo neanche cercandolo per nome");
-								continue;
+					if (!column.getType().equals(String.class)) {
+						areAllColumnsString = false;
+					}
+					if (!column.getType().equals(Long.class)) {
+						areAllColumnsLong = false;
+					}
+					if (!areAllColumnsString && !areAllColumnsLong) break;
+				}
+				if (areAllColumnsString) { //We have an old ANIMO 2.x model: we must convert these node names into SUIDs
+//					System.err.println("Traduco un modello 2.x in 3.x");
+					Map<Long, String[]> savedValues = new HashMap<Long, String[]>();
+					for (CyEdge edge : network.getEdgeList()) { //Look at each edge and save the values for the required columns (see colNames for the column names)
+						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+						String nodeIDs[] = new String[colNames.length];
+						boolean columnsSet = true;
+						for (String colName : colNames) {
+							if (!edgeRow.isSet(colName)) {
+								columnsSet = false;
+								break;
 							}
 						}
-						Long nodeId = node.getSUID();
-						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E1, nodeId);
+						if (!columnsSet) continue;
+//						System.err.print("L'edge " + edgeRow.get(Model.Properties.CANONICAL_NAME, String.class) + " ha questi valori: ");
+						for (int i=0; i<colNames.length; i++) {
+							String colName = colNames[i];
+							String oldId = null;
+							if (edgeRow.isSet(colName) && (oldId = edgeRow.get(colName, String.class)) != null) {
+								//savedValues.put(edge.getSUID(), oldId);
+								nodeIDs[i] = oldId; //These values are the IDs in the old Cytoscape format, so they are strings. We translate them to the corresponding SUID
+//								System.err.print(nodeIDs[i] + ", ");
+							}
+						}
+//						System.err.println();
+						savedValues.put(edge.getSUID(), nodeIDs);
+					}
+					for (String colName : colNames) { //Change the the type of the columns from String to Long
+						edgesTable.deleteColumn(colName);
+						edgesTable.createColumn(colName, Long.class, false);
+					}
+					for (Long edgeId : savedValues.keySet()) { //Copy back the values for those edges that had them, translating the old String ID in the new Long SUID
+						CyEdge edge = network.getEdge(edgeId);
+						String[] oldIDs = savedValues.get(edgeId);
+//						System.err.println("Recupero i valori per l'edge " + network.getRow(edge).get(Model.Properties.CANONICAL_NAME, String.class));
+						for (int i=0; i<oldIDs.length; i++) {
+							String oldId = oldIDs[i];
+							CyNode node = session.getObject(oldId, CyNode.class);
+							if (node == null) { //If I can't find the node by looking at its name, I can't do much more
+//								System.err.println("Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
+								Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
+								if (matchingRows.size() != 1) {
+//									System.err.println("Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
+									continue;
+								}
+								for (CyRow nodeRow : matchingRows) {
+									try {
+										node = network.getNode(nodeRow.get(CyNode.SUID, Long.class));
+//										System.err.println("Il nome " + nodeRow.get(CyNetwork.NAME, String.class) + " sembra aver funzionato");
+										break;
+									} catch (Exception ex) {
+										//node is still null
+//										System.err.println("Il nome " + nodeRow.get(CyNetwork.NAME, String.class) + " non risulta usabile");
+									}
+								}
+								if (node == null) {
+//									System.err.println("Non sono riuscito a trovarlo neanche cercandolo per nome");
+									continue;
+								}
+							}
+							Long nodeId = node.getSUID();
+//							System.err.println("Ho trovato il nodo: prima si chiamava " + oldId + " e ora ha ID " + nodeId + " (di nome fa " + network.getRow(node).get(Model.Properties.CANONICAL_NAME, String.class) + ")");
+							edgesTable.getRow(edge.getSUID()).set(colNames[i], nodeId);
+						}
 					}
 					translatedOld2xToNew3x = true;
-				} else if (e1IDColumn != null && e1IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model: map the saved node SUIDs to current SUIDs
-					System.err.println("E1 Traduco un modello 3.x in 3.x");
+				} else if (areAllColumnsLong) { //ANIMO 3.x model: map the saved node SUIDs to current SUIDs
+//					System.err.println("Traduco un modello 3.x in 3.x");
 					for (CyEdge edge : network.getEdgeList()) {
 						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
-						if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
-							continue;
-						}
-						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class);
-						CyNode foundNode = session.getObject(oldId, CyNode.class);
-						if (foundNode == null) {
-							System.err.println("E1 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
-							continue;
-						}
-						edgeRow.set(Model.Properties.REACTANT_ID_E1, foundNode.getSUID());
-					}
-				}
-				if (e2IDColumn != null && e2IDColumn.getType().equals(String.class)) { //Same here: ANIMO 2.x model
-					System.err.println("E2 Traduco un modello 2.x in 3.x");
-					Map<Long, String> savedValues = new HashMap<Long, String>();
-					for (CyEdge edge : network.getEdgeList()) {
-						if (!edgesTable.getRow(edge.getSUID()).isSet(Model.Properties.REACTANT_ID_E2)) {
-							continue;
-						}
-						String oldId = edgesTable.getRow(edge.getSUID()).get(Model.Properties.REACTANT_ID_E2, String.class);
-						if (oldId == null) {
-							continue;
-						}
-						savedValues.put(edge.getSUID(), oldId);
-					}
-					edgesTable.deleteColumn(Model.Properties.REACTANT_ID_E2);
-					edgesTable.createColumn(Model.Properties.REACTANT_ID_E2, Long.class, false);
-					for (CyEdge edge : network.getEdgeList()) {
-						String oldId = savedValues.get(edge.getSUID());
-						if (oldId == null) { //Not all edges have scenario[2], of course
-							continue;
-						}
-						CyNode node = session.getObject(oldId, CyNode.class);
-						if (node == null) { //If I can't find the node by looking at its name, I can't do much more
-							System.err.println("E2 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
-							Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
-							if (matchingRows.size() != 1) {
-								System.err.println("E2 Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
+						for (String colName : colNames) {
+							if (!edgeRow.isSet(colName)) {
 								continue;
 							}
-							try {
-								node = network.getNode(matchingRows.iterator().next().get(CyNode.SUID, Long.class));
-							} catch (Exception ex) {
-								node = null;
-							}
-							if (node == null) {
-								System.err.println("E2 Non sono riuscito a trovarlo neanche cercandolo per nome");
+							Long oldId = edgeRow.get(colName, Long.class);
+							CyNode foundNode = session.getObject(oldId, CyNode.class);
+							if (foundNode == null) {
+//								System.err.println("Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
 								continue;
 							}
+							edgeRow.set(colName, foundNode.getSUID());
 						}
-						Long nodeId = node.getSUID();
-						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E2, nodeId);
-					}
-					translatedOld2xToNew3x = true;
-				} else if (e2IDColumn != null && e2IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model
-					System.err.println("E2 Traduco un modello 3.x in 3.x");
-					for (CyEdge edge : network.getEdgeList()) {
-						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
-						if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
-							continue;
-						}
-						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
-						CyNode foundNode = session.getObject(oldId, CyNode.class);
-						if (foundNode == null) {
-							System.err.println("E2 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
-							continue;
-						}
-						edgeRow.set(Model.Properties.REACTANT_ID_E2, foundNode.getSUID());
 					}
 				}
+				
+				
+//				if (e1IDColumn != null && e1IDColumn.getType().equals(String.class)) { //We have an old ANIMO 2.x model: we must convert these node names into SUIDs
+//					System.err.println("E1 Traduco un modello 2.x in 3.x");
+//					Map<Long, String> savedValues = new HashMap<Long, String>();
+//					for (CyEdge edge : network.getEdgeList()) {
+//						if (!edgesTable.getRow(edge.getSUID()).isSet(Model.Properties.REACTANT_ID_E1)) {
+//							continue;
+//						}
+//						String oldId = edgesTable.getRow(edge.getSUID()).get(Model.Properties.REACTANT_ID_E1, String.class);
+//						if (oldId == null) {
+//							continue;
+//						}
+//						savedValues.put(edge.getSUID(), oldId);
+//					}
+//					edgesTable.deleteColumn(Model.Properties.REACTANT_ID_E1);
+//					edgesTable.createColumn(Model.Properties.REACTANT_ID_E1, Long.class, false);
+//					for (CyEdge edge : network.getEdgeList()) {
+//						String oldId = savedValues.get(edge.getSUID());
+//						if (oldId == null) { //Not all edges have scenario[2], of course
+//							continue;
+//						}
+//						CyNode node = session.getObject(oldId, CyNode.class);
+//						if (node == null) { //If I can't find the node by looking at its name, I can't do much more
+//							System.err.println("E1 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
+//							Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
+//							if (matchingRows.size() != 1) {
+//								System.err.println("E1 Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
+//								continue;
+//							}
+//							try {
+//								node = network.getNode(matchingRows.iterator().next().get(CyNode.SUID, Long.class));
+//							} catch (Exception ex) {
+//								node = null;
+//							}
+//							if (node == null) {
+//								System.err.println("E1 Non sono riuscito a trovarlo neanche cercandolo per nome");
+//								continue;
+//							}
+//						}
+//						Long nodeId = node.getSUID();
+//						System.err.println("E1 Ho trovato il nodo: prima si chiamava " + oldId + " e ora ha ID " + nodeId);
+//						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E1, nodeId);
+//					}
+//					translatedOld2xToNew3x = true;
+//				} else if (e1IDColumn != null && e1IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model: map the saved node SUIDs to current SUIDs
+//					System.err.println("E1 Traduco un modello 3.x in 3.x");
+//					for (CyEdge edge : network.getEdgeList()) {
+//						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+//						if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
+//							continue;
+//						}
+//						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E1, Long.class);
+//						CyNode foundNode = session.getObject(oldId, CyNode.class);
+//						if (foundNode == null) {
+//							System.err.println("E1 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
+//							continue;
+//						}
+//						edgeRow.set(Model.Properties.REACTANT_ID_E1, foundNode.getSUID());
+//					}
+//				}
+//				if (e2IDColumn != null && e2IDColumn.getType().equals(String.class)) { //Same here: ANIMO 2.x model
+//					System.err.println("E2 Traduco un modello 2.x in 3.x");
+//					Map<Long, String> savedValues = new HashMap<Long, String>();
+//					for (CyEdge edge : network.getEdgeList()) {
+//						if (!edgesTable.getRow(edge.getSUID()).isSet(Model.Properties.REACTANT_ID_E2)) {
+//							continue;
+//						}
+//						String oldId = edgesTable.getRow(edge.getSUID()).get(Model.Properties.REACTANT_ID_E2, String.class);
+//						if (oldId == null) {
+//							continue;
+//						}
+//						savedValues.put(edge.getSUID(), oldId);
+//					}
+//					edgesTable.deleteColumn(Model.Properties.REACTANT_ID_E2);
+//					edgesTable.createColumn(Model.Properties.REACTANT_ID_E2, Long.class, false);
+//					for (CyEdge edge : network.getEdgeList()) {
+//						String oldId = savedValues.get(edge.getSUID());
+//						if (oldId == null) { //Not all edges have scenario[2], of course
+//							continue;
+//						}
+//						CyNode node = session.getObject(oldId, CyNode.class);
+//						if (node == null) { //If I can't find the node by looking at its name, I can't do much more
+//							System.err.println("E2 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
+//							Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
+//							if (matchingRows.size() != 1) {
+//								System.err.println("E2 Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
+//								continue;
+//							}
+//							try {
+//								node = network.getNode(matchingRows.iterator().next().get(CyNode.SUID, Long.class));
+//							} catch (Exception ex) {
+//								node = null;
+//							}
+//							if (node == null) {
+//								System.err.println("E2 Non sono riuscito a trovarlo neanche cercandolo per nome");
+//								continue;
+//							}
+//						}
+//						Long nodeId = node.getSUID();
+//						System.err.println("E2 Ho trovato il nodo: prima si chiamava " + oldId + " e ora ha ID " + nodeId);
+//						edgesTable.getRow(edge.getSUID()).set(Model.Properties.REACTANT_ID_E2, nodeId);
+//					}
+//					translatedOld2xToNew3x = true;
+//				} else if (e2IDColumn != null && e2IDColumn.getType().equals(Long.class)) { //ANIMO 3.x model
+//					System.err.println("E2 Traduco un modello 3.x in 3.x");
+//					for (CyEdge edge : network.getEdgeList()) {
+//						CyRow edgeRow = edgesTable.getRow(edge.getSUID());
+//						if (!edgeRow.isSet(Model.Properties.REACTANT_ID_E1)) {
+//							continue;
+//						}
+//						Long oldId = edgeRow.get(Model.Properties.REACTANT_ID_E2, Long.class);
+//						CyNode foundNode = session.getObject(oldId, CyNode.class);
+//						if (foundNode == null) {
+//							System.err.println("E2 Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo!");
+//							continue;
+//						}
+//						edgeRow.set(Model.Properties.REACTANT_ID_E2, foundNode.getSUID());
+//					}
+//				}
 			}
 			if (translatedOld2xToNew3x) { //If we translated an old 2.x model into the new version (String IDs to Long IDs), we need to warn the user that saving this model will make it unreadable for older versions of ANIMO
 				SwingUtilities.invokeLater(new Runnable() {
