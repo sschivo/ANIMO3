@@ -208,8 +208,9 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 			boolean translatedOld2xToNew3x = false;
 			for (CyNetwork network : session.getNetworks()) {
 //				System.err.println("Rete " + network.getRow(network).get(CyNetwork.NAME, String.class));
-				CyTable edgesTable = network.getDefaultEdgeTable(),
-						nodesTable = network.getDefaultNodeTable();
+				//Apparently, we need to use the LOCAL tables, not the default ones!
+				CyTable edgesTable = network.getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS), //network.getDefaultEdgeTable(),
+						nodesTable = network.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS); //network.getDefaultNodeTable();
 				CyColumn e1IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E1),
 						 e2IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E2),
 						 outputIDColumn = edgesTable.getColumn(Model.Properties.OUTPUT_REACTANT);
@@ -246,6 +247,7 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 						boolean columnsSet = true;
 						for (String colName : colNames) {
 							if (!edgeRow.isSet(colName)) {
+//								System.err.println("L'edge " + edgeRow.get(Model.Properties.CANONICAL_NAME, String.class) + " NON ha la colonna " + colName);
 								columnsSet = false;
 								break;
 							}
@@ -256,7 +258,6 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 							String colName = colNames[i];
 							String oldId = null;
 							if (edgeRow.isSet(colName) && (oldId = edgeRow.get(colName, String.class)) != null) {
-								//savedValues.put(edge.getSUID(), oldId);
 								nodeIDs[i] = oldId; //These values are the IDs in the old Cytoscape format, so they are strings. We translate them to the corresponding SUID
 //								System.err.print(nodeIDs[i] + ", ");
 							}
@@ -278,10 +279,6 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 							if (node == null) { //If I can't find the node by looking at its name, I can't do much more
 //								System.err.println("Problema: il nodo che prima chiamavo " + oldId + " ora non lo trovo più!");
 								Collection<CyRow> matchingRows = nodesTable.getMatchingRows(CyNetwork.NAME, oldId);
-								if (matchingRows.size() != 1) {
-//									System.err.println("Ahimé, cercandolo per nome ne sono usciti " + matchingRows.size() + ", quindi non posso identificarlo");
-									continue;
-								}
 								for (CyRow nodeRow : matchingRows) {
 									try {
 										node = network.getNode(nodeRow.get(CyNode.SUID, Long.class));
