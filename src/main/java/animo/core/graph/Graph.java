@@ -47,6 +47,7 @@ import java.util.Vector;
 
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
+import javax.swing.JMenu;
 import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
@@ -55,24 +56,33 @@ import javax.swing.JPopupMenu;
 import animo.core.analyser.LevelResult;
 import animo.core.analyser.uppaal.SimpleLevelResult;
 import animo.cytoscape.Animo;
+import animo.cytoscape.ManageGraphSeriesDialog;
 import animo.util.HeatChart;
 
 public class Graph extends JPanel implements MouseListener, MouseMotionListener, MouseWheelListener, ActionListener,
 		ComponentListener {
 	private static final long serialVersionUID = 8185951065715897260L;
 	public static final String AUTOGRAPH_WINDOW_TITLE = "AutoGraph", // If we are a window, this will be our (lame) title
+			IMPORT_LABEL = "Import",
 			OPEN_LABEL = "Add data from CSV...",
+			EXPORT_LABEL = "Export",
 			SAVE_LABEL = "Save as PNG...",
 			RENDER_TO_JPG_LABEL = "Render to JPG...",
 			EXPORT_VISIBLE_LABEL = "Export visible as CSV...",
-			CLEAR_LABEL = "Clear Data", INTERVAL_LABEL = "Graph interval...",
+			ZOOM_LABEL = "Zoom",
+			CLEAR_LABEL = "Clear Data",
+			INTERVAL_LABEL = "Graph interval...",
 			ZOOM_RECTANGLE_LABEL = "Zoom rectangle",
-			ZOOM_EXTENTS_LABEL = "Zoom extents", CLOSE_LABEL = "Close",
+			ZOOM_EXTENTS_LABEL = "Zoom extents",
+			SERIES_LABEL = "Data series...",
+			CLOSE_LABEL = "Close",
+			INFOS_LABEL = "Additional informations",
 			SHOW_SIZE_LABEL = "Show picture size",
 			SHOW_ZOOM_LEVEL_LABEL = "Show zoom level",
 			SHOW_THIN_AXES = "Show thin axes",
 			SHOW_THICK_AXES = "Show thick axes",
 			SET_Y_LABEL_LABEL = "Set Y label",
+			GRAPH_TYPE_LABEL = "Graph type",
 			STEP_SHAPED_GRAPH_LABEL = "Step-shaped graph",
 			HEATMAP_GRAPH_LABEL = "Heat-map graph",
 			CSV_FILE_EXTENSION = ".csv",
@@ -276,6 +286,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		JMenuItem close = new JMenuItem(CLOSE_LABEL);
 		JCheckBoxMenuItem showSizeM = new JCheckBoxMenuItem(SHOW_SIZE_LABEL);
 		JCheckBoxMenuItem showZoomM = new JCheckBoxMenuItem(SHOW_ZOOM_LEVEL_LABEL);
+		JMenuItem seriesManagement = new JMenuItem(SERIES_LABEL);
 		JMenuItem setYLabel = new JMenuItem(SET_Y_LABEL_LABEL);
 		JCheckBoxMenuItem stepShapedGraph = new JCheckBoxMenuItem(STEP_SHAPED_GRAPH_LABEL);
 		heatMapGraph = new JCheckBoxMenuItem(HEATMAP_GRAPH_LABEL);
@@ -292,30 +303,54 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		close.addActionListener(this);
 		showSizeM.addActionListener(this);
 		showZoomM.addActionListener(this);
+		seriesManagement.addActionListener(this);
 		setYLabel.addActionListener(this);
 		showThinAxes.addActionListener(this);
 		showThickAxes.addActionListener(this);
 		stepShapedGraph.addActionListener(this);
 		heatMapGraph.addActionListener(this);
+		JMenu //importMenu = new JMenu(IMPORT_LABEL),
+			  exportMenu = new JMenu(EXPORT_LABEL),
+			  zoomMenu = new JMenu(ZOOM_LABEL),
+			  infosMenu = new JMenu(INFOS_LABEL),
+			  graphTypeMenu = new JMenu(GRAPH_TYPE_LABEL);
 		popupMenu.add(open);
-		popupMenu.add(save);
+		exportMenu.add(save);
+		//popupMenu.add(save);
 		if (areWeTheDeveloper) {
-			popupMenu.add(renderJpg);
+			//popupMenu.add(renderJpg);
+			exportMenu.add(renderJpg);
 		}
-		popupMenu.add(export);
+		//popupMenu.add(export);
+		exportMenu.add(export);
+		popupMenu.add(exportMenu);
 		popupMenu.add(clear);
-		popupMenu.add(newInterval);
-		popupMenu.add(zoomRectangle);
-		popupMenu.add(zoomExtents);
+		//popupMenu.add(newInterval);
+		//popupMenu.add(zoomRectangle);
+		//popupMenu.add(zoomExtents);
+		zoomMenu.add(newInterval);
+		zoomMenu.add(zoomRectangle);
+		zoomMenu.add(zoomExtents);
+		popupMenu.add(zoomMenu);
+		popupMenu.add(seriesManagement);
 		if (areWeTheDeveloper) {
-			popupMenu.add(setYLabel);
-			popupMenu.add(showSizeM);
-			popupMenu.add(showZoomM);
-			popupMenu.add(showThinAxes);
-			popupMenu.add(showThickAxes);
+			//popupMenu.add(setYLabel);
+			//popupMenu.add(showSizeM);
+			//popupMenu.add(showZoomM);
+			//popupMenu.add(showThinAxes);
+			//popupMenu.add(showThickAxes);
+			infosMenu.add(setYLabel);
+			infosMenu.add(showSizeM);
+			infosMenu.add(showZoomM);
+			infosMenu.add(showThinAxes);
+			infosMenu.add(showThickAxes);
+			popupMenu.add(infosMenu);
 		}
-		popupMenu.add(stepShapedGraph);
-		popupMenu.add(heatMapGraph);
+		//popupMenu.add(stepShapedGraph);
+		//popupMenu.add(heatMapGraph);
+		graphTypeMenu.add(stepShapedGraph);
+		graphTypeMenu.add(heatMapGraph);
+		popupMenu.add(graphTypeMenu);
 		// popupMenu.addSeparator();
 		// popupMenu.add(close);
 		this.add(popupMenu);
@@ -387,6 +422,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				 */
 				needRedraw = true;
 				this.repaint();
+			} else if (menu.getText().equals(SERIES_LABEL)) { //Manage the series: visibility, label, color
+				ManageGraphSeriesDialog dialog = new ManageGraphSeriesDialog(this, this.data);
+				dialog.showYourself();
 			} else if (menu.getText().equals(CLOSE_LABEL)) {
 				// findJFrame(this).setVisible(false);
 				findJFrame(this).dispose();
