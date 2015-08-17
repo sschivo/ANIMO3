@@ -1,5 +1,6 @@
 package animo.cytoscape;
 
+import java.awt.BasicStroke;
 import java.awt.BorderLayout;
 import java.awt.Color;
 import java.awt.Component;
@@ -8,8 +9,11 @@ import java.awt.Cursor;
 import java.awt.Dialog;
 import java.awt.Dimension;
 import java.awt.FlowLayout;
+import java.awt.Graphics;
+import java.awt.Graphics2D;
 import java.awt.Point;
 import java.awt.Rectangle;
+import java.awt.RenderingHints;
 import java.awt.Window;
 import java.awt.dnd.DragSource;
 import java.awt.event.ActionEvent;
@@ -46,6 +50,7 @@ import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
 
 import animo.core.graph.Graph;
+import animo.core.graph.P;
 import animo.core.graph.Series;
 
 public class ManageGraphSeriesDialog extends JDialog {
@@ -106,11 +111,10 @@ public class ManageGraphSeriesDialog extends JDialog {
 		this.add(values, BorderLayout.CENTER);
 		this.add(controls, BorderLayout.SOUTH);
 		
-		this.pack();
 		Dimension dim = this.getPreferredSize();
 		dim.setSize(300, dim.getHeight());
-		this.setPreferredSize(dim);
-		this.setSize(this.getPreferredSize());
+		this.setMinimumSize(dim);
+		this.pack();
 	}
 
 	
@@ -132,6 +136,7 @@ public class ManageGraphSeriesDialog extends JDialog {
 
 		int idx = 0;
 		for (Series s : graphSeries) {
+			if (s.isSlave()) continue; //Don't show the "slave" series
 			JComponent component = createListItem(idx++, s);
 			box.add(component);
 			mapSeriesComponent.put(component, s);
@@ -158,9 +163,7 @@ public class ManageGraphSeriesDialog extends JDialog {
 	private final Icon moveIcon = createImageIcon("/drag_reorder16x16.png");
 	
 	private JComponent createListItem(int i, final Series series) {
-		final JLabel l = new JLabel(moveIcon); //String.format(" %04d ", i));
-		//l.setOpaque(true);
-		//l.setBackground(Color.RED);
+		final JLabel l = new JLabel(moveIcon);
 		JPanel p = new JPanel(new BorderLayout());
 		p.setBorder(BorderFactory.createCompoundBorder(
 						BorderFactory.createEtchedBorder(EtchedBorder.RAISED),
@@ -181,19 +184,23 @@ public class ManageGraphSeriesDialog extends JDialog {
 			}
 		});
 		final JTextField name = new JTextField(series.getName());
+		name.setColumns(name.getText().length());
 		name.getDocument().addDocumentListener(new DocumentListener() {
-			public void changedUpdate(DocumentEvent e) {
+			private void nameChanged() {
 				series.setName(name.getText());
 				graph.ensureRedraw();
 				graph.repaint();
 			}
 			
+			public void changedUpdate(DocumentEvent e) {
+			}
+			
 			public void removeUpdate(DocumentEvent e) {
-				changedUpdate(e);
+				nameChanged();
 			}
 			
 			public void insertUpdate(DocumentEvent e) {
-				changedUpdate(e);
+				nameChanged();
 			}
 		});
 		final JComboBox<Color> color = new JComboBox<Color>(graph.getAvailableColors());
@@ -208,10 +215,70 @@ public class ManageGraphSeriesDialog extends JDialog {
 				graph.repaint();
 			}
 		});
+		final JComboBox<Series.BarsState> stdDevType = new JComboBox<Series.BarsState>(Series.BarsState.values());
+		final JComboBox<Series.Symbol> stdDevSymbol = new JComboBox<Series.Symbol>(Series.Symbol.values());
+		if (series.isMaster()) {
+			final Series slave = series.getSlave();
+			stdDevType.setSelectedItem(slave.getErrorBars());
+			if (slave.getErrorBars() == Series.BarsState.DOTS_WITH_BARS) {
+				stdDevSymbol.setEnabled(true);
+				stdDevSymbol.setVisible(true);
+				ManageGraphSeriesDialog.this.pack();
+				stdDevSymbol.setSelectedItem(series.getSymbol()); //Tricky: it's the master series that knows the symbol
+			} else {
+				stdDevSymbol.setEnabled(false);
+				stdDevSymbol.setVisible(false);
+				ManageGraphSeriesDialog.this.pack();
+			}
+			stdDevType.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					Series.BarsState selectedState = (Series.BarsState)stdDevType.getSelectedItem();
+					slave.setErrorBars(selectedState);
+					if (selectedState == Series.BarsState.DOTS_WITH_BARS) {
+						stdDevSymbol.setEnabled(true);
+						stdDevSymbol.setVisible(true);
+						stdDevSymbol.setSelectedItem(series.getSymbol());
+						ManageGraphSeriesDialog.this.pack();
+					} else {
+						stdDevSymbol.setEnabled(false);
+						stdDevSymbol.setVisible(false);
+						ManageGraphSeriesDialog.this.pack();
+					}
+					graph.ensureRedraw();
+					graph.repaint();
+				}
+			});
+			stdDevSymbol.setForeground(series.getColor());
+			color.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					Color selectedColor = (Color)color.getSelectedItem();
+					stdDevSymbol.setForeground(selectedColor);
+					stdDevSymbol.validate();
+				}
+			});
+			stdDevSymbol.setRenderer(new StdDevSymbolCellRenderer(stdDevSymbol));
+			stdDevSymbol.addActionListener(new ActionListener() {
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					Series.Symbol selectedSymbol = (Series.Symbol)stdDevSymbol.getSelectedItem();
+					series.setSymbol(selectedSymbol); //The symbols are actually associated to the master series, not the slave: they are drawn where the data points are
+					graph.ensureRedraw();
+					graph.repaint();
+				}
+			});
+		}
 		content.add(Box.createHorizontalStrut(5));
 		content.add(enabled);
-		content.add(name);
-		content.add(color);
+		content.add(new LabelledField("Title", name));
+		content.add(new LabelledField("Color", color));
+		if (series.isMaster()) {
+			Box errorBars = new Box(BoxLayout.X_AXIS);
+			errorBars.add(stdDevType);
+			errorBars.add(stdDevSymbol);
+			content.add(new LabelledField("Error bars", errorBars));
+		}
 		p.add(content, BorderLayout.CENTER);
 		p.setOpaque(false);
 		return p;
@@ -219,11 +286,11 @@ public class ManageGraphSeriesDialog extends JDialog {
 	
 	
 	
-	private class ColorCellRenderer extends JButton implements ListCellRenderer<Color> {  
+	private class ColorCellRenderer extends JButton implements ListCellRenderer<Color> {
 		private static final long serialVersionUID = 1742730085321443168L;
 		private boolean blocker=false;
 		
-		public ColorCellRenderer() {  
+		public ColorCellRenderer() {
 			setOpaque(true);
 		}
 		
@@ -235,18 +302,66 @@ public class ManageGraphSeriesDialog extends JDialog {
 			super.setBackground(bg);
 		}
 		
-		public Component getListCellRendererComponent(JList<? extends Color> list, Color value, int index, boolean isSelected, boolean cellHasFocus) {  
+		@Override
+		public Component getListCellRendererComponent(JList<? extends Color> list, Color value, int index, boolean isSelected, boolean cellHasFocus) {
 			blocker = true;
-			setText("");           
-			this.setBackground((Color)value);        
+			setText("");
+			if (isSelected) {
+				setBackground((Color)value.brighter());
+			} else {
+				setBackground((Color)value);
+			}
+//			this.setBackground((Color)value.brighter());
 			blocker = false;
-			return this;  
+			return this;
 		}
-
+	}
+	
+	private class StdDevSymbolCellRenderer extends JPanel implements ListCellRenderer<Series.Symbol> {
+		private static final long serialVersionUID = 1463214102358674317L;
+		private Series proxyDrawer = new Series(new P[]{new P(0,0), new P(1,1)}, graph.getScale(), "Fake series") {
+			{
+				this.setSlave(this); //We do these things to ensure that the series sees itself as a good candidate for actually drawing the symbol
+				this.setErrorBars(BarsState.DOTS_WITH_BARS);
+			}
+		};
+		private JComboBox<Series.Symbol> comboBox = null;
+		
+		public StdDevSymbolCellRenderer(JComboBox<Series.Symbol> comboBox) {
+			this.comboBox = comboBox;
+			setOpaque(true);
+			setPreferredSize(new Dimension(40, 20));
+		}
+		
+		@Override
+		public void paint(Graphics g_) {
+			Graphics2D g = (Graphics2D)g_;
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setPaint(this.getBackground());
+			g.fillRoundRect(0, 0, getWidth(), getHeight(), 4, 4);
+			g.setPaint(this.getForeground()); //Graph.FOREGROUND_COLOR);
+			g.setStroke(new BasicStroke(2.0f));
+			proxyDrawer.drawSymbol(g, getWidth()/2, getHeight()/2, getHeight()/2, getHeight()/2); //Draw the symbol centered and as large as half the height of this component (both for width and height)
+		}
+		
+		@Override
+		public Component getListCellRendererComponent(JList<? extends Series.Symbol> list, Series.Symbol value, int index, boolean isSelected, boolean cellHasFocus) {
+			proxyDrawer.setSymbol(value);
+			if (isSelected) {
+				setBackground(list.getSelectionBackground());
+			} else {
+				setBackground(list.getBackground());
+			}
+			setForeground(comboBox.getForeground()); //I would have guessed that list was actually this comboBox, but it is not (??)
+			return this;
+		}
 	}
 	
 	
-	
+	/**
+	 * Manage the reordering of the data series with drag-drop
+	 *
+	 */
 	private class DragMouseAdapter extends MouseAdapter {
 //		private final int xoffset = 16;
 		private final Rectangle R1 = new Rectangle();
@@ -351,6 +466,13 @@ public class ManageGraphSeriesDialog extends JDialog {
 			parent.revalidate();
 			parent.repaint();
 			int indiceSerie = graphSeries.indexOf(mapSeriesComponent.get(add));
+			int contaSlave = 0;
+			for (int i=0; i<=idx; i++) { //All the "slave" series before idx were not counted in the user interface, as they are not shown. But they are there in the vector, so we should count them.
+				if (graphSeries.elementAt(i).isSlave()) {
+					contaSlave++;
+				}
+			}
+			idx += contaSlave;
 			if (indiceSerie >= 0 && indiceSerie < graphSeries.size() && idx >=0 && idx < graphSeries.size()) {
 				//System.err.println("Metto " + graphSeries.elementAt(indiceSerie).getName() + " al posto " + idx + " (dove adesso c'e' " + graphSeries.elementAt(idx).getName() + ")");
 				Series serieSmossa = graphSeries.remove(indiceSerie);

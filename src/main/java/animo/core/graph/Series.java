@@ -33,8 +33,20 @@ public class Series implements Comparable<Series> {
 						 OVERLAY_SUFFIX = ResultAverager.OVERLAY_NAME; //if a series contains this string, it is part of an overlay graph, so we should make a group of all the series with the same identifier
 	protected Color myColor = null;
 	private boolean changeColor = false;
-	private enum BarsState {NOT_SHOWN, ONLY_BARS, ONLY_SHADING, SHADING_WITH_BARS, DOTS_WITH_BARS};
-	private enum Symbol {CIRCLE, TRIANGLE_UP, SQUARE, TRIANGLE_DOWN, DIAMOND, X};
+	public enum BarsState {NOT_SHOWN, ONLY_BARS, ONLY_SHADING, SHADING_WITH_BARS, DOTS_WITH_BARS;
+		@Override
+		public String toString() {
+			switch(this) {
+				case NOT_SHOWN: return "Not shown";
+				case ONLY_BARS: return "Only bars";
+				case ONLY_SHADING: return "Only shading";
+				case SHADING_WITH_BARS: return "Shading and bars";
+				case DOTS_WITH_BARS: return "Dots and bars";
+				default: return super.toString();
+			}
+		}
+	};
+	public enum Symbol {CIRCLE, TRIANGLE_UP, SQUARE, TRIANGLE_DOWN, DIAMOND, X};
 	private Symbol[] symbols = new Symbol[]{Symbol.CIRCLE, Symbol.TRIANGLE_UP, Symbol.SQUARE, Symbol.TRIANGLE_DOWN, Symbol.DIAMOND, Symbol.X};
 	protected Symbol symbol = Symbol.CIRCLE;
 	private BarsState barsState = BarsState.ONLY_BARS; //valid only if this Series is a slave. Tells to show the vertical error bars
@@ -185,6 +197,10 @@ public class Series implements Comparable<Series> {
 		return this.barsState;
 	}
 	
+	public void setErrorBars(BarsState barsState) {
+		this.barsState = barsState;
+	}
+	
 	/**
 	 * x and y identify the center of the symbol
 	 * @param g
@@ -255,6 +271,14 @@ public class Series implements Comparable<Series> {
 			}
 			//System.err.println("Nuovo simbolo: " + this.symbol);
 		}
+	}
+	
+	public Symbol getSymbol() {
+		return this.symbol;
+	}
+	
+	public void setSymbol(Symbol symbol) {
+		this.symbol = symbol;
 	}
 	
 	public void plot(Graphics2D g, Rectangle bounds, boolean stepShaped, int SCALA) {

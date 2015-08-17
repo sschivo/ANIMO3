@@ -95,7 +95,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	private Double maxYValue = null; // The maximum Y value: it is used to rescale other bunches of series (if they themselves declare their maximum Y value). In a .csv file, the
 										// user needs to have a column titled "Number_of_levels", and as value (in the first line) the max Y the user wants to declare for that .csv
 										// bunch of series
-	private static final java.awt.Color BACKGROUND_COLOR = Color.WHITE, FOREGROUND_COLOR = Color.BLACK,
+	public static final java.awt.Color BACKGROUND_COLOR = Color.WHITE, FOREGROUND_COLOR = Color.BLACK,
 			DISABLED_COLOR = Color.LIGHT_GRAY; // The colors for the background, the axis and the (possibly disabled) series names
 	private static final java.awt.Color RED_LINE_COLOR = Color.RED.darker(); // The color for the red line
 
@@ -324,15 +324,14 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		//popupMenu.add(export);
 		exportMenu.add(export);
 		popupMenu.add(exportMenu);
-		popupMenu.add(clear);
 		//popupMenu.add(newInterval);
 		//popupMenu.add(zoomRectangle);
 		//popupMenu.add(zoomExtents);
+		popupMenu.add(seriesManagement);
 		zoomMenu.add(newInterval);
 		zoomMenu.add(zoomRectangle);
 		zoomMenu.add(zoomExtents);
 		popupMenu.add(zoomMenu);
-		popupMenu.add(seriesManagement);
 		if (areWeTheDeveloper) {
 			//popupMenu.add(setYLabel);
 			//popupMenu.add(showSizeM);
@@ -351,7 +350,8 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		graphTypeMenu.add(stepShapedGraph);
 		graphTypeMenu.add(heatMapGraph);
 		popupMenu.add(graphTypeMenu);
-		// popupMenu.addSeparator();
+		popupMenu.addSeparator();
+		popupMenu.add(clear);
 		// popupMenu.add(close);
 		this.add(popupMenu);
 		customLegendPosition = false;
