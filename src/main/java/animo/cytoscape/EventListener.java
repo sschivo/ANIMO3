@@ -211,6 +211,12 @@ public class EventListener implements AddedEdgesListener, AddedNodesListener, Se
 				//Apparently, we need to use the LOCAL tables, not the default ones!
 				CyTable edgesTable = network.getTable(CyEdge.class, CyNetwork.LOCAL_ATTRS), //network.getDefaultEdgeTable(),
 						nodesTable = network.getTable(CyNode.class, CyNetwork.LOCAL_ATTRS); //network.getDefaultNodeTable();
+				if (edgesTable == null) {
+					edgesTable = network.getDefaultEdgeTable();
+				}
+				if (nodesTable == null) {
+					nodesTable = network.getDefaultNodeTable();
+				}
 				CyColumn e1IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E1),
 						 e2IDColumn = edgesTable.getColumn(Model.Properties.REACTANT_ID_E2),
 						 outputIDColumn = edgesTable.getColumn(Model.Properties.OUTPUT_REACTANT);

@@ -39,6 +39,7 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
+import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
@@ -55,7 +56,8 @@ import animo.core.graph.Series;
 
 public class ManageGraphSeriesDialog extends JDialog {
 	private static final long serialVersionUID = 6630154220142970079L;
-	private static final String //SAVE = "Save",
+	private static final String CHANGE_PLOTTED = "Change plotted series...",
+								//SAVE = "Save",
 								CANCEL = "Close";
 	private Graph graph = null;
 	private Vector<Series> graphSeries = null;
@@ -79,8 +81,55 @@ public class ManageGraphSeriesDialog extends JDialog {
 		this.mapSeriesComponent = new HashMap<Component, Series>();
 		
 		JPanel values = makeComponents(graphSeries); //new JPanel(new GridLayout(1, 2, 2, 2));
-		JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		JPanel dialogControls = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+		JPanel commands = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		
+		
+		JButton	changePlotted = new JButton(new AbstractAction(CHANGE_PLOTTED) {
+			private static final long serialVersionUID = 2072278126467664612L;
+			@Override
+			public void actionPerformed(ActionEvent e) {
+				final JDialog plottedChoice = new JDialog(ManageGraphSeriesDialog.this, "Change plotted series from this simulation");
+				final DualListBox<Series> twoLists = new DualListBox<Series>();
+				twoLists.addDestinationElements(graphSeries);
+				JPanel plotCmds = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+				JButton accept = new JButton(new AbstractAction("Accept") {
+					private static final long serialVersionUID = -8865661150505239933L;
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						StringBuilder builder = new StringBuilder();
+						boolean first = true;
+						for (Series s : twoLists.getDestinationList()) {
+							if (!first) {
+								builder.append(", ");
+							} else {
+								first = false;
+							}
+							builder.append(s.getName());
+						}
+						JOptionPane.showMessageDialog(plottedChoice, "The selected series: " + builder.toString());
+						plottedChoice.dispose();
+					}
+				});
+				JButton cancel = new JButton(new AbstractAction("Cancel") {
+					private static final long serialVersionUID = 3045537740873530372L;
+					@Override
+					public void actionPerformed(ActionEvent e) {
+						plottedChoice.dispose();
+					}
+				});
+				plotCmds.add(accept);
+				plotCmds.add(cancel);
+				plottedChoice.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "CANCEL");
+				plottedChoice.getRootPane().getActionMap().put("CANCEL", cancel.getAction());
+				plottedChoice.getContentPane().add(twoLists, BorderLayout.CENTER);
+				plottedChoice.getContentPane().add(plotCmds, BorderLayout.SOUTH);
+				plottedChoice.pack();
+				plottedChoice.setLocationRelativeTo(ManageGraphSeriesDialog.this);
+				plottedChoice.setVisible(true);
+			}
+		});
+		commands.add(changePlotted);
 
 //		controls.add(new JButton(new AbstractAction(SAVE) {
 //			private static final long serialVersionUID = -6920908627164931058L;
@@ -101,15 +150,18 @@ public class ManageGraphSeriesDialog extends JDialog {
 				ManageGraphSeriesDialog.this.dispose();
 			}
 		});
-		controls.add(closeButton);
+		dialogControls.add(closeButton);
 
 		// Associate the "Cancel" button with the Esc key
-		getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
+		this.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(
 				KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "CANCEL");
-		getRootPane().getActionMap().put("CANCEL", closeButton.getAction());
+		this.getRootPane().getActionMap().put("CANCEL", closeButton.getAction());
 
-		this.add(values, BorderLayout.CENTER);
-		this.add(controls, BorderLayout.SOUTH);
+		this.getContentPane().add(values, BorderLayout.CENTER);
+		Box buttonsBox = new Box(BoxLayout.X_AXIS);
+		buttonsBox.add(commands);
+		buttonsBox.add(dialogControls);
+		this.getContentPane().add(buttonsBox, BorderLayout.SOUTH);
 		
 		Dimension dim = this.getPreferredSize();
 		dim.setSize(300, dim.getHeight());

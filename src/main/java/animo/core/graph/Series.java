@@ -76,6 +76,12 @@ public class Series implements Comparable<Series> {
 		return this.name.toLowerCase().compareTo(s.name.toLowerCase());
 	}
 	
+	@Override
+	public String toString() {
+		return getName();
+	}
+	
+	
 	public void setScale(Scale scale) {
 		this.scale = scale;
 		if (!isStdDev()) {
