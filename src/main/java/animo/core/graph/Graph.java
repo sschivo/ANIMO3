@@ -45,6 +45,7 @@ import java.util.StringTokenizer;
 import java.util.TreeMap;
 import java.util.Vector;
 
+import javax.swing.ButtonGroup;
 import javax.swing.JCheckBoxMenuItem;
 import javax.swing.JFrame;
 import javax.swing.JMenu;
@@ -52,10 +53,12 @@ import javax.swing.JMenuItem;
 import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JPopupMenu;
+import javax.swing.JRadioButtonMenuItem;
 
 import animo.core.analyser.LevelResult;
 import animo.core.analyser.uppaal.SimpleLevelResult;
 import animo.cytoscape.Animo;
+import animo.cytoscape.ChooseVSGraphDialog;
 import animo.cytoscape.ManageGraphSeriesDialog;
 import animo.util.HeatChart;
 
@@ -83,8 +86,10 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			SHOW_THICK_AXES = "Show thick axes",
 			SET_Y_LABEL_LABEL = "Set Y label",
 			GRAPH_TYPE_LABEL = "Graph type",
+			NORMAL_GRAPH_LABEL = "Normal graph",
 			STEP_SHAPED_GRAPH_LABEL = "Step-shaped graph",
 			HEATMAP_GRAPH_LABEL = "Heat-map graph",
+			X_VS_Y_GRAPH_LABEL = "X vs Y...",
 			CSV_FILE_EXTENSION = ".csv",
 			CSV_FILE_DESCRIPTION = "CSV file",
 			DEFAULT_CSV_FILE = "/local/schivos/Data_0-240_TNF100.csv", // "/local/schivos/aData1_0-1440_normalized_MK2_JNK1_IKK_with_stddev.csv",
@@ -221,9 +226,13 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	private double xRedLine = 0.0; // The vertical red line we paint to indicate a specific X coordinate in the graph. It can be called from the external user (for example, the
 									// slider in ANIMO)
 	private boolean stepShapedLines = false; // Whether to show the series as a step-shaped graphs, or in a more "smooth" way. Default is smooth.
-	private boolean useHeatMap = false; // Whether to show the graph as a "heat map", using HeatChart class by Tom Castle
+	private boolean useHeatMap = false, // Whether to show the graph as a "heat map", using HeatChart class by Tom Castle
+					useXvsY = false; //Whether to show the graph as a X vs Y plot
 
-	private JCheckBoxMenuItem heatMapGraph;
+	private JRadioButtonMenuItem normalGraph,
+								 heatMapGraph,
+								 xVSyGraph;
+	private ButtonGroup graphTypeGroup;
 
 	private int oldLegendX = 0, oldLegendY = 0; // Used to move the legend
 
@@ -289,7 +298,14 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		JMenuItem seriesManagement = new JMenuItem(SERIES_LABEL);
 		JMenuItem setYLabel = new JMenuItem(SET_Y_LABEL_LABEL);
 		JCheckBoxMenuItem stepShapedGraph = new JCheckBoxMenuItem(STEP_SHAPED_GRAPH_LABEL);
-		heatMapGraph = new JCheckBoxMenuItem(HEATMAP_GRAPH_LABEL);
+		normalGraph = new JRadioButtonMenuItem(NORMAL_GRAPH_LABEL);
+		heatMapGraph = new JRadioButtonMenuItem(HEATMAP_GRAPH_LABEL);
+		xVSyGraph = new JRadioButtonMenuItem(X_VS_Y_GRAPH_LABEL);
+		graphTypeGroup = new ButtonGroup();
+		graphTypeGroup.add(normalGraph);
+		graphTypeGroup.add(heatMapGraph);
+		graphTypeGroup.add(xVSyGraph);
+		normalGraph.setSelected(true);
 		JCheckBoxMenuItem showThinAxes = new JCheckBoxMenuItem(SHOW_THIN_AXES);
 		JCheckBoxMenuItem showThickAxes = new JCheckBoxMenuItem(SHOW_THICK_AXES);
 		open.addActionListener(this);
@@ -308,7 +324,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		showThinAxes.addActionListener(this);
 		showThickAxes.addActionListener(this);
 		stepShapedGraph.addActionListener(this);
+		normalGraph.addActionListener(this);
 		heatMapGraph.addActionListener(this);
+		xVSyGraph.addActionListener(this);
 		JMenu //importMenu = new JMenu(IMPORT_LABEL),
 			  exportMenu = new JMenu(EXPORT_LABEL),
 			  zoomMenu = new JMenu(ZOOM_LABEL),
@@ -348,7 +366,9 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		//popupMenu.add(stepShapedGraph);
 		//popupMenu.add(heatMapGraph);
 		graphTypeMenu.add(stepShapedGraph);
+		graphTypeMenu.add(normalGraph);
 		graphTypeMenu.add(heatMapGraph);
+		graphTypeMenu.add(xVSyGraph);
 		popupMenu.add(graphTypeMenu);
 		popupMenu.addSeparator();
 		popupMenu.add(clear);
@@ -471,10 +491,29 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 				this.stepShapedLines = !this.stepShapedLines;
 				needRedraw = true;
 				this.repaint();
-			} else if (menu.getText().equals(HEATMAP_GRAPH_LABEL)) {
-				this.useHeatMap = !this.useHeatMap;
+			} else if (menu.getText().equals(NORMAL_GRAPH_LABEL)) {
+				if (useXvsY) {
+					setDrawArea(savedMinX, savedMaxX, scale.getMinY(), scale.getMaxY());
+					xSeriesName = savedXLabel;
+					yLabel = savedYLabel;
+				}
+				this.useHeatMap = false;
+				this.useXvsY = false;
 				needRedraw = true;
 				this.repaint();
+			} else if (menu.getText().equals(HEATMAP_GRAPH_LABEL)) {
+				if (useXvsY) {
+					setDrawArea(savedMinX, savedMaxX, scale.getMinY(), scale.getMaxY());
+					xSeriesName = savedXLabel;
+					yLabel = savedYLabel;
+				}
+				this.useHeatMap = true;
+				this.useXvsY = false;
+				needRedraw = true;
+				this.repaint();
+			} else if (menu.getText().equals(X_VS_Y_GRAPH_LABEL)) {
+				ChooseVSGraphDialog choose = new ChooseVSGraphDialog(this, getSeriesData());
+				choose.showYourself();
 			}
 		}
 	}
@@ -914,6 +953,10 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 		return seriesNames;
 	}
+	
+	public Vector<Series> getSeriesData() {
+		return this.data;
+	}
 
 	public String getXSeriesName() {
 		return this.xSeriesName;
@@ -1181,6 +1224,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			}
 			return;
 		}
+		
 		Graphics2D gBackground;
 		if (needRedraw) {
 			bufferedImage = new BufferedImage(areaWidth, areaHeight, BufferedImage.TYPE_INT_RGB);
@@ -1226,30 +1270,46 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		Stroke oldStroke = gBackground.getStroke();
 		gBackground.setStroke(new BasicStroke(2 * SCALA));
 		Stroke fineStroke = new BasicStroke(1 * SCALA);
-		for (Series series : data) {
-			if (series.isSlave())
-				continue; // first plot all masters, then all slaves: this way we are sure that the master has set all it needs and the slave can lazily copy the same settings
-
+		if (useXvsY) {
 			if (needRedraw) {
-				if (series.getColor() == null || series.getChangeColor()) {
-					if (!series.getChangeColor()) {
+				if (xSeries.getColor() == null || xSeries.getChangeColor()) {
+					if (!xSeries.getChangeColor()) {
 						gBackground.setPaint(nextCol());
 					} else {
 						gBackground.setPaint(randomCol());
-						series.setChangeColor(false);
+						xSeries.setChangeColor(false);
 					}
 				} else {
-					gBackground.setPaint(series.getColor());
+					gBackground.setPaint(xSeries.getColor());
 				}
-				series.plot(gBackground, bounds, stepShapedLines, SCALA);
-				if (series.isMaster()) {
-					series.getSlave().plot(gBackground, bounds, stepShapedLines, SCALA);
-				}
+				xSeries.plotVS(ySeries, gBackground, bounds, stepShapedLines, SCALA);
 			}
-
-			double labelLength = fm.stringWidth(series.getName());
-			if (labelLength > maxLabelLength) {
-				maxLabelLength = labelLength;
+		} else {
+			for (Series series : data) {
+				if (series.isSlave())
+					continue; // first plot all masters, then all slaves: this way we are sure that the master has set all it needs and the slave can lazily copy the same settings
+	
+				if (needRedraw) {
+					if (series.getColor() == null || series.getChangeColor()) {
+						if (!series.getChangeColor()) {
+							gBackground.setPaint(nextCol());
+						} else {
+							gBackground.setPaint(randomCol());
+							series.setChangeColor(false);
+						}
+					} else {
+						gBackground.setPaint(series.getColor());
+					}
+					series.plot(gBackground, bounds, stepShapedLines, SCALA);
+					if (series.isMaster()) {
+						series.getSlave().plot(gBackground, bounds, stepShapedLines, SCALA);
+					}
+				}
+	
+				double labelLength = fm.stringWidth(series.getName());
+				if (labelLength > maxLabelLength) {
+					maxLabelLength = labelLength;
+				}
 			}
 		}
 
@@ -1273,8 +1333,18 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			g.setPaint(RED_LINE_COLOR);
 			Stroke olStroke = g.getStroke();
 			g.setStroke(new BasicStroke(3 * SCALA));
-			g.drawLine((int) Math.round(bounds.x + xRedLine * scale.getXScale()), bounds.height + bounds.y,
-					(int) Math.round(bounds.x + xRedLine * scale.getXScale()), bounds.y - 10 * SCALA);
+			if (useXvsY) {
+				double x, y;
+				int width, height;
+				width = height = 10 * SCALA;
+				x = bounds.x + scale.getXScale() * Series.getDataPoint(xSeries.getData(), xRedLine);
+				y = bounds.y + bounds.height - scale.getYScale() * Series.getDataPoint(ySeries.getData(), xRedLine);
+//				System.err.println("Disegno il punto in (" + Series.getDataPoint(xSeries.getData(), xRedLine) + ", " + Series.getDataPoint(ySeries.getData(), xRedLine) + " --> (" + (int)x + ", " + (int)y + ")");
+				g.fillOval((int)(x - width / 2.0), (int)(y - height / 2.0), width, height);
+			} else {
+				g.drawLine((int) Math.round(bounds.x + xRedLine * scale.getXScale()), bounds.height + bounds.y,
+						(int) Math.round(bounds.x + xRedLine * scale.getXScale()), bounds.y - 10 * SCALA);
+			}
 			g.setStroke(olStroke);
 		}
 
@@ -1288,7 +1358,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 			legendBounds = new Rectangle(bounds.width - 1 * SCALA - (int) maxLabelLength, bounds.y + 1 * SCALA, 35
 					* SCALA + (int) maxLabelLength, 20 * SCALA * nGraphs);
 		}
-		if (showLegend) {
+		if (showLegend && !useXvsY) {
 			drawLegend(g, legendBounds);
 		}
 
@@ -1304,6 +1374,33 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		}
 		g.setStroke(oldStroke);
 		g.setFont(oldFont);
+	}
+	
+	
+	private Series xSeries = null, //The series for a "X vs Y" graph
+				   ySeries;
+	private double savedMinX = Double.NaN,
+				   savedMaxX = Double.NaN;
+	private String savedXLabel = null,
+				   savedYLabel = null;
+	public void setXvsY(Series xSeries, Series ySeries) {
+		if (!useXvsY) { //Save the x min and max, and the names for the axes
+			savedMinX = scale.getMinX();
+			savedMaxX = scale.getMaxX();
+			savedXLabel = xSeriesName;
+			savedYLabel = yLabel;
+			scale.setMinX(scale.getMinY()); //What is now the "Y" axis will be both axes in this graph, as it plots the values of both series
+			scale.setMaxX(scale.getMaxY());
+			//We don't use setDrawArea here, because we want to keep the same scale in the slider under the graph, which would be notified of this change if we were to use that function
+		}
+		this.useXvsY = true;
+		this.useHeatMap = false;
+		this.xSeries = xSeries;
+		this.ySeries = ySeries;
+		xSeriesName = xSeries.getName();
+		yLabel = ySeries.getName();
+		this.ensureRedraw();
+		this.repaint();
 	}
 
 	/*
@@ -1536,6 +1633,71 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		return new SimpleLevelResult((int)Math.round(maxYValue), levels);
 
 	}
+	
+	
+	private LevelResult originalResult = null;
+	private List<String> plottedSeriesNames = null,
+						 nonPlottedSeriesNames = null;
+	private Map<String, String> seriesNameMapping = null;
+	private double originalXScale = Double.NaN;
+	private String originalXSeriesName = null,
+				   originalYLabel = null;
+	/*
+	 * Save the original LevelResult, with the lists of plotted and non-plotted series.
+	 * We can use those lists to change the plotted series, then we just need to filter
+	 * the result and re-parse the data for the graph.
+	 */
+	public void storeOriginalLevelResult(SimpleLevelResult result, List<String> plottedSeriesNames, List<String> nonPlottedSeriesNames,
+			Map<String, String> seriesNameMapping, double xScale, String originalXSeriesName, String originalYLabel) {
+		this.originalResult = result;
+		this.plottedSeriesNames = plottedSeriesNames;
+		this.nonPlottedSeriesNames = nonPlottedSeriesNames;
+		this.seriesNameMapping = seriesNameMapping;
+		this.originalXScale = xScale;
+		this.originalXSeriesName = originalXSeriesName;
+		this.originalYLabel = originalYLabel;
+	}
+	
+	public List<String> getPlottedSeriesNames() {
+		return this.plottedSeriesNames;
+	}
+	
+	public List<String> getNonPlottedSeriesNames() {
+		return this.nonPlottedSeriesNames;
+	}
+	
+	/*
+	 * The names of the plotted and non-plotted series we store, give and expect to get are all in the original
+	 * format of the UPPAAL model: this means that we need to provide other classes with the map to understand/show
+	 * these names as they were the canonical names of the nodes in the Cytoscape networks
+	 */
+	public Map<String, String> getSeriesNamesMapping() {
+		return this.seriesNameMapping;
+	}
+
+	/*
+	 * Re-parse the original LevelResult using the given list of series to be plotted 
+	 */
+	public void setPlottedSeriesNames(List<String> plottedSeriesNames, List<String> nonPlottedSeriesNames) {
+		if (originalResult == null) {
+			System.err.println("I was asked to change the list of plotted series, but I have no original result to get them from!");
+			return;
+		}
+		this.plottedSeriesNames = plottedSeriesNames;
+		this.nonPlottedSeriesNames = nonPlottedSeriesNames;
+		double minX = getScale().getMinX(),
+			   maxX = getScale().getMaxX(),
+			   minY = getScale().getMinY(),
+			   maxY = getScale().getMaxY();
+		this.reset(); //Remove all the previously displayed series and reset the graph like new
+		this.parseLevelResult(originalResult.filter(plottedSeriesNames), seriesNameMapping, originalXScale);
+		this.setXSeriesName(originalXSeriesName);
+		this.setYLabel(originalYLabel);
+		this.setDrawArea(minX, maxX, minY, maxY);
+		this.ensureRedraw();
+		this.repaint();
+	}
+	
 	
 	/*
 	 * Add a new set of Series from a given LevelResult, marking all as shown
@@ -1800,4 +1962,5 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 	public void setZoomLevel(int newSCALA) {
 		this.SCALA = newSCALA;
 	}
+
 }

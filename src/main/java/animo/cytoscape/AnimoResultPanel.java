@@ -619,6 +619,7 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 		// we will be able to use graph series names consistent with what the user has chosen.
 		Map<String, String> seriesNameMapping = new HashMap<String, String>();
 		List<String> filteredSeriesNames = new ArrayList<String>(); // profit from the cycle for the series mapping to create a filter for the series to be actually plotted
+		List <String> nonPlottedSeriesNames = new ArrayList<String>();
 		for (String r : result.getReactantIds()) {
 			if (r.charAt(0) == 'E')
 				continue; // If the identifier corresponds to an edge (e.g. "Enode123 (DefaultEdge) node456") we don't consider it, as we are looking only at series to be plotted
@@ -646,23 +647,33 @@ public class AnimoResultPanel extends JPanel implements ChangeListener, GraphSca
 					name = r; // boh
 				}
 			}
-			if ((!r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase())
+			if (!r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) //Normal series
 					&& !r.toLowerCase().contains(ResultAverager.OVERLAY_NAME.toLowerCase())
-					&& model.getReactant(r) != null && model.getReactant(r).get(Model.Properties.PLOTTED)
-					.as(Boolean.class))
-					|| ((r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) || r.toLowerCase().contains(
-							ResultAverager.OVERLAY_NAME.toLowerCase()))
-							&& model.getReactant(stdDevReactantName) != null && model.getReactant(stdDevReactantName)
-							.get(Model.Properties.PLOTTED).as(Boolean.class))) {
-
-				filteredSeriesNames.add(r);
+					&& model.getReactant(r) != null) {
+				if (model.getReactant(r).get(Model.Properties.PLOTTED).as(Boolean.class)) { //Plotted reactants are directly shown
+					filteredSeriesNames.add(r);
+				} else { //Non-plotted reactants are kept in a separated list, so if we need them (when changing the reactants plotted in the graph) they are available
+					nonPlottedSeriesNames.add(r);
+				}
+			}
+			if ((r.toLowerCase().contains(ResultAverager.STD_DEV.toLowerCase()) || r.toLowerCase().contains(
+							ResultAverager.OVERLAY_NAME.toLowerCase())) //STDdev or overlay series
+							&& model.getReactant(stdDevReactantName) != null) {
+				if (model.getReactant(stdDevReactantName).get(Model.Properties.PLOTTED).as(Boolean.class)) {
+					filteredSeriesNames.add(r);
+				} else {
+					nonPlottedSeriesNames.add(r);
+				}
 			}
 			seriesNameMapping.put(r, name);
 		}
 		g.parseLevelResult(result.filter(filteredSeriesNames), seriesNameMapping, scale); // Add all series to the graph, using the mapping we built here to "translate" the names
 																							// into the user-defined ones.
-		g.setXSeriesName("Time (min)");
-		g.setYLabel("Protein activity (a. u.)");
+		String xSeriesName = "Time (min)",
+			   yLabel = "Protein activity (a. u.)";
+		g.storeOriginalLevelResult(result, filteredSeriesNames, nonPlottedSeriesNames, seriesNameMapping, scale, xSeriesName, yLabel); //Keep the original data so that it can be used to change the shown series if needed
+		g.setXSeriesName(xSeriesName);
+		g.setYLabel(yLabel);
 
 		if (!model.getProperties().get(Model.Properties.NUMBER_OF_LEVELS).isNull()) { // if we find a maximum value for activity levels, we declare it to the graph, so that other
 																						// added graphs (such as experimental data) will be automatically rescaled to match us

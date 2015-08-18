@@ -2,6 +2,7 @@ package animo.cytoscape;
 
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.GridBagConstraints;
 import java.awt.GridBagLayout;
 import java.awt.Insets;
@@ -13,12 +14,14 @@ import java.util.Arrays;
 import java.util.Collection;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
 import java.util.SortedSet;
 import java.util.TreeSet;
 import java.util.Vector;
 
 import javax.swing.AbstractListModel;
 import javax.swing.BorderFactory;
+import javax.swing.DefaultListCellRenderer;
 import javax.swing.JButton;
 import javax.swing.JFrame;
 import javax.swing.JLabel;
@@ -48,8 +51,14 @@ public class DualListBox<Type> extends JPanel {
 	private JLabel destLabel;
 	private JButton addButton;
 	private JButton removeButton;
+	private Map<Type, String> mapForDisplayedNames = null;
 
 	public DualListBox() {
+		initScreen();
+	}
+	
+	public DualListBox(Map<Type, String> mapForDisplayedNames) { //If we want to show a particular string description for each elemet of the lists, just provide the descriptions and we will automatically render them properly
+		this.mapForDisplayedNames = mapForDisplayedNames;
 		initScreen();
 	}
 
@@ -274,6 +283,20 @@ public class DualListBox<Type> extends JPanel {
 		    }
 		});
 		
+		if (mapForDisplayedNames != null) { //If we were given a correspondence between the elements in our lists and Strings, we change the ListCellRenderer to the appropriate one automatically 
+			ListCellRenderer<? super Type> renderer = new ListCellRenderer<Type>() {
+				protected DefaultListCellRenderer defaultRenderer = new DefaultListCellRenderer();
+
+				@Override
+				public Component getListCellRendererComponent(JList<? extends Type> list, Type value, int index, boolean isSelected, boolean cellHasFocus) {
+					JLabel renderer = (JLabel)defaultRenderer.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+					renderer.setText(mapForDisplayedNames.get(value));
+					return renderer;
+				}
+			};
+			setSourceCellRenderer(renderer);
+			setDestinationCellRenderer(renderer);
+		}
 	}
 
 	public static void main(String args[]) {

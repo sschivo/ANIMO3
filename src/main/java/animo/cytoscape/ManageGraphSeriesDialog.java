@@ -39,13 +39,13 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
-import javax.swing.JOptionPane;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
 import javax.swing.KeyStroke;
 import javax.swing.ListCellRenderer;
 import javax.swing.SwingUtilities;
+import javax.swing.border.Border;
 import javax.swing.border.EtchedBorder;
 import javax.swing.event.DocumentEvent;
 import javax.swing.event.DocumentListener;
@@ -62,6 +62,7 @@ public class ManageGraphSeriesDialog extends JDialog {
 	private Graph graph = null;
 	private Vector<Series> graphSeries = null;
 	private Map<Component, Series> mapSeriesComponent = null;
+	private JPanel values = null;
 
 	public ManageGraphSeriesDialog(Graph graph, Vector<Series> graphSeries) {
 		this(Animo.getCytoscape().getJFrame(), graph, graphSeries);
@@ -80,67 +81,55 @@ public class ManageGraphSeriesDialog extends JDialog {
 		this.graphSeries = graphSeries;
 		this.mapSeriesComponent = new HashMap<Component, Series>();
 		
-		JPanel values = makeComponents(graphSeries); //new JPanel(new GridLayout(1, 2, 2, 2));
+		values = new JPanel(new BorderLayout());
+		makeComponents(values, graphSeries);
 		JPanel dialogControls = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		JPanel commands = new JPanel(new FlowLayout(FlowLayout.LEFT));
 		
-		
-		JButton	changePlotted = new JButton(new AbstractAction(CHANGE_PLOTTED) {
-			private static final long serialVersionUID = 2072278126467664612L;
-			@Override
-			public void actionPerformed(ActionEvent e) {
-				final JDialog plottedChoice = new JDialog(ManageGraphSeriesDialog.this, "Change plotted series from this simulation");
-				final DualListBox<Series> twoLists = new DualListBox<Series>();
-				twoLists.addDestinationElements(graphSeries);
-				JPanel plotCmds = new JPanel(new FlowLayout(FlowLayout.RIGHT));
-				JButton accept = new JButton(new AbstractAction("Accept") {
-					private static final long serialVersionUID = -8865661150505239933L;
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						StringBuilder builder = new StringBuilder();
-						boolean first = true;
-						for (Series s : twoLists.getDestinationList()) {
-							if (!first) {
-								builder.append(", ");
-							} else {
-								first = false;
-							}
-							builder.append(s.getName());
+		final Map<String, String> seriesNamesMapping = graph.getSeriesNamesMapping();
+		if (seriesNamesMapping != null) {
+			JButton	changePlotted = new JButton(new AbstractAction(CHANGE_PLOTTED) {
+				private static final long serialVersionUID = 2072278126467664612L;
+				@Override
+				public void actionPerformed(ActionEvent e) {
+					final JDialog plottedChoice = new JDialog(ManageGraphSeriesDialog.this, "Change plotted series from this simulation");
+					final DualListBox<String> twoLists = new DualListBox<String>(seriesNamesMapping);
+					twoLists.addDestinationElements(graph.getPlottedSeriesNames());
+					twoLists.addSourceElements(graph.getNonPlottedSeriesNames());
+					JPanel plotCmds = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+					JButton accept = new JButton(new AbstractAction("Accept") {
+						private static final long serialVersionUID = -8865661150505239933L;
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							plottedChoice.dispose();
+							graph.setPlottedSeriesNames(twoLists.getDestinationList(), twoLists.getSourceList());
+							SwingUtilities.invokeLater(new Runnable() {
+								public void run() {
+									updateFromGraphData();
+								}
+							});
 						}
-						JOptionPane.showMessageDialog(plottedChoice, "The selected series: " + builder.toString());
-						plottedChoice.dispose();
-					}
-				});
-				JButton cancel = new JButton(new AbstractAction("Cancel") {
-					private static final long serialVersionUID = 3045537740873530372L;
-					@Override
-					public void actionPerformed(ActionEvent e) {
-						plottedChoice.dispose();
-					}
-				});
-				plotCmds.add(accept);
-				plotCmds.add(cancel);
-				plottedChoice.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "CANCEL");
-				plottedChoice.getRootPane().getActionMap().put("CANCEL", cancel.getAction());
-				plottedChoice.getContentPane().add(twoLists, BorderLayout.CENTER);
-				plottedChoice.getContentPane().add(plotCmds, BorderLayout.SOUTH);
-				plottedChoice.pack();
-				plottedChoice.setLocationRelativeTo(ManageGraphSeriesDialog.this);
-				plottedChoice.setVisible(true);
-			}
-		});
-		commands.add(changePlotted);
-
-//		controls.add(new JButton(new AbstractAction(SAVE) {
-//			private static final long serialVersionUID = -6920908627164931058L;
-//
-//			@Override
-//			public void actionPerformed(ActionEvent e) {
-//				
-//				ManageGraphSeriesDialog.this.dispose();
-//			}
-//		}));
-
+					});
+					JButton cancel = new JButton(new AbstractAction("Cancel") {
+						private static final long serialVersionUID = 3045537740873530372L;
+						@Override
+						public void actionPerformed(ActionEvent e) {
+							plottedChoice.dispose();
+						}
+					});
+					plotCmds.add(accept);
+					plotCmds.add(cancel);
+					plottedChoice.getRootPane().getInputMap(JComponent.WHEN_ANCESTOR_OF_FOCUSED_COMPONENT).put(KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "CANCEL");
+					plottedChoice.getRootPane().getActionMap().put("CANCEL", cancel.getAction());
+					plottedChoice.getContentPane().add(twoLists, BorderLayout.CENTER);
+					plottedChoice.getContentPane().add(plotCmds, BorderLayout.SOUTH);
+					plottedChoice.pack();
+					plottedChoice.setLocationRelativeTo(ManageGraphSeriesDialog.this);
+					plottedChoice.setVisible(true);
+				}
+			});
+			commands.add(changePlotted);
+		}
 		
 		JButton closeButton = new JButton(new AbstractAction(CANCEL) {
 			private static final long serialVersionUID = 3103827646050457714L;
@@ -163,9 +152,9 @@ public class ManageGraphSeriesDialog extends JDialog {
 		buttonsBox.add(dialogControls);
 		this.getContentPane().add(buttonsBox, BorderLayout.SOUTH);
 		
-		Dimension dim = this.getPreferredSize();
-		dim.setSize(300, dim.getHeight());
-		this.setMinimumSize(dim);
+//		Dimension dim = this.getPreferredSize();
+//		dim.setSize(300, dim.getHeight());
+//		this.setMinimumSize(dim);
 		this.pack();
 	}
 
@@ -178,9 +167,17 @@ public class ManageGraphSeriesDialog extends JDialog {
 	
 	
 	
+	public void updateFromGraphData() {
+		this.graphSeries = this.graph.getSeriesData();
+		this.mapSeriesComponent = new HashMap<Component, Series>();
+		values.removeAll();
+		makeComponents(values, graphSeries);
+		this.pack();
+		this.setLocationRelativeTo(graph);
+	}
 	
 	
-	public JPanel makeComponents(Vector<Series> graphSeries) {
+	public void makeComponents(JPanel whereToPutThem, Vector<Series> graphSeries) {
 		Box box = Box.createVerticalBox();
 		DragMouseAdapter dh = new DragMouseAdapter();
 		box.addMouseListener(dh);
@@ -193,9 +190,7 @@ public class ManageGraphSeriesDialog extends JDialog {
 			box.add(component);
 			mapSeriesComponent.put(component, s);
 		}
-		JPanel p = new JPanel(new BorderLayout());
-		p.add(box, BorderLayout.NORTH);
-		return p;
+		whereToPutThem.add(box, BorderLayout.CENTER);
 	}
 
 	protected ImageIcon createImageIcon(String path) {
@@ -338,12 +333,15 @@ public class ManageGraphSeriesDialog extends JDialog {
 	
 	
 	
-	private class ColorCellRenderer extends JButton implements ListCellRenderer<Color> {
+	private class ColorCellRenderer extends JPanel implements ListCellRenderer<Color> {
 		private static final long serialVersionUID = 1742730085321443168L;
 		private boolean blocker=false;
+		private final Border LINE_BORDER = BorderFactory.createLineBorder(Color.BLACK),
+							 EMPTY_BORDER = BorderFactory.createEmptyBorder();
 		
 		public ColorCellRenderer() {
 			setOpaque(true);
+			setPreferredSize(new Dimension(40, 20));
 		}
 		
 		@Override
@@ -357,13 +355,15 @@ public class ManageGraphSeriesDialog extends JDialog {
 		@Override
 		public Component getListCellRendererComponent(JList<? extends Color> list, Color value, int index, boolean isSelected, boolean cellHasFocus) {
 			blocker = true;
-			setText("");
+			//setText("");
 			if (isSelected) {
-				setBackground((Color)value.brighter());
+				//setBackground((Color)value.brighter());
+				setBorder(LINE_BORDER);
 			} else {
-				setBackground((Color)value);
+				//setBackground((Color)value);
+				setBorder(EMPTY_BORDER);
 			}
-//			this.setBackground((Color)value.brighter());
+			setBackground((Color)value);
 			blocker = false;
 			return this;
 		}

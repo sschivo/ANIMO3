@@ -7,6 +7,10 @@ import java.awt.Graphics2D;
 import java.awt.Polygon;
 import java.awt.Rectangle;
 import java.awt.geom.Point2D;
+import java.util.Collections;
+import java.util.SortedSet;
+import java.util.TreeSet;
+import java.util.Vector;
 
 import animo.core.analyser.uppaal.ResultAverager;
 
@@ -448,6 +452,55 @@ public class Series implements Comparable<Series> {
 				}
 				vecchio = punto;
 			}
+		}
+	}
+	
+	
+	public void plotVS(Series other, Graphics2D g, Rectangle bounds, boolean stepShaped, int SCALA) {
+		scale.computeScale(bounds);
+		double scaleX = scale.getXScale(),
+			   scaleY = scale.getYScale(),
+			   minX = scale.getMinX(), //Both X and Y in this kind of graph (which is entirely drawn in a single call to this function) use the Y scale for the "normal" graphs, as we represent values of reactants in both axes
+			   minY = scale.getMinY(); // BUT! We already have made that change x-->y in the Graph before asking the series to plot, so we don't need to worry about that here
+		
+		Vector<Double> combinedTimePoints = new Vector<Double>();
+		for (P p : this.data) {
+			combinedTimePoints.add(p.x);
+		}
+		for (P p : other.data) {
+			combinedTimePoints.add(p.x);
+		}
+		Collections.sort(combinedTimePoints);
+		SortedSet<Double> timePoints = new TreeSet<Double>();
+		timePoints.addAll(combinedTimePoints);
+		
+		P vecchio = new P(getDataPoint(data, 0), getDataPoint(other.data, 0));
+		for (Double t : timePoints) {
+			P punto = new P(getDataPoint(data, t), getDataPoint(other.data, t));
+			if (punto.x < minX) {
+				vecchio = punto;
+				continue;
+			}
+			if (stepShaped) {
+				g.drawLine((int)(bounds.x + scaleX * (vecchio.x - minX)), (int)(bounds.y + bounds.height - scaleY * (vecchio.y - minY)),
+						(int)(bounds.x + scaleX * (punto.x - minX)), (int)(bounds.y + bounds.height - scaleY * (vecchio.y - minY)));
+				g.drawLine((int)(bounds.x + scaleX * (punto.x - minX)), (int)(bounds.y + bounds.height - scaleY * (vecchio.y - minY)),
+						(int)(bounds.x + scaleX * (punto.x - minX)), (int)(bounds.y + bounds.height - scaleY * (punto.y - minY)));
+			} else {
+				g.drawLine((int)(bounds.x + scaleX * (vecchio.x - minX)), (int)(bounds.y + bounds.height - scaleY * (vecchio.y - minY)), 
+						(int)(bounds.x + scaleX * (punto.x - minX)), (int)(bounds.y + bounds.height - scaleY * (punto.y - minY)));
+			}
+			vecchio = punto;
+		}
+	}
+	
+	public static double getDataPoint(P[] data, double time) { //Get the first data point p for which p.x >= time 
+		int i;
+		for (i=0; i<data.length && data[i].x < time; i++);
+		if (i < data.length) {
+			return data[i].y;
+		} else {
+			return data[data.length - 1].y;
 		}
 	}
 }
