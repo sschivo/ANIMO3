@@ -366,6 +366,7 @@ public class Graph extends JPanel implements MouseListener, MouseMotionListener,
 		//popupMenu.add(stepShapedGraph);
 		//popupMenu.add(heatMapGraph);
 		graphTypeMenu.add(stepShapedGraph);
+		graphTypeMenu.addSeparator();
 		graphTypeMenu.add(normalGraph);
 		graphTypeMenu.add(heatMapGraph);
 		graphTypeMenu.add(xVSyGraph);

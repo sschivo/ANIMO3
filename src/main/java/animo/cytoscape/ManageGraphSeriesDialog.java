@@ -40,6 +40,7 @@ import javax.swing.JDialog;
 import javax.swing.JLabel;
 import javax.swing.JList;
 import javax.swing.JPanel;
+import javax.swing.JScrollPane;
 import javax.swing.JTextField;
 import javax.swing.JWindow;
 import javax.swing.KeyStroke;
@@ -131,6 +132,35 @@ public class ManageGraphSeriesDialog extends JDialog {
 			commands.add(changePlotted);
 		}
 		
+		
+//		//This here is just for testing purposes: allow to switch all known look and feels themes on the fly to check how the JComboBox for the color choice behaves.
+//		if (Animo.areWeTheDeveloper()) {
+//			Box lfBox = new Box(BoxLayout.X_AXIS);
+//			ButtonGroup lfGroup = new ButtonGroup();
+//			for (LookAndFeelInfo info : UIManager.getInstalledLookAndFeels()) {
+//				final String lNfName = info.getName(),
+//							 lNfClassName = info.getClassName();
+//				JRadioButton lfRadio = new JRadioButton(lNfName);
+//				lfRadio.addActionListener(new ActionListener() {
+//					public void actionPerformed(ActionEvent e) {
+//						try {
+//							UIManager.setLookAndFeel(lNfClassName);
+//						} catch (ClassNotFoundException | InstantiationException | IllegalAccessException
+//								| UnsupportedLookAndFeelException e1) {
+//							e1.printStackTrace(System.err);
+//						}
+//						SwingUtilities.updateComponentTreeUI(ManageGraphSeriesDialog.this);
+//						ManageGraphSeriesDialog.this.pack();
+//					}
+//				});
+//				lfGroup.add(lfRadio);
+//				lfBox.add(lfRadio);
+//			}
+//			dialogControls.add(lfBox);
+//		}
+		
+		
+		
 		JButton closeButton = new JButton(new AbstractAction(CANCEL) {
 			private static final long serialVersionUID = 3103827646050457714L;
 
@@ -146,7 +176,7 @@ public class ManageGraphSeriesDialog extends JDialog {
 				KeyStroke.getKeyStroke(KeyEvent.VK_ESCAPE, 0), "CANCEL");
 		this.getRootPane().getActionMap().put("CANCEL", closeButton.getAction());
 
-		this.getContentPane().add(values, BorderLayout.CENTER);
+		this.getContentPane().add(new JScrollPane(values, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER), BorderLayout.CENTER);
 		Box buttonsBox = new Box(BoxLayout.X_AXIS);
 		buttonsBox.add(commands);
 		buttonsBox.add(dialogControls);
@@ -155,6 +185,9 @@ public class ManageGraphSeriesDialog extends JDialog {
 //		Dimension dim = this.getPreferredSize();
 //		dim.setSize(300, dim.getHeight());
 //		this.setMinimumSize(dim);
+		Dimension dim = this.getPreferredSize();
+		dim.setSize(dim.getWidth(), graph.getHeight());
+		this.setPreferredSize(dim);
 		this.pack();
 	}
 
@@ -350,6 +383,15 @@ public class ManageGraphSeriesDialog extends JDialog {
 				return;
 			}
 			super.setBackground(bg);
+		}
+		
+		@Override
+		public void paint(Graphics g_) {
+			super.paint(g_);
+			Graphics2D g = (Graphics2D)g_;
+			g.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
+			g.setPaint(this.getBackground());
+			g.fillRoundRect(3, 3, getWidth() - 6, getHeight() - 6, 4, 4); //Keep some space for the border
 		}
 		
 		@Override

@@ -20,6 +20,7 @@ import javax.swing.JComponent;
 import javax.swing.JDialog;
 import javax.swing.JPanel;
 import javax.swing.JRadioButton;
+import javax.swing.JScrollPane;
 import javax.swing.KeyStroke;
 
 import animo.core.graph.Graph;
@@ -52,9 +53,9 @@ public class ChooseVSGraphDialog extends JDialog {
 		fillBox(xCandidates, xGroup);
 		fillBox(yCandidates, yGroup);
 		Box allCandidates = new Box(BoxLayout.X_AXIS);
-		allCandidates.add(new LabelledField("X", xCandidates));
+		allCandidates.add(new LabelledField("X", new JScrollPane(xCandidates, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)));
 		allCandidates.add(Box.createHorizontalStrut(5));
-		allCandidates.add(new LabelledField("Y", yCandidates));
+		allCandidates.add(new LabelledField("Y", new JScrollPane(yCandidates, JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED, JScrollPane.HORIZONTAL_SCROLLBAR_NEVER)));
 		this.getContentPane().add(allCandidates, BorderLayout.CENTER);
 		JPanel controls = new JPanel(new FlowLayout(FlowLayout.RIGHT));
 		JButton accept = new JButton(new AbstractAction("OK") {
