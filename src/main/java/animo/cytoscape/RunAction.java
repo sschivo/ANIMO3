@@ -53,7 +53,10 @@ public class RunAction extends AnimoActionTask {
 			
 		}
 		
-		
+		@Override
+		public void cancel() {
+			needToStop = true;
+		}
 
 		// private TaskMonitor monitor;
 
@@ -341,7 +344,7 @@ public class RunAction extends AnimoActionTask {
 	private JTextField serverName, serverPort, smcFormula; // The name of the server, and the corresponding port, in the case we use a remote engine. The text inserted by the user
 															// for the SMC formula. Notice that this formula will need to be changed so that it will be compliant with the UPPAAL
 															// time scale, and reactant names
-	private boolean needToStop; // Whether the user has pressed the Cancel button on the TaskMonitor while we were running an analysis process
+//	private boolean needToStop; // Whether the user has pressed the Cancel button on the TaskMonitor while we were running an analysis process
 
 	private AnimoActionTask meStesso; // Myself
 
@@ -433,10 +436,5 @@ public class RunAction extends AnimoActionTask {
 		//Animo.getCyServiceRegistrar().getService(SynchronousTaskManager.class).execute(new TaskIterator(task)); <-- This does not create a task monitor, but we do want a task monitor, so we must end up waiting until the task finishes...)
 		//So in order to wait for the task to finish, we give it the TaskObserver object that gets called when the task is done.
 		
-	}
-
-	@Override
-	public boolean needToStop() {
-		return this.needToStop;
 	}
 }

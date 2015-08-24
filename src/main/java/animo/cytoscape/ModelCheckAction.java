@@ -38,6 +38,11 @@ import animo.util.XmlConfiguration;
 public class ModelCheckAction extends AnimoActionTask {
 	private class RunTask extends AbstractTask {
 
+		@Override
+		public void cancel() {
+			needToStop = true;
+		}
+		
 		/**
 		 * Send the (already translated) formula to the analyser. Show the result in a message window.
 		 * 

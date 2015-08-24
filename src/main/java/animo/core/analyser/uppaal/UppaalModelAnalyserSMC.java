@@ -39,6 +39,7 @@ import animo.core.analyser.AnalysisException;
 import animo.core.analyser.LevelResult;
 import animo.core.analyser.ModelAnalyser;
 import animo.core.analyser.SMCResult;
+import animo.core.analyser.UserInterruptedException;
 import animo.core.model.Model;
 import animo.core.model.Property;
 import animo.core.model.Reactant;
@@ -569,7 +570,6 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 							try {
 								Thread.sleep(500);
 							} catch (InterruptedException e) {
-								
 							}
 						}
 					}
@@ -580,7 +580,13 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				if (taskStatus == 2) {
 					System.err.println(" was interrupted by the user");
 					proc.destroy();
-					throw new AnalysisException("User interrupted");
+					BufferedReader br = null;
+					try {
+						br = new BufferedReader(new InputStreamReader(inputStream));
+						while (br.readLine() != null);
+					} catch (Exception ex) {
+					}
+					throw new UserInterruptedException("User interrupted");
 				}
 				if (taskStatus == 3) {
 					System.err.println(" was interrupted by an error");
@@ -651,6 +657,8 @@ public class UppaalModelAnalyserSMC implements ModelAnalyser<LevelResult> {
 				proc.getOutputStream().close();
 			//}
 			
+		} catch (UserInterruptedException e) {
+			throw e;
 		} catch (Exception e) {
 			StringWriter sw = new StringWriter();
 			PrintWriter pw = new PrintWriter(sw);
